@@ -1,13 +1,8 @@
 import { expect, test } from 'vitest';
 import { createClient } from '../client.ts';
-import { fragment } from '../fragment.ts';
+import { fragment, getFragmentNames } from '../fragment.ts';
 import { toEntityId } from '../ref.ts';
-import {
-  Fragment,
-  FragmentsTag,
-  getFragmentTag,
-  SelectionOf,
-} from '../types.ts';
+import { Fragment, FragmentsTag, SelectionOf } from '../types.ts';
 
 type User = { __typename: 'User'; id: string; name: string };
 
@@ -27,6 +22,11 @@ type Post = {
 
 const getId = (record: unknown) => (record as { id: string }).id;
 
+const tagsFor = (...fragments: Array<Fragment<any, any>>) =>
+  new Set(
+    fragments.flatMap((fragment) => Array.from(getFragmentNames(fragment))),
+  );
+
 test(`'readFragmentOrThrow' returns the selected fields`, () => {
   const client = createClient({
     entities: [
@@ -35,6 +35,7 @@ test(`'readFragmentOrThrow' returns the selected fields`, () => {
         key: getId,
         type: 'Post',
       },
+      { key: getId, type: 'Comment' },
     ],
     transport: {
       async fetchById() {
@@ -155,13 +156,13 @@ test(`'readFragmentOrThrow' returns fragment refs when fragments are used`, () =
     __typename: 'Comment',
     id: 'comment-1',
   });
-  expect(commentA.node[FragmentsTag]).toEqual(new Set([getFragmentTag(1)]));
+  expect(commentA.node[FragmentsTag]).toEqual(tagsFor(CommentFragment));
 
   expect(commentB.node).toEqual({
     __typename: 'Comment',
     id: 'comment-2',
   });
-  expect(commentB.node[FragmentsTag]).toEqual(new Set([getFragmentTag(1)]));
+  expect(commentB.node[FragmentsTag]).toEqual(tagsFor(CommentFragment));
 });
 
 test(`'readFragmentOrThrow' returns fragment refs for list selections`, () => {
@@ -231,7 +232,7 @@ test(`'readFragmentOrThrow' returns fragment refs for list selections`, () => {
     id: 'comment-1',
   });
 
-  expect(comment[FragmentsTag]).toEqual(new Set([getFragmentTag(3)]));
+  expect(comment[FragmentsTag]).toEqual(tagsFor(CommentFragment));
 });
 
 test(`'readFragmentOrThrow' returns only directly selected fields when fragment spreads are used`, () => {
@@ -314,7 +315,7 @@ test(`'readFragmentOrThrow' returns only directly selected fields when fragment 
   });
 
   expect(comment[FragmentsTag]).toEqual(
-    new Set([getFragmentTag(5), getFragmentTag(6)]),
+    tagsFor(CommentMetaFragment, CommentContentFragment),
   );
 });
 
@@ -378,7 +379,7 @@ test(`'readFragmentOrThrow' resolves object references and their fragments`, () 
     id: 'user-1',
   });
 
-  expect(result.author[FragmentsTag]).toEqual(new Set([getFragmentTag(8)]));
+  expect(result.author[FragmentsTag]).toEqual(tagsFor(UserFragment));
 });
 
 test(`'readFragmentOrThrow' resolves fields only if the ref contains the expected fragments`, () => {

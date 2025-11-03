@@ -1,8 +1,13 @@
 import type { TRPCClient } from '@trpc/client';
 import type { AnyRouter } from '@trpc/server';
-import { FateRecord, PageInfo } from './types.ts';
+import { FateRecord, PageInfo, type MutationShape } from './types.ts';
 
-export interface Transport {
+type TransportMutations = Record<string, MutationShape>;
+type EmptyTransportMutations = Record<never, MutationShape>;
+
+export interface Transport<
+  Mutations extends TransportMutations = EmptyTransportMutations,
+> {
   fetchById(
     type: string,
     ids: Array<string | number>,
@@ -16,6 +21,10 @@ export interface Transport {
     edges: Array<{ cursor: string; node: unknown }>;
     pageInfo: PageInfo;
   }>;
+  mutate?<K extends Extract<keyof Mutations, string>>(
+    proc: K,
+    input: Mutations[K]['input'],
+  ): Promise<Mutations[K]['output']>;
 }
 
 export type TRPCByIdResolvers<AppRouter extends AnyRouter> = Record<
@@ -38,14 +47,45 @@ export type TRPCListResolvers<AppRouter extends AnyRouter> = Record<
   }>
 >;
 
-export function createFateTransport<AppRouter extends AnyRouter>(opts: {
+type MutationResolver<AppRouter extends AnyRouter> = (
+  client: TRPCClient<AppRouter>,
+) => (input: any) => Promise<any>;
+
+export type TRPCMutationResolvers<AppRouter extends AnyRouter> = Record<
+  string,
+  MutationResolver<AppRouter>
+>;
+
+type MutationMapFromResolvers<R extends Record<string, MutationResolver<any>>> =
+  {
+    [K in keyof R]: R[K] extends (
+      client: any,
+    ) => (input: infer Input) => Promise<infer Output>
+      ? { input: Input; output: Output }
+      : never;
+  };
+
+type EmptyMutationResolvers<AppRouter extends AnyRouter> = Record<
+  never,
+  MutationResolver<AppRouter>
+>;
+
+export function createFateTransport<
+  AppRouter extends AnyRouter,
+  Mutations extends
+    TRPCMutationResolvers<AppRouter> = EmptyMutationResolvers<AppRouter>,
+>({
+  byId,
+  client,
+  lists,
+  mutations,
+}: {
   byId: TRPCByIdResolvers<AppRouter>;
   client: TRPCClient<AppRouter>;
   lists?: TRPCListResolvers<AppRouter>;
-}): Transport {
-  const { byId, client, lists } = opts;
-
-  return {
+  mutations?: Mutations;
+}): Transport<MutationMapFromResolvers<Mutations>> {
+  const transport: Transport<MutationMapFromResolvers<Mutations>> = {
     async fetchById(type, ids, select) {
       const resolver = byId[type];
       if (!resolver) {
@@ -56,15 +96,17 @@ export function createFateTransport<AppRouter extends AnyRouter>(opts: {
       const query = resolver(client);
       return await query({ ids, select: select ? [...select] : undefined });
     },
-    async fetchList(proc, args, select) {
+    async fetchList(procedure, args, select) {
       if (!lists) {
         throw new Error(
-          `fate(trpc): no list resolvers configured; cannot call "${proc}".`,
+          `fate(trpc): No list resolvers configured; cannot call "${procedure}".`,
         );
       }
-      const resolver = lists[proc];
+      const resolver = lists[procedure];
       if (!resolver) {
-        throw new Error(`fate(trpc): missing list resolver for proc "${proc}"`);
+        throw new Error(
+          `fate(trpc): Missing list resolver for procedure "${procedure}"`,
+        );
       }
       return resolver(client)({
         ...(args as object),
@@ -72,4 +114,21 @@ export function createFateTransport<AppRouter extends AnyRouter>(opts: {
       });
     },
   };
+
+  if (mutations) {
+    transport.mutate = async <K extends Extract<keyof Mutations, string>>(
+      procedure: K,
+      input: MutationMapFromResolvers<Mutations>[K]['input'],
+    ) => {
+      const resolver = mutations[procedure];
+      if (!resolver) {
+        throw new Error(
+          `fate(trpc): Missing mutation resolver for procedure '${procedure}'.`,
+        );
+      }
+      return await resolver(client)(input);
+    };
+  }
+
+  return transport;
 }

@@ -1,4 +1,5 @@
 import {
+  cloneMask,
   diffPaths,
   emptyMask,
   FieldMask,
@@ -9,6 +10,24 @@ import {
 import type { EntityId, FateRecord } from './types.ts';
 
 export type Subscriptions = Map<EntityId, Set<() => void>>;
+
+export type Snapshot = Readonly<{ mask?: FieldMask; record?: FateRecord }>;
+
+const cloneValue = (value: unknown): unknown => {
+  if (Array.isArray(value)) {
+    return value.map(cloneValue);
+  }
+
+  if (value != null && typeof value === 'object') {
+    const result: FateRecord = {};
+    for (const [key, record] of Object.entries(value)) {
+      result[key] = cloneValue(record);
+    }
+    return result;
+  }
+
+  return value;
+};
 
 export class Store {
   private coverage = new Map<EntityId, FieldMask>();
@@ -97,5 +116,30 @@ export class Store {
 
   setList(key: string, ids: Array<EntityId>) {
     this.lists.set(key, ids);
+  }
+
+  snapshot(id: EntityId): Snapshot {
+    const record = this.records.get(id);
+    const mask = this.coverage.get(id);
+    return {
+      mask: mask ? cloneMask(mask) : undefined,
+      record: record ? (cloneValue(record) as FateRecord) : undefined,
+    };
+  }
+
+  restore(id: EntityId, snapshot: Snapshot) {
+    if (snapshot.record === undefined) {
+      this.records.delete(id);
+    } else {
+      this.records.set(id, snapshot.record);
+    }
+
+    if (snapshot.mask === undefined) {
+      this.coverage.delete(id);
+    } else {
+      this.coverage.set(id, snapshot.mask);
+    }
+
+    this.notify(id);
   }
 }

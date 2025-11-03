@@ -6,12 +6,25 @@ export const FragmentsTag = Symbol('__fate__$fragments');
 
 export declare const __FateEntityBrand: unique symbol;
 export declare const __FateSelectionBrand: unique symbol;
+export declare const __FateMutationEntityBrand: unique symbol;
+export declare const __FateMutationInputBrand: unique symbol;
+export declare const __FateMutationResultBrand: unique symbol;
 
 type __FragmentEntityAnchor<T extends Entity> = {
   readonly [__FateEntityBrand]?: T;
 };
 type __FragmentSelectionAnchor<S> = {
   readonly [__FateSelectionBrand]?: S;
+};
+
+type __MutationEntityAnchor<T extends Entity> = {
+  readonly [__FateMutationEntityBrand]?: T;
+};
+type __MutationInputAnchor<I> = {
+  readonly [__FateMutationInputBrand]?: I;
+};
+type __MutationResultAnchor<R> = {
+  readonly [__FateMutationResultBrand]?: R;
 };
 
 export type FragmentTag = `__fate$fragment__$${number}`;
@@ -191,3 +204,39 @@ export type AnyQuery = Record<string, AnyQueryItem>;
 export function isNodeItem(item: AnyQueryItem): item is AnyNodeItem {
   return 'ids' in item;
 }
+
+export const MutationKind = '__fate__$mutation';
+
+export type MutationDefinition<T extends Entity, I, R> = Readonly<{
+  entity: T['__typename'];
+  [MutationKind]: true;
+}> &
+  __MutationEntityAnchor<T> &
+  __MutationInputAnchor<I> &
+  __MutationResultAnchor<R>;
+
+export type MutationIdentifier<T extends Entity, I, R> = MutationDefinition<
+  T,
+  I,
+  R
+> &
+  Readonly<{ key: string }>;
+
+export type MutationInput<M> =
+  M extends __MutationInputAnchor<infer I> ? I : never;
+export type MutationResult<M> =
+  M extends __MutationResultAnchor<infer R> ? R : never;
+export type MutationEntity<M> =
+  M extends __MutationEntityAnchor<infer E> ? E : never;
+export type MutationEntityName<M> = MutationEntity<M>['__typename'] & string;
+
+export type MutationShape = { input: unknown; output: unknown };
+
+export type MutationMapFromDefinitions<
+  D extends Record<string, MutationDefinition<any, any, any>>,
+> = {
+  [K in keyof D]: {
+    input: MutationInput<D[K]>;
+    output: MutationResult<D[K]>;
+  };
+};

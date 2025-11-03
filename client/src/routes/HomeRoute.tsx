@@ -1,8 +1,9 @@
 import { fragment, FragmentRef } from '@nkzw/fate';
 import Stack, { VStack } from '@nkzw/stack';
 import { FormEvent, Suspense, useCallback, useState } from 'react';
-import { useFragment, useQuery } from 'react-fate';
+import { useFragment, useMutation, useQuery } from 'react-fate';
 import type { Comment, Post } from '../lib/fate.tsx';
+import { fate } from '../lib/fate.tsx';
 import { Button } from '../ui/Button.tsx';
 import Card from '../ui/Card.tsx';
 import H3 from '../ui/H3.tsx';
@@ -77,8 +78,6 @@ const PostFragment = fragment<Post>()({
   title: true,
 });
 
-const noop = (test: any) => {};
-
 const Post = ({
   post: postRef,
   user,
@@ -90,18 +89,30 @@ const Post = ({
   const author = useFragment(AuthorFragment, post.author);
   const comments = post.comments?.edges ?? [];
 
-  // @ts-expect-error `createdAt` was not selected in the fragment.
-  noop(post.createdAt);
-
   const [commentText, setCommentText] = useState('');
 
-  const likeMutation = { error: null, isPending: false };
-  const unlikeMutation = { error: null, isPending: false };
-  const addCommentMutation = { error: { message: '' }, isPending: false };
-  const handleLike = useCallback(() => {}, []);
-  const handleUnlike = useCallback(() => {}, []);
+  const [likePost, likeIsPending] = useMutation(fate.mutations.likePost);
+  const [unlikePost, unlikeIsPending] = useMutation(fate.mutations.unlikePost);
+  const [addCommentMutation, addCommentIsPending, addCommentError] =
+    useMutation(fate.mutations.addComment);
 
-  const handleAddComment = (event: FormEvent<HTMLFormElement>) => {
+  const handleLike = useCallback(async () => {
+    await likePost({
+      input: { id: post.id },
+      optimisticUpdate: { likes: post.likes + 1 },
+    });
+  }, [likePost, post.id, post.likes]);
+
+  const handleUnlike = useCallback(async () => {
+    await unlikePost({
+      input: { id: post.id },
+      optimisticUpdate: {
+        likes: Math.max(post.likes - 1, 0),
+      },
+    });
+  }, [post.id, post.likes, unlikePost]);
+
+  const handleAddComment = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     const content = commentText.trim();
@@ -110,11 +121,15 @@ const Post = ({
       return;
     }
 
-    // TODO: Call the mutation.
+    await addCommentMutation({
+      input: { content, postId: post.id },
+    });
+
+    setCommentText('');
   };
 
   const isCommentDisabled =
-    addCommentMutation.isPending || commentText.trim().length === 0;
+    addCommentIsPending || commentText.trim().length === 0;
 
   return (
     <Card>
@@ -130,15 +145,11 @@ const Post = ({
             </p>
           </div>
           <Stack alignCenter gap>
-            <Button
-              disabled={likeMutation.isPending}
-              onClick={handleLike}
-              size="sm"
-            >
+            <Button disabled={likeIsPending} onClick={handleLike} size="sm">
               Like
             </Button>
             <Button
-              disabled={unlikeMutation.isPending || post.likes === 0}
+              disabled={unlikeIsPending || post.likes === 0}
               onClick={handleUnlike}
               size="sm"
               variant="outline"
@@ -184,9 +195,11 @@ const Post = ({
               }
               value={commentText}
             />
-            {addCommentMutation.error ? (
+            {addCommentError ? (
               <p className="text-destructive text-sm">
-                {addCommentMutation.error.message}
+                {addCommentError instanceof Error
+                  ? addCommentError.message
+                  : 'Something went wrong. Please try again.'}
               </p>
             ) : null}
             <Stack end gap>
@@ -221,7 +234,7 @@ const PostFeed = ({
 );
 
 const query = {
-  'post.list': {
+  posts: {
     args: { first: 20 },
     root: PostFragment,
     type: 'Post',
@@ -231,7 +244,7 @@ const query = {
 const Home = () => {
   const { data: session } = AuthClient.useSession();
   const user = session?.user;
-  const { 'post.list': posts } = useQuery(query);
+  const { posts } = useQuery(query);
 
   return (
     <VStack gap={32}>

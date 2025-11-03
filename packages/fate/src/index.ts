@@ -5,6 +5,12 @@ export type {
   FragmentData,
   FragmentTag,
   FragmentRef,
+  FateRecord,
+  MutationDefinition,
+  MutationIdentifier,
+  MutationInput,
+  MutationResult,
+  MutationEntityName,
   ListItem,
   Mask,
   NodeItem,
@@ -18,5 +24,6 @@ export { isNodeItem } from './types.ts';
 export type { Transport } from './transport.ts';
 
 export { fragment } from './fragment.ts';
+export { mutation } from './mutation.ts';
 export { createClient, FateClient } from './client.ts';
 export { createFateTransport } from './transport.ts';

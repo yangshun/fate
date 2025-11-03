@@ -5,7 +5,7 @@ import createRef, {
   toEntityId,
 } from './ref.ts';
 import { selectionFromFragment } from './selection.ts';
-import { Store } from './store.ts';
+import { Snapshot, Store } from './store.ts';
 import { Transport } from './transport.ts';
 import {
   FragmentKind,
@@ -21,6 +21,9 @@ import {
   type FragmentData,
   type FragmentRef,
   type ListItem,
+  type MutationDefinition,
+  type MutationIdentifier,
+  type MutationMapFromDefinitions,
   type Query,
   type Selection,
 } from './types.ts';
@@ -39,24 +42,154 @@ export function stableStringify(value: unknown): string {
   return `{${entries.join(',')}}`;
 }
 
-export type FateClientOptions = {
+type MutationIdentifierFor<
+  K extends string,
+  Def extends MutationDefinition<any, any, any>,
+> =
+  Def extends MutationDefinition<infer T, infer I, infer R>
+    ? MutationIdentifier<T, I, R> & Readonly<{ key: K }>
+    : never;
+
+type MutationTransport<
+  Mutations extends Record<string, MutationDefinition<any, any, any>>,
+> = MutationMapFromDefinitions<Mutations>;
+
+type EmptyMutations = Record<never, MutationDefinition<any, any, any>>;
+
+export type FateClientOptions<
+  Mutations extends Record<
+    string,
+    MutationDefinition<any, any, any>
+  > = EmptyMutations,
+> = {
   entities: ReadonlyArray<EntityConfig>;
-  transport: Transport;
+  mutations?: Mutations;
+  transport: Transport<MutationTransport<Mutations>>;
 };
 
-export class FateClient {
+export class FateClient<
+  Mutations extends Record<
+    string,
+    MutationDefinition<any, any, any>
+  > = EmptyMutations,
+> {
   private pending = new Map<string, Promise<void>>();
   private queryDone = new Set<string>();
   private queryInFlight = new Map<string, Promise<void>>();
   private readonly entities: Map<string, EntityConfig>;
-  private readonly transport: Transport;
+  private readonly transport: Transport<MutationTransport<Mutations>>;
+  private readonly mutationConfigs = new Map<string, { entity: string }>();
+  private readonly parentLists = new Map<
+    string,
+    Array<{ field: string; parentType: string; via?: string }>
+  >();
   readonly store = new Store();
 
-  constructor(opts: FateClientOptions) {
-    this.transport = opts.transport;
+  readonly mutations: {
+    [K in keyof Mutations]: MutationIdentifierFor<K & string, Mutations[K]>;
+  };
+
+  constructor(options: FateClientOptions<Mutations>) {
+    this.transport = options.transport;
     this.entities = new Map(
-      opts.entities.map((entity) => [entity.type, entity]),
+      options.entities.map((entity) => [entity.type, entity]),
     );
+    this.mutations = Object.create(null);
+
+    this.initializeParentLists();
+
+    if (options.mutations) {
+      for (const [key, definition] of Object.entries(options.mutations)) {
+        this.mutationConfigs.set(key, {
+          entity: definition.entity,
+        });
+
+        (this.mutations as Record<string, unknown>)[key] = {
+          ...definition,
+          key,
+        };
+      }
+    }
+  }
+
+  private initializeParentLists() {
+    for (const config of this.entities.values()) {
+      if (!config.fields) {
+        continue;
+      }
+
+      for (const [field, descriptor] of Object.entries(config.fields)) {
+        if (
+          descriptor &&
+          typeof descriptor === 'object' &&
+          'listOf' in descriptor
+        ) {
+          const childType = descriptor.listOf;
+          const childConfig = this.entities.get(childType);
+          if (!childConfig) {
+            throw new Error(
+              `fate: Unknown related type '${childType}' (field '${config.type}.${field}').`,
+            );
+          }
+
+          if (!childConfig.fields) {
+            continue;
+          }
+
+          let via: string | undefined;
+          for (const [childField, childDescriptor] of Object.entries(
+            childConfig.fields,
+          )) {
+            if (
+              childDescriptor &&
+              typeof childDescriptor === 'object' &&
+              'type' in childDescriptor &&
+              childDescriptor.type === config.type
+            ) {
+              via = childField;
+              break;
+            }
+          }
+
+          if (!via) {
+            continue;
+          }
+
+          let list = this.parentLists.get(childType);
+          if (!list) {
+            list = [];
+            this.parentLists.set(childType, list);
+          }
+
+          list.push({ field, parentType: config.type, via });
+        }
+      }
+    }
+  }
+
+  getEntityConfig(type: string): EntityConfig {
+    const config = this.entities.get(type);
+    if (!config) {
+      throw new Error(`fate: Unknown entity type '${type}'.`);
+    }
+    return config;
+  }
+
+  async executeMutation(key: string, input: unknown): Promise<unknown> {
+    if (!this.transport.mutate) {
+      throw new Error(`fate: transport does not support mutations.`);
+    }
+
+    return await this.transport.mutate(key as any, input as any);
+  }
+
+  write(
+    type: string,
+    data: FateRecord,
+    select?: Iterable<string>,
+    snapshots?: Map<EntityId, Snapshot>,
+  ) {
+    return this.normalizeEntity(type, data, select, snapshots);
   }
 
   ref<T extends Entity>(
@@ -186,9 +319,9 @@ export class FateClient {
     ids: Array<string | number>,
     select?: Iterable<string>,
   ) {
-    const entries = await this.transport.fetchById(type, ids, select);
-    for (const entry of entries) {
-      this.normalizeEntity(type, entry as FateRecord, select);
+    const records = await this.transport.fetchById(type, ids, select);
+    for (const record of records) {
+      this.normalizeEntity(type, record as FateRecord, select);
     }
   }
 
@@ -222,21 +355,24 @@ export class FateClient {
 
   private normalizeEntity(
     type: string,
-    entry: FateRecord,
+    record: FateRecord,
     select?: Iterable<string>,
+    snapshots?: Map<EntityId, Snapshot>,
   ): EntityId {
     const config = this.entities.get(type);
     if (!config) {
-      throw new Error(`fate: Unknown entity type '${type}' in normalization.`);
+      throw new Error(
+        `fate: Found unknown entity type '${type}' in normalization.`,
+      );
     }
 
-    const rawId = config.key(entry);
-    const id = toEntityId(type, rawId);
+    const id = config.key(record);
+    const entityId = toEntityId(type, id);
     const result: FateRecord = {};
 
     if (config.fields) {
       for (const [key, relationDescriptor] of Object.entries(config.fields)) {
-        const value = entry[key];
+        const value = record[key];
         if (relationDescriptor === 'scalar') {
           result[key] = value;
         } else if (
@@ -261,7 +397,12 @@ export class FateClient {
                   .map((part) => part.slice(key.length + 1))
               : undefined;
 
-            this.normalizeEntity(childType, value as FateRecord, childPaths);
+            this.normalizeEntity(
+              childType,
+              value as FateRecord,
+              childPaths,
+              snapshots,
+            );
           } else {
             result[key] = value;
           }
@@ -278,7 +419,7 @@ export class FateClient {
                 `fate: Unknown related type '${childType}' (field ${type}.${key}).`,
               );
             }
-            const ids = value.map((item) => {
+            const ids = value.map((item: FateRecord) => {
               const childId = toEntityId(childType, childConfig.key(item)!);
               const childPaths = select
                 ? [...select]
@@ -286,12 +427,12 @@ export class FateClient {
                     .map((part) => part.slice(key.length + 1))
                 : undefined;
 
-              this.normalizeEntity(childType, item as FateRecord, childPaths);
+              this.normalizeEntity(childType, item, childPaths, snapshots);
 
               return childId;
             });
             result[key] = ids;
-          } else {
+          } else if (value !== undefined) {
             result[key] = value;
           }
         } else {
@@ -300,14 +441,64 @@ export class FateClient {
       }
     }
 
-    for (const [key, value] of Object.entries(entry)) {
+    for (const [key, value] of Object.entries(record)) {
       if (!(key in (config.fields ?? {}))) {
         result[key] = value;
       }
     }
 
-    this.store.merge(id, result, select);
-    return id;
+    if (snapshots && !snapshots.has(entityId)) {
+      snapshots.set(entityId, this.store.snapshot(entityId));
+    }
+
+    this.store.merge(entityId, result, select);
+    this.linkParentLists(type, entityId, result, snapshots);
+    return entityId;
+  }
+
+  private linkParentLists(
+    type: string,
+    entityId: EntityId,
+    record: FateRecord,
+    snapshots?: Map<EntityId, Snapshot>,
+  ) {
+    const parents = this.parentLists.get(type);
+    if (!parents) {
+      return;
+    }
+
+    for (const parent of parents) {
+      if (!parent.via) {
+        continue;
+      }
+
+      const parentRef = record[parent.via];
+      if (typeof parentRef !== 'string') {
+        continue;
+      }
+
+      const parentId = parentRef;
+      const existing = this.store.read(parentId);
+      if (!existing) {
+        continue;
+      }
+
+      const current = Array.isArray(existing[parent.field])
+        ? (existing[parent.field] as Array<EntityId>)
+        : [];
+
+      if (current.includes(entityId)) {
+        continue;
+      }
+
+      if (snapshots && !snapshots.has(parentId)) {
+        snapshots.set(parentId, this.store.snapshot(parentId));
+      }
+
+      this.store.merge(parentId, { [parent.field]: [...current, entityId] }, [
+        parent.field,
+      ]);
+    }
   }
 
   private readFragment<T extends Entity, S extends Selection<T>>(
@@ -431,6 +622,11 @@ export class FateClient {
   }
 }
 
-export function createClient(options: FateClientOptions) {
-  return new FateClient(options);
+export function createClient<
+  Mutations extends Record<
+    string,
+    MutationDefinition<any, any, any>
+  > = EmptyMutations,
+>(options: FateClientOptions<Mutations>) {
+  return new FateClient<Mutations>(options);
 }

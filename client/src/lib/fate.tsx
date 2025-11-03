@@ -1,4 +1,4 @@
-import { createClient, createFateTransport } from '@nkzw/fate';
+import { createClient, createFateTransport, mutation } from '@nkzw/fate';
 import type { EntityConfig } from '@nkzw/fate';
 import type { AppRouter } from '@nkzw/fate-server/src/trpc/root.ts';
 import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
@@ -29,7 +29,7 @@ export type Post = PostBase & {
   comments: Array<Comment>;
 };
 
-const getId: EntityConfig['key'] = (record) => {
+const getId: EntityConfig['key'] = (record: unknown) => {
   if (!record || typeof record !== 'object' || !('id' in record)) {
     throw new Error(`fate: Missing 'id' on entity record.`);
   }
@@ -43,6 +43,31 @@ const getId: EntityConfig['key'] = (record) => {
   }
   return value;
 };
+
+const trpcClient = createTRPCProxyClient<AppRouter>({
+  links: [
+    httpBatchLink({
+      fetch: (input, init) =>
+        fetch(input, {
+          ...init,
+          credentials: 'include',
+        }),
+      url: `${env('SERVER_URL')}/trpc`,
+    }),
+  ],
+});
+
+type TRPCClientType = typeof trpcClient;
+
+const listResolvers = {
+  posts: (client: TRPCClientType) => client.post.list.query,
+} as const;
+
+const mutations = {
+  addComment: (client: TRPCClientType) => client.comment.add.mutate,
+  likePost: (client: TRPCClientType) => client.post.like.mutate,
+  unlikePost: (client: TRPCClientType) => client.post.unlike.mutate,
+} as const;
 
 export const fate = createClient({
   entities: [
@@ -58,31 +83,48 @@ export const fate = createClient({
       type: 'Comment',
     },
   ],
-  transport: createFateTransport<AppRouter>({
+  mutations: {
+    addComment: mutation<
+      Comment,
+      RouterInputs['comment']['add'],
+      RouterOutputs['comment']['add']
+    >('Comment'),
+    likePost: mutation<
+      Post,
+      RouterInputs['post']['like'],
+      RouterOutputs['post']['like']
+    >('Post'),
+    unlikePost: mutation<
+      Post,
+      RouterInputs['post']['unlike'],
+      RouterOutputs['post']['unlike']
+    >('Post'),
+  },
+  transport: createFateTransport<AppRouter, typeof mutations>({
     byId: {
       Comment:
-        (client) =>
-        ({ ids, select }) =>
+        (client: TRPCClientType) =>
+        ({
+          ids,
+          select,
+        }: {
+          ids: Array<string | number>;
+          select?: Array<string>;
+        }) =>
           client.comment.byId.query({ ids: ids.map(String), select }),
       Post:
-        (client) =>
-        ({ ids, select }) =>
+        (client: TRPCClientType) =>
+        ({
+          ids,
+          select,
+        }: {
+          ids: Array<string | number>;
+          select?: Array<string>;
+        }) =>
           client.post.byId.query({ ids: ids.map(String), select }),
     },
-    client: createTRPCProxyClient<AppRouter>({
-      links: [
-        httpBatchLink({
-          fetch: (input, init) =>
-            fetch(input, {
-              ...init,
-              credentials: 'include',
-            }),
-          url: `${env('SERVER_URL')}/trpc`,
-        }),
-      ],
-    }),
-    lists: {
-      'post.list': (c) => c.post.list.query,
-    },
+    client: trpcClient,
+    lists: listResolvers,
+    mutations,
   }),
 });
