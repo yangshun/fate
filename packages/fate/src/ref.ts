@@ -59,5 +59,5 @@ export default function createRef<
   const names = options?.root ? getRootViewNames(view) : getViewNames(view);
   assignViewTag(ref, names);
 
-  return ref as ViewRef<T['__typename']>;
+  return Object.freeze(ref) as ViewRef<T['__typename']>;
 }

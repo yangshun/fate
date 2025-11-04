@@ -59,14 +59,18 @@ export function view<T extends Entity>() {
   const viewId = id++;
 
   return <S extends Selection<T>>(select: S): View<T, S> => {
-    return Object.defineProperty({}, getViewTag(viewId), {
+    const payload = Object.freeze({
+      select,
+      [ViewKind]: true,
+    }) as ViewPayload<T, S>;
+
+    const viewComposition = Object.defineProperty({}, getViewTag(viewId), {
       configurable: false,
       enumerable: true,
-      value: {
-        select,
-        [ViewKind]: true,
-      },
+      value: payload,
       writable: false,
-    }) as View<T, S>;
+    });
+
+    return Object.freeze(viewComposition) as View<T, S>;
   };
 }

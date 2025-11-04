@@ -15,7 +15,7 @@ export function createNodeRef(id: EntityId): NodeRef {
     writable: false,
   });
 
-  return ref as NodeRef;
+  return Object.freeze(ref) as NodeRef;
 }
 
 export function isNodeRef(value: unknown): value is NodeRef {

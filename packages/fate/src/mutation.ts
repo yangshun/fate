@@ -18,10 +18,10 @@ import { MutationKind } from './types.ts';
 export function mutation<T extends Entity, I, R>(
   entity: T['__typename'],
 ): MutationDefinition<T, I, R> {
-  return {
+  return Object.freeze({
     entity,
     [MutationKind]: true,
-  };
+  }) as MutationDefinition<T, I, R>;
 }
 
 type MutationOptions<Identifier extends MutationIdentifier<any, any, any>> = {
