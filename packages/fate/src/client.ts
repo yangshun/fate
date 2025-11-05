@@ -5,7 +5,7 @@ import createRef, { assignViewTag, parseEntityId, toEntityId } from './ref.ts';
 import { selectionFromView } from './selection.ts';
 import { Store } from './store.ts';
 import { Transport } from './transport.ts';
-import { RequestResult } from './types.js';
+import { RequestResult, ViewSnapshot } from './types.js';
 import {
   FateThenable,
   isNodeItem,
@@ -78,7 +78,10 @@ export class FateClient<
     MutationDefinition<any, any, any>
   > = EmptyMutations,
 > {
-  private readonly pending = new Map<string, PromiseLike<ViewData<any, any>>>();
+  private readonly pending = new Map<
+    string,
+    PromiseLike<ViewSnapshot<any, any>>
+  >();
   private readonly requests = new Map<
     Request,
     Promise<RequestResult<Request>>
@@ -213,7 +216,7 @@ export class FateClient<
       snapshots.set(entityId, this.store.snapshot(entityId));
     }
 
-    this.viewDataCache.delete(entityId);
+    this.viewDataCache.invalidate(entityId);
     this.store.deleteRecord(entityId);
     this.store.removeReferencesTo(
       entityId,
@@ -224,7 +227,7 @@ export class FateClient<
   }
 
   restore(id: EntityId, snapshot: Snapshot) {
-    this.viewDataCache.delete(id);
+    this.viewDataCache.invalidate(id);
     this.store.restore(id, snapshot);
   }
 
@@ -248,7 +251,7 @@ export class FateClient<
   readView<T extends Entity, S extends Selection<T>, V extends View<T, S>>(
     view: V,
     ref: ViewRef<T['__typename']>,
-  ): FateThenable<ViewData<T, S>> {
+  ): FateThenable<ViewSnapshot<T, S>> {
     const id = ref.id;
     const type = ref.__typename;
     if (id == null) {
@@ -266,7 +269,7 @@ export class FateClient<
     const entityId = toEntityId(type, id);
     const cached = this.viewDataCache.get(entityId, view, ref);
     if (cached) {
-      return cached as FateThenable<ViewData<T, S>>;
+      return cached as FateThenable<ViewSnapshot<T, S>>;
     }
 
     const selectedPaths = selectionFromView(view, ref);
@@ -276,7 +279,7 @@ export class FateClient<
       const key = this.pendingKey(type, id, missing);
       const pendingPromise = this.pending.get(key) || null;
       if (pendingPromise) {
-        return pendingPromise as FateThenable<ViewData<T, S>>;
+        return pendingPromise as FateThenable<ViewSnapshot<T, S>>;
       }
 
       const promise = this.fetchByIdAndNormalize(
@@ -289,16 +292,16 @@ export class FateClient<
 
       this.pending.set(key, promise);
 
-      return promise as unknown as FateThenable<ViewData<T, S>>;
+      return promise as unknown as FateThenable<ViewSnapshot<T, S>>;
     }
 
     const resolvedView = this.readViewSelection<T, S>(view, ref, entityId);
 
     const thenable = {
       status: 'fulfilled' as const,
-      then: <TResult1 = ViewData<T, S>, TResult2 = never>(
+      then: <TResult1 = ViewSnapshot<T, S>, TResult2 = never>(
         onfulfilled?: (
-          value: ViewData<T, S>,
+          value: ViewSnapshot<T, S>,
         ) => TResult1 | PromiseLike<TResult1>,
         onrejected?: (reason: unknown) => TResult2 | PromiseLike<TResult2>,
       ): PromiseLike<TResult1 | TResult2> =>
@@ -306,7 +309,7 @@ export class FateClient<
       value: resolvedView,
     } as const;
 
-    this.viewDataCache.set(entityId, view, ref, thenable);
+    this.viewDataCache.set(entityId, view, ref, thenable, resolvedView.ids);
     return thenable;
   }
 
@@ -543,7 +546,7 @@ export class FateClient<
       snapshots.set(entityId, this.store.snapshot(entityId));
     }
 
-    this.viewDataCache.delete(entityId);
+    this.viewDataCache.invalidate(entityId);
     this.store.merge(entityId, result, select);
     this.linkParentLists(type, entityId, result, snapshots);
     return entityId;
@@ -591,7 +594,7 @@ export class FateClient<
         snapshots.set(parentId, this.store.snapshot(parentId));
       }
 
-      this.viewDataCache.delete(parentId);
+      this.viewDataCache.invalidate(parentId);
 
       this.store.merge(
         parentId,
@@ -605,8 +608,10 @@ export class FateClient<
     viewComposition: View<T, S>,
     ref: ViewRef<T['__typename']>,
     entityId: EntityId,
-  ): ViewData<T, S> {
+  ): ViewSnapshot<T, S> {
     const record = this.store.read(entityId) || { id: entityId };
+    const ids = new Set<EntityId>();
+    ids.add(entityId);
 
     const walk = (
       viewPayload: object,
@@ -653,6 +658,7 @@ export class FateClient<
                   return edge;
                 }
 
+                ids.add(entityId);
                 const record = this.store.read(entityId);
                 const { id, type } = parseEntityId(entityId);
                 const node = { __typename: type, id };
@@ -683,6 +689,7 @@ export class FateClient<
                   return item;
                 }
 
+                ids.add(entityId);
                 const record = this.store.read(entityId);
                 const { id, type } = parseEntityId(entityId);
 
@@ -697,6 +704,7 @@ export class FateClient<
             }
           } else if (isNodeRef(value)) {
             const entityId = getNodeRefId(value);
+            ids.add(entityId);
             const relatedRecord = this.store.read(entityId);
             const { id, type } = parseEntityId(entityId);
             const targetRecord = target[key] as FateRecord;
@@ -714,13 +722,13 @@ export class FateClient<
       }
     };
 
-    const result: ViewResult = {};
+    const data: ViewResult = {};
 
     for (const viewPayload of getViewPayloads(viewComposition, ref)) {
-      walk(viewPayload.select, record, result);
+      walk(viewPayload.select, record, data);
     }
 
-    return result as ViewData<T, S>;
+    return { data: data as ViewData<T, S>, ids };
   }
 
   private pendingKey(

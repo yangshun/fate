@@ -1,10 +1,10 @@
 import {
   FateThenable,
+  ViewSnapshot,
   type Entity,
   type EntityId,
   type Selection,
   type View,
-  type ViewData,
   type ViewRef,
 } from './types.ts';
 
@@ -13,15 +13,18 @@ export default class ViewDataCache {
     string,
     WeakMap<
       View<any, any>,
-      WeakMap<ViewRef<string>, FateThenable<ViewData<any, any>>>
+      WeakMap<ViewRef<string>, FateThenable<ViewSnapshot<any, any>>>
     >
   >();
+
+  private rootDependencies = new Map<EntityId, Set<EntityId>>();
+  private dependencyIndex = new Map<EntityId, Set<EntityId>>();
 
   get<T extends Entity, S extends Selection<T>, V extends View<T, S>>(
     entityId: EntityId,
     view: V,
     ref: ViewRef<T['__typename']>,
-  ): FateThenable<ViewData<T, S>> | null {
+  ): FateThenable<ViewSnapshot<T, S>> | null {
     return this.cache.get(entityId)?.get(view)?.get(ref) ?? null;
   }
 
@@ -29,7 +32,8 @@ export default class ViewDataCache {
     entityId: EntityId,
     view: V,
     ref: ViewRef<T['__typename']>,
-    data: FateThenable<ViewData<T, S>>,
+    thenable: FateThenable<ViewSnapshot<T, S>>,
+    dependencies: ReadonlySet<EntityId>,
   ) {
     let entityMap = this.cache.get(entityId);
     if (!entityMap) {
@@ -43,10 +47,55 @@ export default class ViewDataCache {
       entityMap.set(view, viewMap);
     }
 
-    viewMap.set(ref, data);
+    viewMap.set(ref, thenable);
+
+    let roots = this.rootDependencies.get(entityId);
+    if (!roots) {
+      roots = new Set();
+      this.rootDependencies.set(entityId, roots);
+    }
+
+    for (const dependency of dependencies) {
+      if (!roots.has(dependency)) {
+        roots.add(dependency);
+        let dependents = this.dependencyIndex.get(dependency);
+        if (!dependents) {
+          dependents = new Set();
+          this.dependencyIndex.set(dependency, dependents);
+        }
+        dependents.add(entityId);
+      }
+    }
   }
 
-  delete(entityId: EntityId) {
+  invalidate(entityId: EntityId) {
+    const dependents = this.dependencyIndex.get(entityId);
+    if (dependents) {
+      for (const dependent of dependents) {
+        this.delete(dependent);
+      }
+    } else {
+      this.delete(entityId);
+    }
+  }
+
+  private delete(entityId: EntityId) {
+    const roots = this.rootDependencies.get(entityId);
+    if (roots) {
+      for (const dependency of roots) {
+        const dependents = this.dependencyIndex.get(dependency);
+        if (!dependents) {
+          continue;
+        }
+
+        dependents.delete(entityId);
+        if (dependents.size === 0) {
+          this.dependencyIndex.delete(dependency);
+        }
+      }
+      this.rootDependencies.delete(entityId);
+    }
+
     this.cache.delete(entityId);
   }
 }

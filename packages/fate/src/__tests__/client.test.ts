@@ -8,6 +8,7 @@ import {
   SelectionOf,
   Snapshot,
   View,
+  ViewSnapshot,
   ViewsTag,
 } from '../types.ts';
 import { getViewNames, view } from '../view.ts';
@@ -31,9 +32,11 @@ type Post = {
 const tagsFor = (...views: Array<View<any, any>>) =>
   new Set(views.flatMap((view) => Array.from(getViewNames(view))));
 
-const unwrap = <T>(value: FateThenable<T>): T => {
+const unwrap = <T extends ViewSnapshot<any, any>>(
+  value: FateThenable<T>,
+): T['data'] => {
   if (value.status === 'fulfilled') {
-    return value.value;
+    return value.value.data;
   }
 
   throw new Error(`fate: Cannot unwrap a pending 'FateThenable'.`);
@@ -712,8 +715,9 @@ test(`'readView' fetches missing fields using the selection`, async () => {
     new Set(['author.id', 'author.name', 'content']),
   );
 
-  const post = await thenable;
-  expect(post.content).toBe('Kiwi');
+  const { data, ids } = await thenable;
+  expect(data.content).toBe('Kiwi');
+  expect(ids).toEqual(new Set([postEntityId, toEntityId('User', 'user-1')]));
 });
 
 test(`'request' groups ids by selection before fetching`, async () => {

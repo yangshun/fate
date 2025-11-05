@@ -196,7 +196,7 @@ export class Store {
         snapshots.set(id, this.snapshot(id));
       }
 
-      viewDataCache.delete(id);
+      viewDataCache.invalidate(id);
       this.mergeInternal(id, next, paths);
       ids.add(id);
     }

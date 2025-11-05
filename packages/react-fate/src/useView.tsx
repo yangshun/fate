@@ -1,17 +1,18 @@
 import {
   __FateEntityBrand,
   __FateSelectionBrand,
-  toEntityId,
+  EntityId,
   View,
   ViewData,
   ViewRef,
+  ViewSnapshot,
   ViewTag,
 } from '@nkzw/fate';
 import {
   use,
   useCallback,
   useDeferredValue,
-  useMemo,
+  useRef,
   useSyncExternalStore,
 } from 'react';
 import { useFateClient } from './context.tsx';
@@ -31,19 +32,73 @@ export function useView<V extends View<any, any>>(
   ref: ViewRef<ViewEntity<V>['__typename']>,
 ): ViewData<ViewEntity<V>, ViewSelection<V>> {
   const client = useFateClient();
-  const id = useMemo(() => toEntityId(ref.__typename, ref.id), [ref]);
 
-  const getSnapshot = useCallback(
-    () => client.readView<ViewEntity<V>, V[ViewTag]['select'], V>(view, ref),
-    [client, view, ref],
-  );
+  const idRef = useRef<ReadonlySet<EntityId> | null>(null);
+  const getSnapshot = useCallback(() => {
+    const snapshot = client.readView<ViewEntity<V>, V[ViewTag]['select'], V>(
+      view,
+      ref,
+    );
+    idRef.current = snapshot.status === 'fulfilled' ? snapshot.value.ids : null;
+    return snapshot;
+  }, [client, view, ref]);
 
   const subscribe = useCallback(
-    (onStoreChange: () => void) => client.store.subscribe(id, onStoreChange),
-    [client, id],
+    (onStoreChange: () => void) => {
+      const subscriptions = new Map<EntityId, () => void>();
+
+      const onChange = () => {
+        updateSubscriptions();
+        onStoreChange();
+      };
+
+      const subscribe = (entityId: EntityId) => {
+        if (!subscriptions.has(entityId)) {
+          subscriptions.set(
+            entityId,
+            client.store.subscribe(entityId, onChange),
+          );
+        }
+      };
+
+      const cleanupObsolete = (nextIds: ReadonlySet<EntityId>) => {
+        for (const [entityId, unsubscribe] of subscriptions) {
+          if (!nextIds.has(entityId)) {
+            unsubscribe();
+            subscriptions.delete(entityId);
+          }
+        }
+      };
+
+      const updateSubscriptions = () => {
+        if (!idRef.current) {
+          return;
+        }
+
+        for (const entityId of idRef.current) {
+          subscribe(entityId);
+        }
+
+        cleanupObsolete(idRef.current);
+      };
+
+      updateSubscriptions();
+
+      return () => {
+        for (const unsubscribe of subscriptions.values()) {
+          unsubscribe();
+        }
+        subscriptions.clear();
+      };
+    },
+    [client.store],
   );
 
-  return use(
-    useDeferredValue(useSyncExternalStore(subscribe, getSnapshot, getSnapshot)),
-  );
+  return (
+    use(
+      useDeferredValue(
+        useSyncExternalStore(subscribe, getSnapshot, getSnapshot),
+      ),
+    ) as ViewSnapshot<ViewEntity<V>, ViewSelection<V>>
+  ).data;
 }
