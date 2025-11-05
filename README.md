@@ -7,7 +7,9 @@ A modern data client for tRPC and React, inspired by Relay.
 - **Optimistic:** Automatic optimistic updates and rollbacks.
 - **Modern:** Uses modern async React features.
 
-## Setup
+## Contributing Guide
+
+### Initial Setup
 
 You'll need Node.js 24+ and pnpm 10+.
 
@@ -22,4 +24,12 @@ ALTER DATABASE fate OWNER TO fate;
 ```
 
 - `pnpm prisma migrate dev` to create the database and run the migrations.
+- You might want to run `pnpm prisma migrate reset` to seed the database with initial data.
 - Run `pnpm dev` to run the example.
+
+### Running Tests
+
+- When changing framework code, you need to run `pnpm build`.
+- Run `pnpm test` to run all tests.
+- Run `pnpm tsgo` to run TypeScript, and `pnpm vitest` to run JavaScript tests.
+- If `@nkzw/fate` or `react-fate` modules cannot be resolved it means you forgot to run `pnpm build`.

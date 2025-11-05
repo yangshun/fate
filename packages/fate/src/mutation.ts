@@ -1,5 +1,6 @@
 import type { FateClient } from './client.js';
 import { selectionFromView } from './selection.ts';
+import { List } from './store.ts';
 import type {
   Entity,
   FateRecord,
@@ -51,6 +52,10 @@ const collectImplicitSelectedPaths = (value: FateRecord): Set<string> => {
       if (prefix) {
         paths.add(prefix);
       }
+
+      for (const child of current) {
+        walk(child, prefix);
+      }
       return;
     }
 
@@ -96,9 +101,7 @@ export function wrapMutation<
         : null;
 
     const snapshots = new Map<string, Snapshot>();
-    const listSnapshots = isDelete
-      ? new Map<string, Array<string>>()
-      : undefined;
+    const listSnapshots = isDelete ? new Map<string, List>() : undefined;
     const optimisticSelection = optimisticRecord
       ? collectImplicitSelectedPaths(optimisticRecord)
       : undefined;
@@ -153,8 +156,8 @@ export function wrapMutation<
       }
 
       if (listSnapshots && listSnapshots.size > 0) {
-        for (const [name, ids] of listSnapshots) {
-          client.restoreList(name, ids);
+        for (const [name, list] of listSnapshots) {
+          client.restoreList(name, list);
         }
       }
 

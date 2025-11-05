@@ -1,7 +1,11 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
-import { createConnectionProcedure } from '../../fate-server/connection.ts';
+import {
+  arrayToConnection,
+  createConnectionProcedure,
+} from '../../fate-server/connection.ts';
 import { prismaSelect } from '../../fate-server/prismaSelect.tsx';
+import { Post } from '../../prisma/prisma-client/client.ts';
 import { PostFindManyArgs } from '../../prisma/prisma-client/models.ts';
 import { procedure, router } from '../init.ts';
 
@@ -45,6 +49,22 @@ const postInclude = {
   tags: tagSelection,
 } as const;
 
+type CommentRow = { id: string | number } & Record<string, unknown>;
+
+type TagRow = { id: string | number } & Record<string, unknown>;
+
+type PostRow = {
+  comments?: Array<CommentRow>;
+  id: string;
+  tags?: Array<TagRow>;
+} & Post;
+
+const transformPost = ({ comments, tags, ...post }: PostRow) => ({
+  ...post,
+  comments: arrayToConnection(comments),
+  tags: arrayToConnection(tags),
+});
+
 export const postRouter = router({
   byId: procedure
     .input(
@@ -60,7 +80,12 @@ export const postRouter = router({
         ...(select ? { select } : { include: postInclude }),
       } as PostFindManyArgs);
 
-      const map = new Map(posts.map((post) => [post.id, post]));
+      const map = new Map(
+        posts.map((post) => {
+          const result = transformPost(post as PostRow);
+          return [result.id, result];
+        }),
+      );
       return input.ids.map((id) => map.get(id)).filter(Boolean);
     }),
   like: procedure
@@ -71,13 +96,13 @@ export const postRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const post = await ctx.prisma.post.findUnique({
+      const existing = await ctx.prisma.post.findUnique({
         where: {
           id: input.id,
         },
       });
 
-      if (!post) {
+      if (!existing) {
         throw new TRPCError({
           code: 'NOT_FOUND',
           message: 'Post not found.',
@@ -93,20 +118,24 @@ export const postRouter = router({
       const where = { id: input.id };
 
       if (select) {
-        return ctx.prisma.post.update({
+        const updated = await ctx.prisma.post.update({
           data,
           select,
           where,
         });
+        return transformPost(updated as unknown as PostRow);
       }
 
-      return ctx.prisma.post.update({
+      const updated = await ctx.prisma.post.update({
         data,
         include: postInclude,
         where,
       });
+      return transformPost(updated as PostRow);
     }),
   list: createConnectionProcedure({
+    map: ({ rows }) =>
+      (rows as Array<PostRow>).map((post) => transformPost(post)),
     query: async ({ ctx, cursor, input, skip, take }) => {
       const select = prismaSelect(input.select);
       const findOptions: PostFindManyArgs = {
@@ -153,16 +182,18 @@ export const postRouter = router({
 
         if (existing.likes <= 0) {
           if (select) {
-            return tx.post.findUniqueOrThrow({
+            const result = await tx.post.findUniqueOrThrow({
               select,
               where,
             });
+            return transformPost(result as unknown as PostRow);
           }
 
-          return tx.post.findUniqueOrThrow({
+          const result = await tx.post.findUniqueOrThrow({
             include: postInclude,
             where,
           });
+          return transformPost(result as PostRow);
         }
 
         const data = {
@@ -172,18 +203,20 @@ export const postRouter = router({
         } as const;
 
         if (select) {
-          return tx.post.update({
+          const updated = await tx.post.update({
             data,
             select,
             where,
           });
+          return transformPost(updated as unknown as PostRow);
         }
 
-        return tx.post.update({
+        const updated = await tx.post.update({
           data,
           include: postInclude,
           where,
         });
+        return transformPost(updated as PostRow);
       }),
     ),
 });

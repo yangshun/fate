@@ -1,7 +1,10 @@
 import { z } from 'zod';
-import { createConnectionProcedure } from '../../fate-server/connection.ts';
+import {
+  arrayToConnection,
+  createConnectionProcedure,
+} from '../../fate-server/connection.ts';
 import { prismaSelect } from '../../fate-server/prismaSelect.tsx';
-import { Event } from '../../prisma/prisma-client/client.ts';
+import { Event, EventAttendee } from '../../prisma/prisma-client/client.ts';
 import { procedure, router } from '../init.ts';
 
 const eventSelect = {
@@ -33,6 +36,17 @@ const eventSelect = {
   type: true,
 } as const;
 
+type EventRow = {
+  _count?: { attendees: number };
+  attendees?: Array<EventAttendee>;
+} & Event;
+
+const transformEvent = ({ _count, attendees, ...event }: EventRow) => ({
+  ...event,
+  attendees: arrayToConnection(attendees),
+  attendingCount: _count?.attendees ?? 0,
+});
+
 export const eventRouter = router({
   byId: procedure
     .input(
@@ -48,17 +62,19 @@ export const eventRouter = router({
         where: { id: { in: input.ids } },
       });
 
-      const map = new Map(events.map((category) => [category.id, category]));
+      const map = new Map(
+        events.map((event) => {
+          const result = transformEvent(event as unknown as EventRow);
+          return [result.id, result];
+        }),
+      );
       return input.ids.map((id) => map.get(id)).filter(Boolean);
     }),
   list: createConnectionProcedure({
     defaultSize: 3,
     map: ({ rows }) =>
-      (rows as Array<Event & { _count: { attendees: number } }>).map(
-        ({ _count, ...event }) => ({
-          ...event,
-          attendingCount: _count.attendees,
-        }),
+      (rows as Array<EventRow & { _count: { attendees: number } }>).map(
+        (event) => transformEvent(event),
       ),
     query: async ({ ctx, cursor, input, skip, take }) => {
       const select = prismaSelect(input?.select);

@@ -1,7 +1,10 @@
 import { z } from 'zod';
-import { createConnectionProcedure } from '../../fate-server/connection.ts';
+import {
+  arrayToConnection,
+  createConnectionProcedure,
+} from '../../fate-server/connection.ts';
 import { prismaSelect } from '../../fate-server/prismaSelect.tsx';
-import { Category } from '../../prisma/prisma-client/client.ts';
+import { Category, Post } from '../../prisma/prisma-client/client.ts';
 import { CategoryFindManyArgs } from '../../prisma/prisma-client/models.ts';
 import { procedure, router } from '../init.ts';
 
@@ -11,6 +14,17 @@ const categorySelect = {
   },
   id: true,
 } as const;
+
+type CategoryRow = Category & {
+  _count?: { posts: number };
+  posts?: Array<Post>;
+} & Category;
+
+const transformCategory = ({ _count, posts, ...category }: CategoryRow) => ({
+  ...category,
+  postCount: _count?.posts ?? 0,
+  posts: arrayToConnection(posts),
+});
 
 export const categoryRouter = router({
   byId: procedure
@@ -22,23 +36,25 @@ export const categoryRouter = router({
     )
     .query(async ({ ctx, input }) => {
       const select = prismaSelect(input.select);
+      delete select?.postCount;
+
       const categories = await ctx.prisma.category.findMany({
-        select,
+        select: { ...select, ...categorySelect },
         where: { id: { in: input.ids } },
       } as CategoryFindManyArgs);
 
       const map = new Map(
-        categories.map((category) => [category.id, category]),
+        categories.map((category) => {
+          const result = transformCategory(category as CategoryRow);
+          return [result.id, result];
+        }),
       );
       return input.ids.map((id) => map.get(id)).filter(Boolean);
     }),
   list: createConnectionProcedure({
     map: ({ rows }) =>
-      (rows as Array<Category & { _count: { posts: number } }>).map(
-        ({ _count, ...category }) => ({
-          ...category,
-          postCount: _count.posts,
-        }),
+      (rows as Array<CategoryRow & { _count: { posts: number } }>).map(
+        (category) => transformCategory(category),
       ),
     query: async ({ ctx, cursor, input, skip, take }) => {
       const select = prismaSelect(input?.select);

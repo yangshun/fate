@@ -32,7 +32,9 @@ export type Comment = CommentBase & {
   author: User;
 };
 
-export type ProjectUpdate = ProjectBase['updates'][0] & {
+export type ProjectUpdate = NonNullable<
+  ProjectBase['updates']
+>['items'][0]['node'] & {
   __typename: 'ProjectUpdate';
   author: User;
 };
@@ -43,7 +45,9 @@ export type Project = ProjectBase & {
   updates: Array<ProjectUpdate>;
 };
 
-export type EventAttendee = EventBase['attendees'][0] & {
+export type EventAttendee = NonNullable<
+  EventBase['attendees']
+>['items'][0]['node'] & {
   __typename: 'EventAttendee';
   user: User;
 };

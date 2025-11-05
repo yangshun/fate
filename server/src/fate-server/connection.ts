@@ -31,6 +31,25 @@ export type ConnectionResult<TNode> = {
   pagination: ConnectionPagination;
 };
 
+export function arrayToConnection<TNode extends { id: string | number }>(
+  nodes?: Array<TNode>,
+): ConnectionResult<TNode> | undefined {
+  return nodes
+    ? ({
+        items: nodes.map((node) => ({
+          cursor: String(node.id),
+          node,
+        })),
+        pagination: {
+          hasNext: false,
+          hasPrevious: false,
+          nextCursor: undefined,
+          previousCursor: undefined,
+        },
+      } satisfies ConnectionResult<TNode>)
+    : undefined;
+}
+
 type QueryFn<TRow> = (options: {
   ctx: AppContext;
   cursor?: ConnectionCursor;

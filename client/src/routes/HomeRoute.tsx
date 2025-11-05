@@ -448,18 +448,6 @@ const CategoryPostView = view<Post>()({
   title: true,
 });
 
-const CategoryView = view<Category>()({
-  description: true,
-  id: true,
-  name: true,
-  postCount: true,
-  posts: {
-    items: {
-      node: CategoryPostView,
-    },
-  },
-});
-
 const CategoryPost = ({ post: postRef }: { post: ViewRef<'Post'> }) => {
   const post = useView(CategoryPostView, postRef);
   const author = useView(UserView, post.author);
@@ -489,6 +477,23 @@ const CategoryPost = ({ post: postRef }: { post: ViewRef<'Post'> }) => {
   );
 };
 
+const CategoryView = view<Category>()({
+  description: true,
+  id: true,
+  name: true,
+  postCount: true,
+  posts: {
+    items: {
+      cursor: true,
+      node: CategoryPostView,
+    },
+    pagination: {
+      hasNext: true,
+      nextCursor: true,
+    },
+  },
+});
+
 const CategoryCard = ({
   category: categoryRef,
 }: {
@@ -514,10 +519,20 @@ const CategoryCard = ({
           </Badge>
         </Stack>
         <VStack gap={12}>
-          {posts.map(({ node }) => (
-            <CategoryPost key={node.id} post={node} />
-          ))}
+          {posts.map(({ cursor, node }) => {
+            if (cursor !== node.id) {
+              throw new Error(
+                `fate: Cursor '${cursor}' does not match node ID '${node.id}'.`,
+              );
+            }
+            return <CategoryPost key={node.id} post={node} />;
+          })}
         </VStack>
+        {category.posts?.pagination?.hasNext ? (
+          <span className="text-muted-foreground text-sm">
+            More posts available in this category...
+          </span>
+        ) : null}
       </VStack>
     </Card>
   );
@@ -956,7 +971,11 @@ export default function HomeRoute() {
       >
         <Suspense
           fallback={
-            <Stack center className="text-gray-500 italic" verticalPadding={48}>
+            <Stack
+              center
+              className="animate-pulse text-gray-500 italic"
+              verticalPadding={48}
+            >
               Thinking...
             </Stack>
           }

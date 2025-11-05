@@ -1,5 +1,9 @@
-import { createConnectionProcedure } from '../../fate-server/connection.ts';
+import {
+  arrayToConnection,
+  createConnectionProcedure,
+} from '../../fate-server/connection.ts';
 import { prismaSelect } from '../../fate-server/prismaSelect.tsx';
+import { Project, ProjectUpdate } from '../../prisma/prisma-client/client.ts';
 import { router } from '../init.ts';
 
 const projectSelect = {
@@ -23,9 +27,20 @@ const projectSelect = {
   },
 } as const;
 
+type ProjectRow = Project & {
+  updates?: Array<ProjectUpdate>;
+};
+
 export const projectRouter = router({
   list: createConnectionProcedure({
     defaultSize: 3,
+    map: ({ rows }) =>
+      (rows as Array<ProjectRow>).map(
+        ({ updates, ...project }: ProjectRow) => ({
+          ...project,
+          updates: arrayToConnection(updates),
+        }),
+      ),
     query: async ({ ctx, cursor, input, skip, take }) => {
       const select = prismaSelect(input?.select);
 

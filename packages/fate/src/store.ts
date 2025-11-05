@@ -11,16 +11,16 @@ import {
 import { getNodeRefId, isNodeRef } from './node-ref.ts';
 import type { EntityId, FateRecord, Pagination, Snapshot } from './types.ts';
 
-type ListConnectionState = {
-  cursors?: Array<string | undefined>;
+export type List = Readonly<{
+  cursors?: ReadonlyArray<string | undefined>;
+  ids: ReadonlyArray<EntityId>;
   pagination?: Pagination;
-};
-
-type StoredList = {
-  ids: Array<EntityId>;
-} & ListConnectionState;
+}>;
 
 export type Subscriptions = Map<EntityId, Set<() => void>>;
+
+export const getListKey = (ownerId: EntityId, field: string): string =>
+  `${ownerId} __fate__ ${field}`;
 
 const cloneValue = (value: unknown): unknown => {
   if (Array.isArray(value)) {
@@ -44,11 +44,7 @@ const cloneValue = (value: unknown): unknown => {
 
 export class Store {
   private coverage = new Map<EntityId, FieldMask>();
-  private lists = new Map<string, StoredList>();
-  private listStateByArray = new WeakMap<
-    Array<EntityId>,
-    ListConnectionState
-  >();
+  private lists = new Map<string, List>();
   private records = new Map<EntityId, FateRecord>();
   private subscriptions: Subscriptions = new Map();
 
@@ -140,73 +136,32 @@ export class Store {
     }
   }
 
-  getList(key: string): Array<EntityId> | undefined {
+  getList(key: string): ReadonlyArray<EntityId> | undefined {
     return this.lists.get(key)?.ids;
   }
 
-  getListStateFor(ids: Array<EntityId>): ListConnectionState | undefined {
-    const state = this.listStateByArray.get(ids);
-    if (!state) {
-      return undefined;
-    }
-
-    return {
-      cursors: state.cursors ? state.cursors.slice() : undefined,
-      pagination: state.pagination ? { ...state.pagination } : undefined,
-    };
+  getListState(key: string): List | undefined {
+    return this.lists.get(key);
   }
 
-  setList(key: string, ids: Array<EntityId>, state?: ListConnectionState) {
-    const previous = this.lists.get(key);
-    if (previous) {
-      this.listStateByArray.delete(previous.ids);
-    }
-
-    const stored: StoredList = {
-      cursors: state?.cursors ? state.cursors.slice() : undefined,
-      ids,
-      pagination: state?.pagination ? { ...state.pagination } : undefined,
-    };
-
-    this.lists.set(key, stored);
-
-    if (stored.cursors || stored.pagination) {
-      this.listStateByArray.set(ids, {
-        cursors: stored.cursors ? stored.cursors.slice() : undefined,
-        pagination: stored.pagination ? { ...stored.pagination } : undefined,
-      });
-    }
+  setList(key: string, state: List) {
+    this.lists.set(key, state);
   }
 
-  restoreList(key: string, list?: Array<EntityId> | StoredList) {
-    if (list === undefined) {
-      const existing = this.lists.get(key);
-      if (existing) {
-        this.listStateByArray.delete(existing.ids);
-      }
+  restoreList(key: string, list?: List) {
+    if (list == null) {
       this.lists.delete(key);
-      return;
-    }
-
-    if (Array.isArray(list)) {
+    } else {
       this.setList(key, list);
-      return;
     }
-
-    this.setList(key, list.ids.slice(), {
-      cursors: list.cursors ? list.cursors.slice() : undefined,
-      pagination: list.pagination ? { ...list.pagination } : undefined,
-    });
   }
 
   removeReferencesTo(
     targetId: EntityId,
     viewDataCache: ViewDataCache,
     snapshots?: Map<EntityId, Snapshot>,
-    listSnapshots?: Map<string, Array<EntityId>>,
+    listSnapshots?: Map<string, List>,
   ) {
-    const ids = new Set<EntityId>();
-
     for (const [key, list] of this.lists.entries()) {
       const { ids } = list;
       if (!ids.includes(targetId)) {
@@ -214,7 +169,7 @@ export class Store {
       }
 
       if (listSnapshots && !listSnapshots.has(key)) {
-        listSnapshots.set(key, ids.slice());
+        listSnapshots.set(key, list);
       }
 
       const entityIds: Array<EntityId> = [];
@@ -230,18 +185,18 @@ export class Store {
 
         entityIds.push(id);
         if (cursors) {
-          const cursor = list.cursors?.[index];
-          if (cursor != null) {
-            cursors.push(cursor);
-          }
+          cursors.push(list.cursors?.[index]);
         }
       }
 
-      this.setList(key, entityIds, {
+      this.setList(key, {
         cursors,
+        ids: entityIds,
         pagination: list.pagination,
       });
     }
+
+    const ids = new Set<EntityId>();
 
     for (const [id, record] of this.records.entries()) {
       let updated = false;

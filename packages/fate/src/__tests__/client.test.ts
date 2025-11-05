@@ -3,6 +3,7 @@ import { createClient } from '../client.ts';
 import { mutation } from '../mutation.ts';
 import { createNodeRef, getNodeRefId, isNodeRef } from '../node-ref.ts';
 import { toEntityId } from '../ref.ts';
+import { getListKey, List } from '../store.ts';
 import {
   FateThenable,
   SelectionOf,
@@ -42,13 +43,10 @@ const unwrap = <T extends ViewSnapshot<any, any>>(
   throw new Error(`fate: Cannot unwrap a pending 'FateThenable'.`);
 };
 
-const nodeRefsToIds = (value: unknown) => {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value.map((item) => (isNodeRef(item) ? getNodeRefId(item) : item));
-};
+const getNodeRefIds = (value: unknown) =>
+  Array.isArray(value)
+    ? value.map((item) => (isNodeRef(item) ? getNodeRefId(item) : item))
+    : [];
 
 const createNodeRefs = (ids: Array<string>) =>
   ids.map((id) => createNodeRef(id));
@@ -530,10 +528,34 @@ test(`'deleteRecord' removes an entity and cleans references`, () => {
     '*',
   );
 
-  client.store.setList('comments', [commentId]);
+  client.store.setList('comments', {
+    cursors: ['cursor-1'],
+    ids: [commentId],
+    pagination: {
+      hasNext: true,
+      hasPrevious: false,
+      nextCursor: 'cursor-2',
+    },
+  });
+
+  const initialList = client.store.getList('comments');
+  if (!initialList) {
+    throw new Error('Expected initial list to be defined');
+  }
+
+  const initialState = client.store.getListState('comments');
+  expect(initialState).toEqual({
+    cursors: ['cursor-1'],
+    ids: [commentId],
+    pagination: {
+      hasNext: true,
+      hasPrevious: false,
+      nextCursor: 'cursor-2',
+    },
+  });
 
   const snapshots = new Map<string, Snapshot>();
-  const listSnapshots = new Map<string, Array<string>>();
+  const listSnapshots = new Map<string, List>();
 
   client.deleteRecord('Comment', 'comment-1', snapshots, listSnapshots);
 
@@ -543,20 +565,41 @@ test(`'deleteRecord' removes an entity and cleans references`, () => {
   expect(updatedPost?.comments).toEqual([]);
   expect(client.store.getList('comments')).toEqual([]);
 
+  const storedSnapshot = listSnapshots.get('comments');
+  expect(storedSnapshot).toEqual({
+    cursors: ['cursor-1'],
+    ids: [commentId],
+    pagination: {
+      hasNext: true,
+      hasPrevious: false,
+      nextCursor: 'cursor-2',
+    },
+  });
+
   for (const [id, snapshot] of snapshots) {
     client.restore(id, snapshot);
   }
 
-  for (const [name, ids] of listSnapshots) {
-    client.restoreList(name, ids);
+  for (const [name, list] of listSnapshots) {
+    client.restoreList(name, list);
   }
 
   const restoredComment = client.store.read(commentId);
   expect(restoredComment).toMatchObject({ id: 'comment-1' });
 
   const restoredPost = client.store.read(postId);
-  expect(nodeRefsToIds(restoredPost?.comments)).toEqual([commentId]);
+  expect(getNodeRefIds(restoredPost?.comments)).toEqual([commentId]);
   expect(client.store.getList('comments')).toEqual([commentId]);
+
+  const restoredList = client.store.getList('comments');
+  if (!restoredList) {
+    throw new Error('Expected restored list to be defined');
+  }
+
+  expect(restoredList).toEqual(initialList);
+
+  const restoredState = client.store.getListState('comments');
+  expect(restoredState).toEqual(initialState);
 });
 
 test(`'readView' resolves nested selections without view spreads`, () => {
@@ -891,9 +934,11 @@ test(`'readView' returns list metadata when available`, () => {
     '*',
   );
 
+  const postId = toEntityId('Post', 'post-1');
   const commentIds = [commentAId, commentBId];
-  client.store.setList('Post:post-1:comments', commentIds, {
+  client.store.setList(getListKey(postId, 'comments'), {
     cursors: ['cursor-a', 'cursor-b'],
+    ids: commentIds,
     pagination: {
       hasNext: true,
       hasPrevious: false,
@@ -901,12 +946,11 @@ test(`'readView' returns list metadata when available`, () => {
     },
   });
 
-  const postId = toEntityId('Post', 'post-1');
   client.store.merge(
     postId,
     {
       __typename: 'Post',
-      comments: commentIds,
+      comments: createNodeRefs(commentIds),
       id: 'post-1',
     },
     '*',
@@ -941,10 +985,151 @@ test(`'readView' returns list metadata when available`, () => {
   );
 
   expect(result.comments?.items).toHaveLength(2);
+  expect(result.comments?.items?.map(({ node }) => node?.id)).toEqual([
+    'comment-1',
+    'comment-2',
+  ]);
   expect(result.comments?.items?.[0]?.cursor).toBe('cursor-a');
   expect(result.comments?.items?.[1]?.cursor).toBe('cursor-b');
   expect(result.comments?.pagination).toEqual({
     hasNext: true,
     nextCursor: 'cursor-b',
   });
+});
+
+test(`mutation results with arrays mark nested fields as fetched`, async () => {
+  type CommentResult = { __typename: 'Comment'; content: string; id: string };
+  type UpdatePostInput = { id: string };
+  type UpdatePostResult = {
+    __typename: 'Post';
+    comments: Array<CommentResult>;
+    id: string;
+  };
+
+  const mutate = vi.fn().mockResolvedValue({
+    __typename: 'Post',
+    comments: [
+      {
+        __typename: 'Comment',
+        content: 'Hello from mutation',
+        id: 'comment-1',
+      },
+    ],
+    id: 'post-1',
+  } satisfies UpdatePostResult);
+
+  const client = createClient({
+    mutations: {
+      updatePost: mutation<Post, UpdatePostInput, UpdatePostResult>('Post'),
+    },
+    transport: {
+      async fetchById() {
+        return [];
+      },
+      mutate,
+    },
+    types: [
+      { fields: { comments: { listOf: 'Comment' } }, type: 'Post' },
+      { type: 'Comment' },
+    ],
+  });
+
+  await client.mutations.updatePost({
+    input: { id: 'post-1' },
+  });
+
+  const commentEntityId = toEntityId('Comment', 'comment-1');
+  expect(client.store.read(commentEntityId)).toMatchObject({
+    __typename: 'Comment',
+    content: 'Hello from mutation',
+    id: 'comment-1',
+  });
+
+  const missing = client.store.missingForSelection(commentEntityId, [
+    'content',
+    'id',
+  ]);
+
+  expect(missing).toEqual(new Set());
+});
+
+test(`'write' registers list state for entity lists`, () => {
+  const client = createClient({
+    transport: {
+      async fetchById() {
+        return [];
+      },
+    },
+    types: [
+      {
+        fields: { comments: { listOf: 'Comment' } },
+        type: 'Post',
+      },
+      { type: 'Comment' },
+    ],
+  });
+
+  client.write('Post', {
+    __typename: 'Post',
+    comments: [
+      { __typename: 'Comment', content: 'First', id: 'comment-1' },
+      { __typename: 'Comment', content: 'Second', id: 'comment-2' },
+    ],
+    content: 'Example',
+    id: 'post-1',
+  });
+
+  const postId = toEntityId('Post', 'post-1');
+  const commentIds = [
+    toEntityId('Comment', 'comment-1'),
+    toEntityId('Comment', 'comment-2'),
+  ];
+
+  expect(client.store.getList(getListKey(postId, 'comments'))).toEqual(
+    commentIds,
+  );
+});
+
+test(`'linkParentLists' maintains list registrations for parent entities`, () => {
+  const client = createClient({
+    transport: {
+      async fetchById() {
+        return [];
+      },
+    },
+    types: [
+      {
+        fields: { comments: { listOf: 'Comment' } },
+        type: 'Post',
+      },
+      {
+        fields: { post: { type: 'Post' } },
+        type: 'Comment',
+      },
+    ],
+  });
+
+  const postId = toEntityId('Post', 'post-1');
+  client.store.merge(
+    postId,
+    {
+      __typename: 'Post',
+      comments: [],
+      content: 'Example',
+      id: 'post-1',
+    },
+    '*',
+  );
+
+  client.write('Comment', {
+    __typename: 'Comment',
+    content: 'Hello',
+    id: 'comment-1',
+    post: { __typename: 'Post', id: 'post-1' },
+  });
+
+  const commentId = toEntityId('Comment', 'comment-1');
+  expect(client.store.getList(getListKey(postId, 'comments'))).toEqual([
+    commentId,
+  ]);
 });

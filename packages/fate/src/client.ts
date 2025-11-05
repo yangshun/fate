@@ -3,7 +3,7 @@ import { MutationFunction, wrapMutation } from './mutation.ts';
 import { createNodeRef, getNodeRefId, isNodeRef } from './node-ref.ts';
 import createRef, { assignViewTag, parseEntityId, toEntityId } from './ref.ts';
 import { selectionFromView } from './selection.ts';
-import { Store } from './store.ts';
+import { getListKey, List, Store } from './store.ts';
 import { Transport } from './transport.ts';
 import { RequestResult, ViewSnapshot } from './types.js';
 import {
@@ -208,7 +208,7 @@ export class FateClient<
     type: string,
     id: string | number,
     snapshots?: Map<EntityId, Snapshot>,
-    listSnapshots?: Map<string, Array<EntityId>>,
+    listSnapshots?: Map<string, List>,
   ) {
     const entityId = toEntityId(type, id);
 
@@ -231,8 +231,8 @@ export class FateClient<
     this.store.restore(id, snapshot);
   }
 
-  restoreList(name: string, ids?: Array<EntityId>) {
-    this.store.restoreList(name, ids);
+  restoreList(name: string, list?: List) {
+    this.store.restoreList(name, list);
   }
 
   ref<T extends Entity>(
@@ -423,8 +423,9 @@ export class FateClient<
       ids.push(id);
       cursors.push(entry.cursor);
     }
-    this.store.setList(name, ids, {
+    this.store.setList(name, {
       cursors,
+      ids,
       pagination,
     });
   }
@@ -487,45 +488,100 @@ export class FateClient<
           typeof relationDescriptor === 'object' &&
           'listOf' in relationDescriptor
         ) {
-          if (Array.isArray(value)) {
-            const childType = relationDescriptor.listOf;
-            const childConfig = this.types.get(childType);
-            if (!childConfig) {
-              throw new Error(
-                `fate: Unknown related type '${childType}' (field '${type}.${key}').`,
-              );
+          const childType = relationDescriptor.listOf;
+          const childConfig = this.types.get(childType);
+          if (!childConfig) {
+            throw new Error(
+              `fate: Unknown related type '${childType}' (field '${type}.${key}').`,
+            );
+          }
+
+          const childPaths = select
+            ? new Set(
+                [...select]
+                  .filter((part) => part.startsWith(`${key}.`))
+                  .map((part) => part.slice(key.length + 1)),
+              )
+            : undefined;
+
+          const connection = (() => {
+            if (Array.isArray(value)) {
+              return {
+                items: value.map((item) => ({ node: item })),
+              };
             }
-            const refs = value.map((item) => {
-              if (isNodeRef(item)) {
-                return item;
+
+            if (value && typeof value === 'object') {
+              const record = value as FateRecord;
+              if (Array.isArray(record.items)) {
+                return {
+                  items: record.items.map((node) => {
+                    if (node && typeof node === 'object' && 'node' in node) {
+                      const itemRecord = node as FateRecord;
+                      return {
+                        cursor: itemRecord.cursor,
+                        node: itemRecord.node,
+                      };
+                    }
+
+                    return { node };
+                  }),
+                  pagination: record.pagination,
+                };
+              }
+            }
+
+            return null;
+          })();
+
+          if (connection) {
+            const refs: Array<unknown> = [];
+            const ids: Array<EntityId> = [];
+            const cursors: Array<string | undefined> = [];
+            let hasCursor = false;
+
+            for (const entry of connection.items) {
+              const node = entry.node;
+              const cursor =
+                'cursor' in entry ? (entry.cursor as string) : undefined;
+              cursors.push(cursor);
+              if (cursor !== undefined) {
+                hasCursor = true;
+              }
+              if (isNodeRef(node)) {
+                refs.push(node);
+                ids.push(getNodeRefId(node));
+                continue;
               }
 
-              if (item && typeof item === 'object') {
+              if (node && typeof node === 'object') {
                 const childId = toEntityId(
                   childType,
-                  childConfig.getId(item as FateRecord),
+                  childConfig.getId(node as FateRecord),
                 );
-                const childPaths = select
-                  ? new Set(
-                      [...select]
-                        .filter((part) => part.startsWith(`${key}.`))
-                        .map((part) => part.slice(key.length + 1)),
-                    )
-                  : undefined;
 
                 this.normalizeEntity(
                   childType,
-                  item as FateRecord,
+                  node as FateRecord,
                   childPaths,
                   snapshots,
                 );
 
-                return createNodeRef(childId);
+                refs.push(createNodeRef(childId));
+                ids.push(childId);
+                continue;
               }
 
-              return item;
-            });
+              refs.push(node);
+            }
+
             result[key] = refs;
+
+            this.store.setList(getListKey(entityId, key), {
+              cursors: hasCursor ? cursors : undefined,
+              ids,
+              pagination: connection.pagination as List['pagination'],
+            });
           }
         } else {
           result[key] = value;
@@ -593,6 +649,16 @@ export class FateClient<
 
       this.viewDataCache.invalidate(parentId);
 
+      const nextList = [...current, createNodeRef(entityId)];
+
+      this.store.merge(parentId, { [parent.field]: nextList }, [parent.field]);
+
+      const listKey = getListKey(parentId, parent.field);
+      const ids = nextList
+        .map((item) => (isNodeRef(item) ? getNodeRefId(item) : null))
+        .filter((id): id is EntityId => id != null);
+      this.store.setList(listKey, { ids });
+
       this.store.merge(
         parentId,
         { [parent.field]: [...current, createNodeRef(entityId)] },
@@ -614,6 +680,7 @@ export class FateClient<
       viewPayload: object,
       record: FateRecord,
       target: ViewResult,
+      parentId: EntityId,
     ) => {
       for (const [key, selectionKind] of Object.entries(viewPayload)) {
         if (key === ViewKind) {
@@ -644,16 +711,17 @@ export class FateClient<
               typeof selectionKind.items === 'object'
             ) {
               const selection = selectionKind.items as FateRecord;
-              const listState = this.store.getListStateFor(
-                value as Array<EntityId>,
+              const listState = this.store.getListState(
+                getListKey(parentId, key),
               );
               const items = value.map((item, index) => {
                 const entityId = isNodeRef(item) ? getNodeRefId(item) : null;
 
                 if (!entityId) {
-                  const entry: FateRecord = { node: null };
-                  const cursor = listState?.cursors?.[index];
-                  entry.cursor = cursor !== undefined ? cursor : undefined;
+                  const entry: FateRecord = {
+                    cursor: listState?.cursors?.[index],
+                    node: null,
+                  };
                   return entry;
                 }
 
@@ -663,7 +731,7 @@ export class FateClient<
                 const node = { __typename: type, id };
 
                 if (record) {
-                  walk(selection.node as FateRecord, record, node);
+                  walk(selection.node as FateRecord, record, node, entityId);
                 }
 
                 const entry: FateRecord = {
@@ -671,8 +739,7 @@ export class FateClient<
                 };
 
                 if (selection.cursor === true) {
-                  const cursor = listState?.cursors?.[index];
-                  entry.cursor = cursor !== undefined ? cursor : undefined;
+                  entry.cursor = listState?.cursors?.[index];
                 }
                 return entry;
               });
@@ -722,7 +789,7 @@ export class FateClient<
 
                 if (record) {
                   const node = { __typename: type, id };
-                  walk(selectionKind, record, node);
+                  walk(selectionKind, record, node, entityId);
                   return node;
                 }
 
@@ -740,10 +807,15 @@ export class FateClient<
             targetRecord.__typename = type;
 
             if (relatedRecord) {
-              walk(selectionKind, relatedRecord, targetRecord as ViewResult);
+              walk(
+                selectionKind,
+                relatedRecord,
+                targetRecord as ViewResult,
+                entityId,
+              );
             }
           } else {
-            walk(selectionKind, record, target[key] as ViewResult);
+            walk(selectionKind, record, target[key] as ViewResult, entityId);
           }
         }
       }
@@ -752,7 +824,7 @@ export class FateClient<
     const data: ViewResult = {};
 
     for (const viewPayload of getViewPayloads(viewComposition, ref)) {
-      walk(viewPayload.select, record, data);
+      walk(viewPayload.select, record, data, entityId);
     }
 
     return { data: data as ViewData<T, S>, ids };
