@@ -13,6 +13,7 @@ export const createContext = async (options?: CreateContextOptions) => {
     : null;
 
   return {
+    headers: options ? options.context.req.raw.headers : {},
     prisma,
     sessionUser: session?.user ? toSessionUser(session.user) : null,
   };

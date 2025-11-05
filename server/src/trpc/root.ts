@@ -5,6 +5,7 @@ import { eventRouter } from './routers/event.ts';
 import { postRouter } from './routers/post.ts';
 import { projectRouter } from './routers/project.ts';
 import { tagRouter } from './routers/tag.ts';
+import { userRouter } from './routers/user.ts';
 
 export const appRouter = router({
   category: categoryRouter,
@@ -13,6 +14,7 @@ export const appRouter = router({
   post: postRouter,
   project: projectRouter,
   tags: tagRouter,
+  user: userRouter,
 });
 
 export type AppRouter = typeof appRouter;

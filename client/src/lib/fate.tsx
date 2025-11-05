@@ -87,6 +87,7 @@ const mutations = {
   deleteComment: (client: TRPCClientType) => client.comment.delete.mutate,
   likePost: (client: TRPCClientType) => client.post.like.mutate,
   unlikePost: (client: TRPCClientType) => client.post.unlike.mutate,
+  updateUser: (client: TRPCClientType) => client.user.update.mutate,
 } as const;
 
 export const fate = createClient({
@@ -111,6 +112,11 @@ export const fate = createClient({
       RouterInputs['post']['unlike'],
       RouterOutputs['post']['unlike']
     >('Post'),
+    updateUser: mutation<
+      User,
+      RouterInputs['user']['update'],
+      RouterOutputs['user']['update']
+    >('User'),
   },
   transport: createFateTransport<AppRouter, typeof mutations>({
     byId: {
