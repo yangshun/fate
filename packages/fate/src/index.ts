@@ -1,9 +1,10 @@
 export type {
   __FateEntityBrand,
   __FateSelectionBrand,
+  AnyRecord as FateRecord,
+  ConnectionMetadata,
   Entity,
   EntityId,
-  AnyRecord as FateRecord,
   ListItem,
   Mask,
   MutationDefinition,
@@ -12,6 +13,7 @@ export type {
   MutationInput,
   MutationResult,
   NodeItem,
+  Pagination,
   Request,
   RequestResult,
   Selection,
@@ -23,7 +25,7 @@ export type {
   ViewSnapshot,
   ViewTag,
 } from './types.ts';
-export { isNodeItem } from './types.ts';
+export { ConnectionTag, isNodeItem } from './types.ts';
 
 export type { Transport } from './transport.ts';
 
@@ -33,3 +35,4 @@ export { toEntityId } from './ref.ts';
 export { createClient, FateClient } from './client.ts';
 export { createFateTransport } from './transport.ts';
 export { args, isArgs, v } from './args.ts';
+export { selectionFromView } from './selection.ts';

@@ -8,6 +8,8 @@ import { getListKey, List, Store } from './store.ts';
 import { Transport } from './transport.ts';
 import { RequestResult, ViewSnapshot } from './types.js';
 import {
+  ConnectionMetadata,
+  ConnectionTag,
   FateThenable,
   isNodeItem,
   isViewTag,
@@ -328,6 +330,132 @@ export class FateClient<
 
     this.viewDataCache.set(entityId, view, ref, thenable, resolvedView.ids);
     return thenable;
+  }
+
+  async loadConnection<V extends View<any, any>>(
+    view: V,
+    connection: ConnectionMetadata,
+    args: Record<string, unknown>,
+    options: { direction?: 'forward' | 'backward' } = {},
+  ) {
+    if (!this.transport.fetchList) {
+      throw new Error(
+        `fate: 'transport.fetchList' is not configured but connection '${connection.procedure}' was requested.`,
+      );
+    }
+
+    const direction = options.direction ?? 'forward';
+    const owner = parseEntityId(connection.owner);
+    const requestArgs: AnyRecord = { ...connection.args, ...args };
+    if (requestArgs.id === undefined && owner.id) {
+      requestArgs.id = owner.id;
+    }
+
+    const plan = selectionFromView(view, null, requestArgs);
+    const selection = plan.paths;
+
+    const { items, pagination } = await this.transport.fetchList(
+      connection.procedure,
+      requestArgs,
+      selection,
+    );
+
+    const incomingIds: Array<EntityId> = [];
+    const incomingCursors: Array<string | undefined> = [];
+
+    for (const entry of items) {
+      const nodeRecord = entry.node as AnyRecord;
+      const nodeType =
+        nodeRecord && typeof nodeRecord.__typename === 'string'
+          ? (nodeRecord.__typename as string)
+          : null;
+      if (!nodeType) {
+        throw new Error(
+          `fate: Connection '${connection.procedure}' returned an item without '__typename'.`,
+        );
+      }
+      const id = this.write(nodeType, nodeRecord, selection, undefined, plan);
+      incomingIds.push(id);
+      incomingCursors.push(entry.cursor);
+    }
+
+    const existing = this.store.getListState(connection.key);
+    const existingIds = existing?.ids ?? [];
+    const existingSet = new Set(existingIds);
+    const newIds: Array<EntityId> = [];
+    const newCursors: Array<string | undefined> = [];
+
+    incomingIds.forEach((id, index) => {
+      if (existingSet.has(id)) {
+        return;
+      }
+      newIds.push(id);
+      newCursors.push(incomingCursors[index]);
+    });
+
+    const nextIds =
+      direction === 'forward'
+        ? [...existingIds, ...newIds]
+        : [...newIds, ...existingIds];
+
+    let nextCursors: Array<string | undefined> | undefined;
+    if (
+      existing?.cursors ||
+      newCursors.some((cursor) => cursor !== undefined)
+    ) {
+      const baseCursors = existing?.cursors ?? existingIds.map(() => undefined);
+      nextCursors =
+        direction === 'forward'
+          ? [...baseCursors, ...newCursors]
+          : [...newCursors, ...baseCursors];
+    }
+
+    const existingPagination = existing?.pagination;
+    const nextPagination = existingPagination
+      ? {
+          hasNext:
+            direction === 'forward'
+              ? pagination.hasNext
+              : existingPagination.hasNext,
+          hasPrevious:
+            direction === 'backward'
+              ? pagination.hasPrevious
+              : existingPagination.hasPrevious,
+          nextCursor:
+            direction === 'forward'
+              ? pagination.nextCursor
+              : existingPagination.nextCursor,
+          previousCursor:
+            direction === 'backward'
+              ? pagination.previousCursor
+              : existingPagination.previousCursor,
+        }
+      : pagination;
+
+    this.store.setList(connection.key, {
+      cursors: nextCursors,
+      ids: nextIds,
+      pagination: nextPagination,
+    });
+
+    const current = this.store.read(connection.owner);
+    const existingField = Array.isArray(current?.[connection.field])
+      ? ([
+          ...((current?.[connection.field] as Array<unknown>) ?? []),
+        ] as Array<unknown>)
+      : [];
+    const nodeRefs = newIds.map((id) => createNodeRef(id));
+    const nextField =
+      direction === 'forward'
+        ? [...existingField, ...nodeRefs]
+        : [...nodeRefs, ...existingField];
+
+    this.viewDataCache.invalidate(connection.owner);
+    this.store.merge(connection.owner, { [connection.field]: nextField }, [
+      connection.field,
+    ]);
+
+    return this.store.getListState(connection.key);
   }
 
   request<R extends Request>(request: R): Promise<RequestResult<R>> {
@@ -773,9 +901,9 @@ export class FateClient<
               typeof selectionKind.items === 'object'
             ) {
               const selection = selectionKind.items as AnyRecord;
-              const listState = this.store.getListState(
-                getListKey(parentId, key, plan.args.get(fieldPath)?.hash),
-              );
+              const fieldArgs = plan.args.get(fieldPath);
+              const listKey = getListKey(parentId, key, fieldArgs?.hash);
+              const listState = this.store.getListState(listKey);
               const items = value.map((item, index) => {
                 const entityId = isNodeRef(item) ? getNodeRefId(item) : null;
 
@@ -841,6 +969,23 @@ export class FateClient<
                 } else {
                   connection.pagination = undefined;
                 }
+              }
+              const { type: parentType } = parseEntityId(parentId);
+              if (parentType) {
+                const metadata: ConnectionMetadata = {
+                  args: fieldArgs?.value,
+                  field: key,
+                  hash: fieldArgs?.hash,
+                  key: listKey,
+                  owner: parentId,
+                  procedure: `${parentType}.${key}`,
+                };
+                Object.defineProperty(connection, ConnectionTag, {
+                  configurable: false,
+                  enumerable: false,
+                  value: metadata,
+                  writable: false,
+                });
               }
               target[key] = connection;
             } else {

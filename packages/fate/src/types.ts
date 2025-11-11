@@ -6,6 +6,7 @@ export type EntityId = string;
 export const ViewKind = '__fate__view';
 export const ViewsTag = Symbol('__fate__views');
 export const NodeRefTag = Symbol('__fate__node-ref');
+export const ConnectionTag = Symbol('__fate__connection');
 
 export declare const __FateEntityBrand: unique symbol;
 export declare const __FateSelectionBrand: unique symbol;
@@ -45,6 +46,15 @@ export function isViewTag(key: string): key is ViewTag {
 }
 
 export type AnyRecord = Record<string, unknown>;
+
+export type ConnectionMetadata = Readonly<{
+  args?: AnyRecord;
+  field: string;
+  hash?: string;
+  key: string;
+  owner: EntityId;
+  procedure: string;
+}>;
 
 export type ViewResult = AnyRecord & {
   readonly [ViewsTag]?: Set<string>;

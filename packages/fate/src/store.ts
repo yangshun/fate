@@ -50,6 +50,7 @@ export class Store {
   private lists = new Map<string, List>();
   private records = new Map<EntityId, AnyRecord>();
   private subscriptions: Subscriptions = new Map();
+  private listSubscriptions = new Map<string, Set<() => void>>();
 
   read(id: EntityId) {
     return this.records.get(id);
@@ -139,6 +140,21 @@ export class Store {
     }
   }
 
+  private notifyListSubscribers(key: string) {
+    const set = this.listSubscriptions.get(key);
+    if (!set) {
+      return;
+    }
+
+    for (const fn of set) {
+      try {
+        fn();
+      } catch {
+        /* empty */
+      }
+    }
+  }
+
   getList(key: string): ReadonlyArray<EntityId> | undefined {
     return this.lists.get(key)?.ids;
   }
@@ -149,6 +165,7 @@ export class Store {
 
   setList(key: string, state: List) {
     this.lists.set(key, state);
+    this.notifyListSubscribers(key);
   }
 
   restoreList(key: string, list?: List) {
@@ -157,6 +174,28 @@ export class Store {
     } else {
       this.setList(key, list);
     }
+  }
+
+  subscribeList(key: string, fn: () => void): () => void {
+    let set = this.listSubscriptions.get(key);
+    if (!set) {
+      set = new Set();
+      this.listSubscriptions.set(key, set);
+    }
+
+    set.add(fn);
+
+    return () => {
+      const subscribers = this.listSubscriptions.get(key);
+      if (!subscribers) {
+        return;
+      }
+
+      subscribers.delete(fn);
+      if (subscribers.size === 0) {
+        this.listSubscriptions.delete(key);
+      }
+    };
   }
 
   removeReferencesTo(
