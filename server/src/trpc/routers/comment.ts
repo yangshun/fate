@@ -4,24 +4,11 @@ import { prismaSelect } from '../../fate-server/prismaSelect.tsx';
 import type { CommentFindManyArgs } from '../../prisma/prisma-client/models.ts';
 import { procedure, router } from '../init.ts';
 
-const authorSelection = {
-  select: {
-    id: true,
-    name: true,
-    username: true,
-  },
-} as const;
-
 const postSelection = {
   select: {
     id: true,
     title: true,
   },
-} as const;
-
-const defaultCommentInclude = {
-  author: authorSelection,
-  post: postSelection,
 } as const;
 
 export const commentRouter = router({
@@ -30,7 +17,7 @@ export const commentRouter = router({
       z.object({
         content: z.string().min(1, 'Content is required'),
         postId: z.string().min(1, 'Post id is required'),
-        select: z.array(z.string()).optional(),
+        select: z.array(z.string()),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -61,33 +48,36 @@ export const commentRouter = router({
         postId: input.postId,
       };
 
-      if (select) {
-        return ctx.prisma.comment.create({
-          data,
-          select: {
-            ...select,
-            post: { ...postSelection, ...(select.post || null) },
-          },
-        });
-      }
+      const prismaPostSelection = (
+        select.post as { select?: Record<string, unknown> } | undefined
+      )?.select;
 
       return ctx.prisma.comment.create({
         data,
-        include: defaultCommentInclude,
+        select: {
+          ...select,
+          ...(prismaPostSelection
+            ? {
+                post: {
+                  select: { ...postSelection.select, ...prismaPostSelection },
+                },
+              }
+            : {}),
+        },
       });
     }),
   byId: procedure
     .input(
       z.object({
         ids: z.array(z.string().min(1)).nonempty(),
-        select: z.array(z.string()).optional(),
+        select: z.array(z.string()),
       }),
     )
     .query(async ({ ctx, input }) => {
       const select = prismaSelect(input.select);
       const comments = await ctx.prisma.comment.findMany({
+        select,
         where: { id: { in: input.ids } },
-        ...(select ? { select } : { include: defaultCommentInclude }),
       } as CommentFindManyArgs);
 
       const map = new Map(comments.map((comment) => [comment.id, comment]));

@@ -5,7 +5,6 @@ import {
   emptyMask,
   FieldMask,
   fromPaths,
-  markAll,
   union,
 } from './mask.ts';
 import { getNodeRefId, isNodeRef } from './node-ref.ts';
@@ -56,7 +55,7 @@ export class Store {
     return this.records.get(id);
   }
 
-  merge(id: EntityId, partial: AnyRecord, paths?: Iterable<string> | '*') {
+  merge(id: EntityId, partial: AnyRecord, paths: Iterable<string>) {
     this.mergeInternal(id, partial, paths);
     this.notify(id);
   }
@@ -64,7 +63,7 @@ export class Store {
   private mergeInternal(
     id: EntityId,
     partial: AnyRecord,
-    paths?: Iterable<string> | '*',
+    paths: Iterable<string>,
   ) {
     const previous = this.records.get(id) ?? {};
     const next = { ...previous, ...partial };
@@ -76,12 +75,7 @@ export class Store {
       this.coverage.set(id, mask);
     }
 
-    if (paths === '*' || paths === undefined) {
-      const full = markAll();
-      this.coverage.set(id, full);
-    } else {
-      union(mask, fromPaths(paths));
-    }
+    union(mask, fromPaths(paths));
   }
 
   deleteRecord(id: EntityId) {
@@ -89,18 +83,16 @@ export class Store {
     this.coverage.delete(id);
   }
 
-  missingForSelection(
-    id: EntityId,
-    paths?: Iterable<string>,
-  ): Set<string> | '*' {
+  missingForSelection(id: EntityId, paths: Iterable<string>): Set<string> {
+    const requested = new Set(paths);
     if (!this.records.has(id)) {
-      return '*';
+      return requested;
     }
-    const mask = this.coverage.get(id) ?? emptyMask();
-    if (!paths) {
-      return mask.all ? new Set() : '*';
+    const mask = this.coverage.get(id);
+    if (!mask) {
+      return requested;
     }
-    return diffPaths(paths, mask);
+    return diffPaths(requested, mask);
   }
 
   subscribe(id: EntityId, fn: () => void): () => void {

@@ -31,12 +31,12 @@ export const categoryRouter = router({
     .input(
       z.object({
         ids: z.array(z.string().min(1)).nonempty(),
-        select: z.array(z.string()).optional(),
+        select: z.array(z.string()),
       }),
     )
     .query(async ({ ctx, input }) => {
       const select = prismaSelect(input.select);
-      delete select?.postCount;
+      delete select.postCount;
 
       const categories = await ctx.prisma.category.findMany({
         select: { ...select, ...categorySelect },
@@ -57,8 +57,8 @@ export const categoryRouter = router({
         (category) => transformCategory(category),
       ),
     query: async ({ ctx, cursor, input, skip, take }) => {
-      const select = prismaSelect(input?.select);
-      delete select?.postCount;
+      const select = prismaSelect(input.select);
+      delete select.postCount;
 
       const findOptions: CategoryFindManyArgs = {
         orderBy: { createdAt: 'asc' },

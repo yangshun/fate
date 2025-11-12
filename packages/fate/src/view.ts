@@ -20,7 +20,7 @@ export const getViewPayloads = <
 ): ReadonlyArray<ViewPayload<T, S>> => {
   const result: Array<ViewPayload<T, S>> = [];
   for (const [key, value] of Object.entries(view)) {
-    if (isViewTag(key) && (!ref || ref[ViewsTag].has(key))) {
+    if (isViewTag(key) && (!ref || ref[ViewsTag]?.has(key))) {
       result.push(value);
     }
   }

@@ -189,7 +189,7 @@ export class FateClient<
   async executeMutation(
     key: string,
     input: unknown,
-    select?: Set<string>,
+    select: Set<string>,
   ): Promise<unknown> {
     if (!this.transport.mutate) {
       throw new Error(`fate: transport does not support mutations.`);
@@ -201,7 +201,7 @@ export class FateClient<
   write(
     type: string,
     data: AnyRecord,
-    select?: Set<string>,
+    select: Set<string>,
     snapshots?: Map<EntityId, Snapshot>,
     plan?: SelectionPlan,
     pathPrefix: string | null = null,
@@ -288,19 +288,14 @@ export class FateClient<
     const selectedPaths = plan.paths;
     const missing = this.store.missingForSelection(entityId, selectedPaths);
 
-    if (missing === '*' || missing.size > 0) {
+    if (missing.size > 0) {
       const key = this.pendingKey(type, id, missing);
       const pendingPromise = this.pending.get(key) || null;
       if (pendingPromise) {
         return pendingPromise as FateThenable<ViewSnapshot<T, S>>;
       }
 
-      const promise = this.fetchByIdAndNormalize(
-        type,
-        [id],
-        missing === '*' ? undefined : missing,
-        plan,
-      )
+      const promise = this.fetchByIdAndNormalize(type, [id], missing, plan)
         .finally(() => this.pending.delete(key))
         .then(() => this.readView<T, S, V>(view, ref));
 
@@ -478,7 +473,7 @@ export class FateClient<
     const groups = new Map<
       GroupKey,
       {
-        fields?: Set<string>;
+        fields: Set<string>;
         ids: Array<string | number>;
         plan?: SelectionPlan;
         type: string;
@@ -488,17 +483,13 @@ export class FateClient<
     const promises: Array<Promise<void>> = [];
     for (const [name, item] of Object.entries(request)) {
       if (isNodeItem(item)) {
-        const plan = item.root ? selectionFromView(item.root, null) : undefined;
-        const fields = plan?.paths;
-        const fieldsSignature = fields
-          ? [...fields].slice().sort().join(',')
-          : '*';
-        const argsSignature = plan
-          ? [...plan.args.entries()]
-              .map(([path, entry]) => `${path}:${entry.hash}`)
-              .sort()
-              .join(',')
-          : '';
+        const plan = selectionFromView(item.root, null);
+        const fields = plan.paths;
+        const fieldsSignature = [...fields].slice().sort().join(',');
+        const argsSignature = [...plan.args.entries()]
+          .map(([path, entry]) => `${path}:${entry.hash}`)
+          .sort()
+          .join(',');
         const groupKey = `${item.type}#${fieldsSignature}|${argsSignature}`;
         let group = groups.get(groupKey);
         if (!group) {
@@ -509,7 +500,7 @@ export class FateClient<
         for (const raw of item.ids) {
           const entityId = toEntityId(item.type, raw);
           const missing = this.store.missingForSelection(entityId, fields);
-          if (missing === '*' || missing.size > 0) {
+          if (missing.size > 0) {
             group.ids.push(raw);
           }
         }
@@ -548,7 +539,7 @@ export class FateClient<
   private async fetchByIdAndNormalize(
     type: string,
     ids: Array<string | number>,
-    select?: Set<string>,
+    select: Set<string>,
     plan?: SelectionPlan,
     prefix: string | null = null,
   ) {
@@ -605,7 +596,7 @@ export class FateClient<
   private normalizeEntity(
     type: string,
     record: AnyRecord,
-    select?: Set<string>,
+    select: Set<string>,
     snapshots?: Map<EntityId, Snapshot>,
     plan?: SelectionPlan,
     pathPrefix: string | null = null,
@@ -644,13 +635,11 @@ export class FateClient<
             const childId = toEntityId(childType, childConfig.getId(value));
             result[key] = createNodeRef(childId);
 
-            const childPaths = select
-              ? new Set(
-                  [...select]
-                    .filter((part) => part.startsWith(`${key}.`))
-                    .map((part) => part.slice(key.length + 1)),
-                )
-              : undefined;
+            const childPaths = new Set(
+              [...select]
+                .filter((part) => part.startsWith(`${key}.`))
+                .map((part) => part.slice(key.length + 1)),
+            );
 
             this.normalizeEntity(
               childType,
@@ -674,13 +663,11 @@ export class FateClient<
             );
           }
 
-          const childPaths = select
-            ? new Set(
-                [...select]
-                  .filter((part) => part.startsWith(`${key}.`))
-                  .map((part) => part.slice(key.length + 1)),
-              )
-            : undefined;
+          const childPaths = new Set(
+            [...select]
+              .filter((part) => part.startsWith(`${key}.`))
+              .map((part) => part.slice(key.length + 1)),
+          );
 
           const connection = (() => {
             if (Array.isArray(value)) {
@@ -1053,9 +1040,9 @@ export class FateClient<
   private pendingKey(
     type: string,
     raw: string | number,
-    missingFields: '*' | Set<string>,
+    missingFields: Set<string>,
   ) {
-    return `N|${type}|${raw}|${missingFields === '*' ? missingFields : [...missingFields].sort().join(',')}`;
+    return `N|${type}|${raw}|${[...missingFields].sort().join(',')}`;
   }
 }
 

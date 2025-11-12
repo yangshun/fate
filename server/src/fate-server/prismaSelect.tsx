@@ -1,9 +1,4 @@
-export function prismaSelect(
-  paths?: Array<string>,
-): Record<string, unknown> | undefined {
-  if (!paths || paths.length === 0) {
-    return undefined;
-  }
+export function prismaSelect(paths: Array<string>): Record<string, unknown> {
   const allPaths = Array.from(new Set([...paths, 'id']));
   const select: Record<string, unknown> = {};
   for (const path of allPaths) {

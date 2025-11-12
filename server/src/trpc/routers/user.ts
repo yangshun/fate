@@ -2,13 +2,8 @@ import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 import { prismaSelect } from '../../fate-server/prismaSelect.tsx';
 import { auth } from '../../lib/auth.tsx';
+import { UserFindUniqueArgs } from '../../prisma/prisma-client/models.ts';
 import { procedure, router } from '../init.ts';
-
-const defaultSelection = {
-  id: true,
-  name: true,
-  username: true,
-} as const;
 
 export const userRouter = router({
   update: procedure
@@ -19,7 +14,7 @@ export const userRouter = router({
           .trim()
           .min(2, 'Name must be at least 2 characters.')
           .max(50, 'Name must be at most 32 characters.'),
-        select: z.array(z.string()).optional(),
+        select: z.array(z.string()),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -38,8 +33,8 @@ export const userRouter = router({
       });
 
       return await ctx.prisma.user.findUniqueOrThrow({
-        select: select || defaultSelection,
+        select,
         where: { id: ctx.sessionUser.id },
-      });
+      } as UserFindUniqueArgs);
     }),
 });

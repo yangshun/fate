@@ -80,7 +80,7 @@ test('loads additional items when loadNext is invoked', async () => {
       content: 'Apple',
       id: 'comment-1',
     },
-    new Set(['content', 'id']),
+    new Set(['__typename', 'content', 'id']),
   );
 
   client.write(
@@ -106,7 +106,7 @@ test('loads additional items when loadNext is invoked', async () => {
       },
       id: 'post-1',
     },
-    undefined,
+    plan.paths,
     undefined,
     plan,
   );
@@ -227,7 +227,7 @@ test('loads previous items when loadPrevious is invoked', async () => {
       content: 'Banana',
       id: 'comment-1',
     },
-    new Set(['content', 'id']),
+    new Set(['__typename', 'content', 'id']),
   );
 
   client.write(
@@ -253,7 +253,7 @@ test('loads previous items when loadPrevious is invoked', async () => {
       },
       id: 'post-1',
     },
-    undefined,
+    plan.paths,
     undefined,
     plan,
   );

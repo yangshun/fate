@@ -47,22 +47,33 @@ test('updates when nested entities change', () => {
     }
   ).normalizeEntity.bind(client);
 
-  normalizeEntity('User', {
-    __typename: 'User',
-    id: 'user-1',
-    name: 'Apple',
-  });
+  const userSelection = new Set(['id', 'name']);
+  const postSelection = new Set(['id', 'content', 'author.id', 'author.name']);
 
-  normalizeEntity('Post', {
-    __typename: 'Post',
-    author: {
+  normalizeEntity(
+    'User',
+    {
       __typename: 'User',
       id: 'user-1',
       name: 'Apple',
     },
-    content: 'Hello',
-    id: 'post-1',
-  });
+    userSelection,
+  );
+
+  normalizeEntity(
+    'Post',
+    {
+      __typename: 'Post',
+      author: {
+        __typename: 'User',
+        id: 'user-1',
+        name: 'Apple',
+      },
+      content: 'Hello',
+      id: 'post-1',
+    },
+    postSelection,
+  );
 
   const PostView = view<Post>()({
     author: {
@@ -100,11 +111,15 @@ test('updates when nested entities change', () => {
   expect(container.textContent).toBe('Apple');
 
   act(() => {
-    normalizeEntity('User', {
-      __typename: 'User',
-      id: 'user-1',
-      name: 'Banana',
-    });
+    normalizeEntity(
+      'User',
+      {
+        __typename: 'User',
+        id: 'user-1',
+        name: 'Banana',
+      },
+      userSelection,
+    );
   });
 
   expect(container.textContent).toBe('Banana');

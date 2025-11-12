@@ -8,7 +8,7 @@ export const connectionInput = z
   .object({
     after: z.string().optional(),
     first: z.number().int().positive().optional(),
-    select: z.array(z.string()).optional(),
+    select: z.array(z.string()),
   })
   .strict();
 

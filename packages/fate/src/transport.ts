@@ -11,12 +11,12 @@ export interface Transport<
   fetchById(
     type: string,
     ids: Array<string | number>,
-    select?: Iterable<string>,
+    select: Iterable<string>,
   ): Promise<Array<unknown>>;
   fetchList?(
     proc: string,
-    args: unknown,
-    select?: Iterable<string>,
+    args: Record<string, unknown> | undefined,
+    select: Iterable<string>,
   ): Promise<{
     items: Array<{ cursor: string | undefined; node: unknown }>;
     pagination: Pagination;
@@ -24,7 +24,7 @@ export interface Transport<
   mutate?<K extends Extract<keyof Mutations, string>>(
     proc: K,
     input: Mutations[K]['input'],
-    select?: Set<string>,
+    select: Set<string>,
   ): Promise<Mutations[K]['output']>;
 }
 
@@ -34,14 +34,14 @@ export type TRPCByIdResolvers<AppRouter extends AnyRouter> = Record<
     client: TRPCClient<AppRouter>,
   ) => (input: {
     ids: Array<string | number>;
-    select?: Array<string>;
+    select: Array<string>;
   }) => Promise<Array<unknown>>
 >;
 
 export type TRPCListResolvers<AppRouter extends AnyRouter> = Record<
   string,
   (client: TRPCClient<AppRouter>) => (
-    input: { select?: Array<string> } & AnyRecord,
+    input: { select: Array<string> } & AnyRecord,
   ) => Promise<{
     items: Array<{ cursor: string | undefined; node: unknown }>;
     pagination: Pagination;
@@ -96,7 +96,7 @@ export function createFateTransport<
       }
       return await resolver(client)({
         ids,
-        select: select ? [...select] : undefined,
+        select: [...select],
       });
     },
     async fetchList(procedure, args, select) {
@@ -112,8 +112,8 @@ export function createFateTransport<
         );
       }
       return resolver(client)({
-        ...(args as object),
-        select: select ? [...select] : undefined,
+        ...args,
+        select: [...select],
       });
     },
   };
@@ -122,7 +122,7 @@ export function createFateTransport<
     transport.mutate = async <K extends Extract<keyof Mutations, string>>(
       procedure: K,
       input: MutationMapFromResolvers<Mutations>[K]['input'],
-      select?: Set<string>,
+      select: Set<string>,
     ) => {
       const resolver = mutations[procedure];
       if (!resolver) {
@@ -132,7 +132,7 @@ export function createFateTransport<
       }
       return await resolver(client)({
         ...(input as AnyRecord),
-        select: select ? [...select] : undefined,
+        select: [...select],
       });
     };
   }

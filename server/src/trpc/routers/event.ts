@@ -52,7 +52,7 @@ export const eventRouter = router({
     .input(
       z.object({
         ids: z.array(z.string().min(1)).nonempty(),
-        select: z.array(z.string()).optional(),
+        select: z.array(z.string()),
       }),
     )
     .query(async ({ ctx, input }) => {
@@ -77,8 +77,8 @@ export const eventRouter = router({
         (event) => transformEvent(event),
       ),
     query: async ({ ctx, cursor, input, skip, take }) => {
-      const select = prismaSelect(input?.select);
-      delete select?.attendingCount;
+      const select = prismaSelect(input.select);
+      delete select.attendingCount;
 
       return ctx.prisma.event.findMany({
         orderBy: { startAt: 'asc' },

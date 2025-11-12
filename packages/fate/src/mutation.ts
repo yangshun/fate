@@ -27,7 +27,7 @@ export function mutation<T extends Entity, I, R>(
 
 type MutationOptions<Identifier extends MutationIdentifier<any, any, any>> = {
   args?: Record<string, unknown>;
-  input: MutationInput<Identifier>;
+  input: Omit<MutationInput<Identifier>, 'select'>;
   optimisticUpdate?: Partial<MutationResult<Identifier>>;
   view?:
     | View<MutationEntity<Identifier>, Selection<MutationEntity<Identifier>>>
@@ -119,7 +119,7 @@ export function wrapMutation<
             ...(viewSelection ? [...viewSelection] : []),
             ...(optimisticSelection ? [...optimisticSelection] : []),
           ])
-        : undefined;
+        : new Set<string>();
 
     if (isDelete) {
       if (id == null) {
@@ -133,7 +133,7 @@ export function wrapMutation<
       client.write(
         identifier.entity,
         optimisticRecord,
-        optimisticSelection,
+        optimisticSelection ?? new Set<string>(),
         snapshots,
         plan,
       );
@@ -148,13 +148,7 @@ export function wrapMutation<
 
       if (!isDelete && result && typeof result === 'object') {
         const select = collectImplicitSelectedPaths(result);
-        client.write(
-          identifier.entity,
-          result,
-          select.size > 0 ? select : undefined,
-          undefined,
-          plan,
-        );
+        client.write(identifier.entity, result, select, undefined, plan);
       }
 
       return result;

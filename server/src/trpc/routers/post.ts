@@ -9,46 +9,6 @@ import { Post } from '../../prisma/prisma-client/client.ts';
 import { PostFindManyArgs } from '../../prisma/prisma-client/models.ts';
 import { procedure, router } from '../init.ts';
 
-const authorSelection = {
-  select: {
-    id: true,
-    name: true,
-    username: true,
-  },
-} as const;
-
-const commentInclude = {
-  author: authorSelection,
-} as const;
-
-const categorySelection = {
-  select: {
-    description: true,
-    id: true,
-    name: true,
-  },
-} as const;
-
-const tagSelection = {
-  select: {
-    description: true,
-    id: true,
-    name: true,
-  },
-} as const;
-
-const postInclude = {
-  author: authorSelection,
-  category: categorySelection,
-  comments: {
-    include: commentInclude,
-    orderBy: {
-      createdAt: 'asc',
-    },
-  },
-  tags: tagSelection,
-} as const;
-
 type CommentRow = { id: string | number } & Record<string, unknown>;
 
 type TagRow = { id: string | number } & Record<string, unknown>;
@@ -70,14 +30,14 @@ export const postRouter = router({
     .input(
       z.object({
         ids: z.array(z.string().min(1)).nonempty(),
-        select: z.array(z.string()).optional(),
+        select: z.array(z.string()),
       }),
     )
     .query(async ({ ctx, input }) => {
       const select = prismaSelect(input.select);
       const posts = await ctx.prisma.post.findMany({
+        select,
         where: { id: { in: input.ids } },
-        ...(select ? { select } : { include: postInclude }),
       } as PostFindManyArgs);
 
       const map = new Map(
@@ -92,7 +52,7 @@ export const postRouter = router({
     .input(
       z.object({
         id: z.string().min(1, 'Post id is required.'),
-        select: z.array(z.string()).optional(),
+        select: z.array(z.string()),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -117,21 +77,12 @@ export const postRouter = router({
       } as const;
       const where = { id: input.id };
 
-      if (select) {
-        const updated = await ctx.prisma.post.update({
-          data,
-          select,
-          where,
-        });
-        return transformPost(updated as unknown as PostRow);
-      }
-
       const updated = await ctx.prisma.post.update({
         data,
-        include: postInclude,
+        select,
         where,
       });
-      return transformPost(updated as PostRow);
+      return transformPost(updated as unknown as PostRow);
     }),
   list: createConnectionProcedure({
     map: ({ rows }) =>
@@ -140,8 +91,8 @@ export const postRouter = router({
       const select = prismaSelect(input.select);
       const findOptions: PostFindManyArgs = {
         orderBy: { createdAt: 'desc' },
+        select,
         take,
-        ...(select ? { select } : { include: postInclude }),
       };
 
       if (cursor) {
@@ -156,7 +107,7 @@ export const postRouter = router({
     .input(
       z.object({
         id: z.string().min(1, 'Post id is required.'),
-        select: z.array(z.string()).optional(),
+        select: z.array(z.string()),
       }),
     )
     .mutation(({ ctx, input }) =>
@@ -181,19 +132,11 @@ export const postRouter = router({
         const where = { id: input.id };
 
         if (existing.likes <= 0) {
-          if (select) {
-            const result = await tx.post.findUniqueOrThrow({
-              select,
-              where,
-            });
-            return transformPost(result as unknown as PostRow);
-          }
-
           const result = await tx.post.findUniqueOrThrow({
-            include: postInclude,
+            select,
             where,
           });
-          return transformPost(result as PostRow);
+          return transformPost(result as unknown as PostRow);
         }
 
         const data = {
@@ -202,21 +145,12 @@ export const postRouter = router({
           },
         } as const;
 
-        if (select) {
-          const updated = await tx.post.update({
-            data,
-            select,
-            where,
-          });
-          return transformPost(updated as unknown as PostRow);
-        }
-
         const updated = await tx.post.update({
           data,
-          include: postInclude,
+          select,
           where,
         });
-        return transformPost(updated as PostRow);
+        return transformPost(updated as unknown as PostRow);
       }),
     ),
 });

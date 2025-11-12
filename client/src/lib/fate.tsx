@@ -5,7 +5,7 @@ import { createClient, createFateTransport, mutation } from 'react-fate';
 import env from './env.tsx';
 
 export type RouterInputs = inferRouterInputs<AppRouter>;
-type RouterOutputs = inferRouterOutputs<AppRouter>;
+export type RouterOutputs = inferRouterOutputs<AppRouter>;
 
 type PostBase = NonNullable<RouterOutputs['post']['byId'][number]>;
 type CommentBase = NonNullable<RouterOutputs['comment']['byId'][number]>;
@@ -133,7 +133,7 @@ export const fate = createClient({
           select,
         }: {
           ids: Array<string | number>;
-          select?: Array<string>;
+          select: Array<string>;
         }) =>
           client.comment.byId.query({ ids: ids.map(String), select }),
       Post:
@@ -143,7 +143,7 @@ export const fate = createClient({
           select,
         }: {
           ids: Array<string | number>;
-          select?: Array<string>;
+          select: Array<string>;
         }) =>
           client.post.byId.query({ ids: ids.map(String), select }),
     },

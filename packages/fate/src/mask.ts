@@ -7,10 +7,6 @@ export function emptyMask(): FieldMask {
   return { all: false, children: new Map() };
 }
 
-export function markAll(): FieldMask {
-  return { all: true, children: new Map() };
-}
-
 export function cloneMask(m: FieldMask): FieldMask {
   const clone = { all: m.all, children: new Map<string, FieldMask>() };
   for (const [key, value] of m.children) {
@@ -24,26 +20,20 @@ export function addPath(mask: FieldMask, path: string) {
     return;
   }
 
-  if (path === '*' || path === '') {
-    mask.all = true;
-    mask.children.clear();
-    return;
-  }
-
   const parts = path.split('.');
-  let curr = mask;
+  let current = mask;
   for (let i = 0; i < parts.length; i++) {
     const seg = parts[i];
-    let child = curr.children.get(seg);
+    let child = current.children.get(seg);
     if (!child) {
       child = emptyMask();
-      curr.children.set(seg, child);
+      current.children.set(seg, child);
     }
-    curr = child;
+    current = child;
   }
 
-  curr.all = true;
-  curr.children.clear();
+  current.all = true;
+  current.children.clear();
 }
 
 export function union(into: FieldMask, b: FieldMask) {
@@ -63,11 +53,7 @@ export function union(into: FieldMask, b: FieldMask) {
   }
 }
 
-export function fromPaths(paths: Iterable<string> | undefined): FieldMask {
-  if (!paths) {
-    return markAll();
-  }
-
+export function fromPaths(paths: Iterable<string>): FieldMask {
   const mask = emptyMask();
   for (const path of paths) {
     addPath(mask, path);

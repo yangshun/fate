@@ -42,13 +42,13 @@ export const projectRouter = router({
         }),
       ),
     query: async ({ ctx, cursor, input, skip, take }) => {
-      const select = prismaSelect(input?.select);
+      const select = prismaSelect(input.select);
 
       return ctx.prisma.project.findMany({
         orderBy: { createdAt: 'desc' },
         select: {
           ...projectSelect,
-          ...(select ?? {}),
+          ...select,
         },
         take,
         ...(cursor

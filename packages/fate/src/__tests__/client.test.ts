@@ -77,7 +77,7 @@ test(`'readView' returns the selected fields`, () => {
       content: 'Apple Banana',
       id: 'post-1',
     },
-    '*',
+    new Set(['__typename', 'content', 'id']),
   );
 
   const PostView = view<Post>()({
@@ -133,7 +133,7 @@ test(`'readView' returns view refs when views are used`, () => {
       content: 'Apple',
       id: 'comment-1',
     },
-    '*',
+    new Set(['__typename', 'author', 'content', 'id']),
   );
 
   const commentBId = toEntityId('Comment', 'comment-2');
@@ -145,7 +145,7 @@ test(`'readView' returns view refs when views are used`, () => {
       content: 'Banana',
       id: 'comment-2',
     },
-    '*',
+    new Set(['__typename', 'author', 'content', 'id']),
   );
 
   const postId = toEntityId('Post', 'post-1');
@@ -156,7 +156,7 @@ test(`'readView' returns view refs when views are used`, () => {
       comments: createNodeRefs([commentAId, commentBId]),
       id: 'post-1',
     },
-    '*',
+    new Set(['__typename', 'comments', 'id']),
   );
 
   const CommentView = view<Comment>()({
@@ -224,7 +224,7 @@ test(`'readView' returns view refs for list selections`, () => {
       content: 'Hello world',
       id: 'comment-1',
     },
-    '*',
+    new Set(['__typename', 'author', 'content', 'id']),
   );
 
   const postId = toEntityId('Post', 'post-1');
@@ -235,7 +235,7 @@ test(`'readView' returns view refs for list selections`, () => {
       comments: createNodeRefs([commentId]),
       id: 'post-1',
     },
-    '*',
+    new Set(['__typename', 'comments', 'id']),
   );
 
   const CommentView = view<Comment>()({
@@ -294,7 +294,7 @@ test(`'readView' returns only directly selected fields when view spreads are use
       content: 'Hello world',
       id: 'comment-1',
     },
-    '*',
+    new Set(['__typename', 'author', 'content', 'id']),
   );
 
   const postId = toEntityId('Post', 'post-1');
@@ -305,7 +305,7 @@ test(`'readView' returns only directly selected fields when view spreads are use
       comments: createNodeRefs([commentId]),
       id: 'post-1',
     },
-    '*',
+    new Set(['__typename', 'comments', 'id']),
   );
 
   const CommentMetaView = view<Comment>()({
@@ -364,11 +364,15 @@ test(`'readView' resolves object references and their views`, () => {
   });
 
   const authorId = toEntityId('User', 'user-1');
-  client.store.merge(authorId, {
-    __typename: 'User',
-    id: 'user-1',
-    name: 'Banana Appleseed',
-  });
+  client.store.merge(
+    authorId,
+    {
+      __typename: 'User',
+      id: 'user-1',
+      name: 'Banana Appleseed',
+    },
+    new Set(['__typename', 'id', 'name']),
+  );
 
   const commentAId = toEntityId('Comment', 'comment-1');
   client.store.merge(
@@ -379,7 +383,7 @@ test(`'readView' resolves object references and their views`, () => {
       content: 'Apple',
       id: 'comment-1',
     },
-    '*',
+    new Set(['__typename', 'author', 'content', 'id']),
   );
 
   const UserView = view<User>()({
@@ -433,7 +437,7 @@ test(`'readView' resolves fields only if the ref contains the expected views`, (
       content: 'Apple Banana',
       id: 'post-1',
     },
-    '*',
+    new Set(['__typename', 'content', 'id']),
   );
 
   const PostContentView = view<Post>()({
@@ -515,7 +519,7 @@ test(`'deleteRecord' removes an entity and cleans references`, () => {
       content: 'Hello world',
       id: 'comment-1',
     },
-    '*',
+    new Set(['__typename', 'author', 'content', 'id']),
   );
 
   const postId = toEntityId('Post', 'post-1');
@@ -527,7 +531,7 @@ test(`'deleteRecord' removes an entity and cleans references`, () => {
       content: 'Post content',
       id: 'post-1',
     },
-    '*',
+    new Set(['__typename', 'comments', 'content', 'id']),
   );
 
   client.store.setList('comments', {
@@ -615,11 +619,15 @@ test(`'readView' resolves nested selections without view spreads`, () => {
   });
 
   const authorId = toEntityId('User', 'user-1');
-  client.store.merge(authorId, {
-    __typename: 'User',
-    id: 'user-1',
-    name: 'Banana Appleseed',
-  });
+  client.store.merge(
+    authorId,
+    {
+      __typename: 'User',
+      id: 'user-1',
+      name: 'Banana Appleseed',
+    },
+    new Set(['__typename', 'id', 'name']),
+  );
 
   const commentId = toEntityId('Comment', 'comment-1');
   client.store.merge(
@@ -630,7 +638,7 @@ test(`'readView' resolves nested selections without view spreads`, () => {
       content: 'Apple',
       id: 'comment-1',
     },
-    '*',
+    new Set(['__typename', 'author', 'content', 'id']),
   );
 
   const CommentView = view<Comment>()({
@@ -921,7 +929,7 @@ test(`'readView' returns list metadata when available`, () => {
       content: 'Apple',
       id: 'comment-1',
     },
-    '*',
+    new Set(['__typename', 'author', 'content', 'id']),
   );
 
   const commentBId = toEntityId('Comment', 'comment-2');
@@ -933,7 +941,7 @@ test(`'readView' returns list metadata when available`, () => {
       content: 'Banana',
       id: 'comment-2',
     },
-    '*',
+    new Set(['__typename', 'author', 'content', 'id']),
   );
 
   const postId = toEntityId('Post', 'post-1');
@@ -955,7 +963,7 @@ test(`'readView' returns list metadata when available`, () => {
       comments: createNodeRefs(commentIds),
       id: 'post-1',
     },
-    '*',
+    new Set(['__typename', 'comments', 'id']),
   );
 
   const CommentView = view<Comment>()({
@@ -1044,7 +1052,7 @@ test('normalizeEntity stores connection lists using argument hashes', () => {
       },
       id: 'post-1',
     },
-    undefined,
+    plan.paths,
     undefined,
     plan,
   );
@@ -1132,15 +1140,27 @@ test(`'write' registers list state for entity lists`, () => {
     ],
   });
 
-  client.write('Post', {
-    __typename: 'Post',
-    comments: [
-      { __typename: 'Comment', content: 'First', id: 'comment-1' },
-      { __typename: 'Comment', content: 'Second', id: 'comment-2' },
-    ],
-    content: 'Example',
-    id: 'post-1',
-  });
+  client.write(
+    'Post',
+    {
+      __typename: 'Post',
+      comments: [
+        { __typename: 'Comment', content: 'First', id: 'comment-1' },
+        { __typename: 'Comment', content: 'Second', id: 'comment-2' },
+      ],
+      content: 'Example',
+      id: 'post-1',
+    },
+    new Set([
+      '__typename',
+      'comments',
+      'comments.__typename',
+      'comments.content',
+      'comments.id',
+      'content',
+      'id',
+    ]),
+  );
 
   const postId = toEntityId('Post', 'post-1');
   const commentIds = [
@@ -1181,15 +1201,26 @@ test(`'linkParentLists' maintains list registrations for parent entities`, () =>
       content: 'Example',
       id: 'post-1',
     },
-    '*',
+    new Set(['__typename', 'comments', 'content', 'id']),
   );
 
-  client.write('Comment', {
-    __typename: 'Comment',
-    content: 'Hello',
-    id: 'comment-1',
-    post: { __typename: 'Post', id: 'post-1' },
-  });
+  client.write(
+    'Comment',
+    {
+      __typename: 'Comment',
+      content: 'Hello',
+      id: 'comment-1',
+      post: { __typename: 'Post', id: 'post-1' },
+    },
+    new Set([
+      '__typename',
+      'content',
+      'id',
+      'post',
+      'post.__typename',
+      'post.id',
+    ]),
+  );
 
   const commentId = toEntityId('Comment', 'comment-1');
   expect(client.store.getList(getListKey(postId, 'comments'))).toEqual([

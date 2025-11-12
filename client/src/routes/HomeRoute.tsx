@@ -18,7 +18,15 @@ import {
   useTransition,
 } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
-import { useRequest, useView, view, ViewRef } from 'react-fate';
+import {
+  args,
+  useListView,
+  useRequest,
+  useView,
+  v,
+  view,
+  ViewRef,
+} from 'react-fate';
 import type {
   Category,
   Comment,
@@ -81,7 +89,10 @@ const UserNameForm = ({ user }: { user: SessionUser }) => {
         setError(null);
         await fate.mutations.updateUser({
           input: { name: newName },
-          optimisticUpdate: { id, username: newName },
+          optimisticUpdate: {
+            id,
+            username: newName,
+          },
           view: UserView,
         });
         await AuthClient.updateUser({ name });
@@ -150,14 +161,18 @@ const UserCard = ({ user }: { user: SessionUser | null }) =>
   ) : null;
 
 const CommentView = view<Comment>()({
-  author: UserView,
+  author: {
+    id: true,
+    name: true,
+    username: true,
+  },
   content: true,
   id: true,
 });
 
 const Comment = ({ comment: commentRef }: { comment: ViewRef<'Comment'> }) => {
   const comment = useView(CommentView, commentRef);
-  const author = useView(UserView, comment.author);
+  const { author } = comment;
 
   return (
     <div
@@ -202,6 +217,7 @@ const PostView = view<Post>()({
   author: UserView,
   category: CategorySummaryView,
   comments: {
+    args: args({ first: v('first', 1) }),
     items: {
       node: CommentView,
     },
@@ -227,7 +243,7 @@ const Post = ({
   const post = useView(PostView, postRef);
   const author = useView(UserView, post.author);
   const category = useView(CategorySummaryView, post.category);
-  const comments = post.comments?.items ?? [];
+  const [comments, _loadNext] = useListView(CommentView, post.comments);
   const tags = post.tags?.items ?? [];
 
   const [commentText, setCommentText] = useState('');
