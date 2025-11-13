@@ -5,7 +5,7 @@ import { createNodeRef, getNodeRefId, isNodeRef } from './node-ref.ts';
 import createRef, { assignViewTag, parseEntityId, toEntityId } from './ref.ts';
 import { selectionFromView, type SelectionPlan } from './selection.ts';
 import { getListKey, List, Store } from './store.ts';
-import { Transport } from './transport.ts';
+import { ResolvedArgsPayload, Transport } from './transport.ts';
 import { Pagination, RequestResult, ViewSnapshot } from './types.js';
 import {
   ConnectionMetadata,
@@ -73,6 +73,118 @@ const getId: TypeConfig['getId'] = (record: unknown) => {
     );
   }
   return value;
+};
+
+const isRecord = (value: unknown): value is AnyRecord =>
+  Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+
+const mergeArgs = (target: AnyRecord, source: AnyRecord) => {
+  for (const [key, value] of Object.entries(source)) {
+    if (isRecord(value)) {
+      const existing = target[key];
+      if (isRecord(existing)) {
+        mergeArgs(existing, value);
+      } else {
+        target[key] = { ...value };
+      }
+      continue;
+    }
+
+    target[key] = value;
+  }
+};
+
+const resolvedArgsFromPlan = (
+  plan?: SelectionPlan,
+): ResolvedArgsPayload | undefined => {
+  if (!plan || plan.args.size === 0) {
+    return undefined;
+  }
+
+  const result: AnyRecord = {};
+
+  for (const [path, entry] of plan.args.entries()) {
+    const segments = path.split('.');
+    let current = result;
+
+    segments.forEach((segment, index) => {
+      const isLeaf = index === segments.length - 1;
+
+      if (isLeaf) {
+        const existing = current[segment];
+        if (isRecord(existing)) {
+          mergeArgs(existing, entry.value);
+        } else {
+          current[segment] = { ...entry.value };
+        }
+        return;
+      }
+
+      const existing = current[segment];
+      if (isRecord(existing)) {
+        current = existing;
+        return;
+      }
+
+      const next: AnyRecord = {};
+      current[segment] = next;
+      current = next;
+    });
+  }
+
+  return result;
+};
+
+const hasEntries = (value?: AnyRecord): value is AnyRecord =>
+  Boolean(value && Object.keys(value).length > 0);
+
+const combineArgsPayload = (
+  base?: AnyRecord,
+  scoped?: ResolvedArgsPayload,
+): ResolvedArgsPayload | undefined => {
+  if (!hasEntries(base) && !hasEntries(scoped)) {
+    return undefined;
+  }
+
+  const result: AnyRecord = hasEntries(base) ? { ...base } : {};
+
+  if (hasEntries(scoped)) {
+    mergeArgs(result, scoped);
+  }
+
+  return result;
+};
+
+const emptySet = new Set<string>();
+
+const groupSelectionByPrefix = (
+  select: Set<string>,
+): Map<string, Set<string>> => {
+  if (select.size === 0) {
+    return new Map();
+  }
+
+  const result = new Map<string, Set<string>>();
+
+  for (const path of select) {
+    const separatorIndex = path.indexOf('.');
+    if (separatorIndex === -1) {
+      continue;
+    }
+
+    const prefix = path.slice(0, separatorIndex);
+    const remainder = path.slice(separatorIndex + 1);
+
+    let bucket = result.get(prefix);
+    if (!bucket) {
+      bucket = new Set();
+      result.set(prefix, bucket);
+    }
+
+    bucket.add(remainder);
+  }
+
+  return result;
 };
 
 export class FateClient<
@@ -190,12 +302,34 @@ export class FateClient<
     key: string,
     input: unknown,
     select: Set<string>,
+    options: { args?: AnyRecord; plan?: SelectionPlan } = {},
   ): Promise<unknown> {
     if (!this.transport.mutate) {
       throw new Error(`fate: transport does not support mutations.`);
     }
 
-    return await this.transport.mutate(key as any, input as any, select);
+    const baseRecord =
+      input && typeof input === 'object' ? (input as AnyRecord) : undefined;
+    const inputArgs =
+      baseRecord && typeof baseRecord.args === 'object'
+        ? (baseRecord.args as AnyRecord)
+        : undefined;
+    const planArgs = options.plan
+      ? resolvedArgsFromPlan(options.plan)
+      : undefined;
+    const argsPayload = combineArgsPayload(
+      combineArgsPayload(inputArgs, options.args),
+      planArgs,
+    );
+
+    const requestInput =
+      argsPayload && baseRecord
+        ? ({ ...baseRecord, args: argsPayload } as AnyRecord)
+        : argsPayload
+          ? ({ args: argsPayload } as AnyRecord)
+          : input;
+
+    return await this.transport.mutate(key as any, requestInput as any, select);
   }
 
   write(
@@ -340,20 +474,22 @@ export class FateClient<
       requestArgs.id = owner.id;
     }
 
-    const plan = selectionFromView(view, null, requestArgs);
-    const nodeSelection = plan.paths;
+    const {
+      argsPayload,
+      plan,
+      selection: nodeSelection,
+    } = this.resolveListSelection(view, requestArgs);
 
     const parentSelection = new Set<string>();
     for (const path of nodeSelection) {
       parentSelection.add(`${connection.field}.${path}`);
     }
 
-    parentSelection.add(connection.field);
-
     const [parentRecord] = await this.transport.fetchById(
       owner.type,
       [owner.id],
       parentSelection,
+      argsPayload,
     );
 
     if (!parentRecord || typeof parentRecord !== 'object') {
@@ -378,15 +514,26 @@ export class FateClient<
     const incomingIds: Array<EntityId> = [];
     const incomingCursors: Array<string | undefined> = [];
 
+    const fieldConfig = this.getTypeConfig(owner.type).fields?.[
+      connection.field
+    ];
+    const nodeType =
+      (fieldConfig &&
+        (fieldConfig === 'scalar'
+          ? null
+          : 'listOf' in fieldConfig
+            ? fieldConfig.listOf
+            : null)) ||
+      null;
+
+    if (!nodeType) {
+      throw new Error(
+        `fate: Could not find node type for '${owner.type}.${connection.field}'.`,
+      );
+    }
+
     for (const entry of connectionPayload.items) {
       const { node } = entry;
-      const nodeType = node.__typename;
-      if (!nodeType) {
-        throw new Error(
-          `fate: Connection '${connection.procedure}' returned an item without '__typename'.`,
-        );
-      }
-
       const id = this.write(nodeType, node, nodeSelection, undefined, plan);
       incomingIds.push(id);
       incomingCursors.push(entry.cursor);
@@ -427,27 +574,20 @@ export class FateClient<
     const previousPagination = previous?.pagination;
     const newPagination = connectionPayload.pagination;
 
-    const nextPagination = previousPagination
-      ? {
-          hasNext:
-            direction === 'forward'
-              ? (newPagination?.hasNext ?? previousPagination.hasNext)
-              : previousPagination.hasNext,
-          hasPrevious:
-            direction === 'backward'
-              ? (newPagination?.hasPrevious ?? previousPagination.hasPrevious)
-              : previousPagination.hasPrevious,
-          nextCursor:
-            direction === 'forward'
-              ? (newPagination?.nextCursor ?? previousPagination.nextCursor)
-              : previousPagination.nextCursor,
-          previousCursor:
-            direction === 'backward'
-              ? (newPagination?.previousCursor ??
-                previousPagination.previousCursor)
-              : previousPagination.previousCursor,
-        }
-      : newPagination;
+    const nextPagination =
+      previousPagination || newPagination
+        ? {
+            hasNext: !!(newPagination?.hasNext ?? previousPagination?.hasNext),
+            hasPrevious: !!(
+              newPagination?.hasPrevious ?? previousPagination?.hasPrevious
+            ),
+            nextCursor:
+              newPagination?.nextCursor ?? previousPagination?.nextCursor,
+            previousCursor:
+              newPagination?.previousCursor ??
+              previousPagination?.previousCursor,
+          }
+        : undefined;
 
     this.store.setList(connection.key, {
       cursors: nextCursors,
@@ -563,7 +703,13 @@ export class FateClient<
     plan?: SelectionPlan,
     prefix: string | null = null,
   ) {
-    const records = await this.transport.fetchById(type, ids, select);
+    const resolvedArgs = resolvedArgsFromPlan(plan);
+    const records = await this.transport.fetchById(
+      type,
+      ids,
+      select,
+      resolvedArgs,
+    );
     for (const record of records) {
       this.normalizeEntity(
         type,
@@ -586,12 +732,14 @@ export class FateClient<
       );
     }
 
-    const plan = selectionFromView(item.root, null, item.args ?? {});
-    const selection = plan.paths;
+    const { argsPayload, plan, selection } = this.resolveListSelection(
+      item.root,
+      item.args,
+    );
     const { items, pagination } = await this.transport.fetchList(
       name,
-      item.args,
       selection,
+      argsPayload,
     );
     const ids: Array<EntityId> = [];
     const cursors: Array<string | undefined> = [];
@@ -613,6 +761,19 @@ export class FateClient<
     });
   }
 
+  private resolveListSelection(
+    view: View<any, any>,
+    args: AnyRecord | undefined,
+  ) {
+    const rootArgs = args ?? {};
+    const plan = selectionFromView(view, null, rootArgs);
+    const selection = plan.paths;
+    const resolvedArgs = resolvedArgsFromPlan(plan);
+    const argsPayload = combineArgsPayload(rootArgs, resolvedArgs);
+
+    return { argsPayload, plan, selection };
+  }
+
   private normalizeEntity(
     type: string,
     record: AnyRecord,
@@ -631,6 +792,7 @@ export class FateClient<
     const id = config.getId(record);
     const entityId = toEntityId(type, id);
     const result: AnyRecord = {};
+    const selectionTree = groupSelectionByPrefix(select);
 
     if (config.fields) {
       for (const [key, relationDescriptor] of Object.entries(config.fields)) {
@@ -644,6 +806,7 @@ export class FateClient<
           typeof relationDescriptor === 'object' &&
           'type' in relationDescriptor
         ) {
+          const childPaths = selectionTree.get(key) ?? emptySet;
           if (value && typeof value === 'object' && !isNodeRef(value)) {
             const childType = relationDescriptor.type;
             const childConfig = this.types.get(childType);
@@ -654,12 +817,6 @@ export class FateClient<
             }
             const childId = toEntityId(childType, childConfig.getId(value));
             result[key] = createNodeRef(childId);
-
-            const childPaths = new Set(
-              [...select]
-                .filter((part) => part.startsWith(`${key}.`))
-                .map((part) => part.slice(key.length + 1)),
-            );
 
             this.normalizeEntity(
               childType,
@@ -675,6 +832,7 @@ export class FateClient<
           typeof relationDescriptor === 'object' &&
           'listOf' in relationDescriptor
         ) {
+          const childPaths = selectionTree.get(key) ?? emptySet;
           const childType = relationDescriptor.listOf;
           const childConfig = this.types.get(childType);
           if (!childConfig) {
@@ -682,12 +840,6 @@ export class FateClient<
               `fate: Unknown related type '${childType}' (field '${type}.${key}').`,
             );
           }
-
-          const childPaths = new Set(
-            [...select]
-              .filter((part) => part.startsWith(`${key}.`))
-              .map((part) => part.slice(key.length + 1)),
-          );
 
           const connection = (() => {
             if (Array.isArray(value)) {
@@ -725,6 +877,29 @@ export class FateClient<
             const cursors: Array<string | undefined> = [];
             let hasCursor = false;
 
+            const nodeSelection =
+              childPaths.size > 0 ? new Set<string>() : childPaths;
+
+            if (childPaths.size > 0) {
+              for (const path of childPaths) {
+                if (path.startsWith('items.node.')) {
+                  nodeSelection.add(path.slice('items.node.'.length));
+                  continue;
+                }
+
+                if (path.startsWith('node.')) {
+                  nodeSelection.add(path.slice('node.'.length));
+                  continue;
+                }
+
+                if (path === 'items.node' || path.startsWith('items.')) {
+                  continue;
+                }
+
+                nodeSelection.add(path);
+              }
+            }
+
             for (const entry of connection.items) {
               const node = entry.node;
               const cursor =
@@ -748,7 +923,7 @@ export class FateClient<
                 this.normalizeEntity(
                   childType,
                   node as AnyRecord,
-                  childPaths,
+                  nodeSelection,
                   snapshots,
                   plan,
                   fieldPath,
@@ -838,19 +1013,13 @@ export class FateClient<
 
       const nextList = [...current, createNodeRef(entityId)];
 
-      this.store.merge(parentId, { [parent.field]: nextList }, [parent.field]);
-
       const listKey = getListKey(parentId, parent.field);
       const ids = nextList
         .map((item) => (isNodeRef(item) ? getNodeRefId(item) : null))
         .filter((id): id is EntityId => id != null);
-      this.store.setList(listKey, { ids });
 
-      this.store.merge(
-        parentId,
-        { [parent.field]: [...current, createNodeRef(entityId)] },
-        [parent.field],
-      );
+      this.store.setList(listKey, { ids });
+      this.store.merge(parentId, { [parent.field]: nextList }, [parent.field]);
     }
   }
 

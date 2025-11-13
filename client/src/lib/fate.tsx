@@ -129,23 +129,35 @@ export const fate = createClient({
       Comment:
         (client: TRPCClientType) =>
         ({
+          args,
           ids,
           select,
         }: {
+          args?: Record<string, unknown>;
           ids: Array<string | number>;
           select: Array<string>;
         }) =>
-          client.comment.byId.query({ ids: ids.map(String), select }),
+          client.comment.byId.query({
+            args,
+            ids: ids.map(String),
+            select,
+          }),
       Post:
         (client: TRPCClientType) =>
         ({
+          args,
           ids,
           select,
         }: {
+          args?: Record<string, unknown>;
           ids: Array<string | number>;
           select: Array<string>;
         }) =>
-          client.post.byId.query({ ids: ids.map(String), select }),
+          client.post.byId.query({
+            args,
+            ids: ids.map(String),
+            select,
+          }),
     },
     client: trpcClient,
     lists: {

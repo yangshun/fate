@@ -74,9 +74,9 @@ export default class ViewDataCache {
       for (const dependent of dependents) {
         this.delete(dependent);
       }
-    } else {
-      this.delete(entityId);
     }
+
+    this.delete(entityId);
   }
 
   private delete(entityId: EntityId) {

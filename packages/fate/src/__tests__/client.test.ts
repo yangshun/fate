@@ -766,6 +766,7 @@ test(`'readView' fetches missing fields using the selection`, async () => {
     'Post',
     ['post-1'],
     new Set(['author.id', 'author.name', 'content']),
+    undefined,
   );
 
   const { data, ids } = await thenable;
@@ -814,6 +815,51 @@ test(`'request' groups ids by selection before fetching`, async () => {
     'Post',
     ['post-1'],
     new Set(['content', 'id']),
+    undefined,
+  );
+});
+
+test(`'request' forwards nested selection args to by-id transports`, async () => {
+  const fetchById = vi.fn().mockResolvedValue([
+    {
+      __typename: 'Post',
+      comments: [],
+      id: 'post-1',
+    },
+  ]);
+
+  const client = createClient({
+    transport: {
+      fetchById,
+    },
+    types: [
+      { fields: { comments: { listOf: 'Comment' } }, type: 'Post' },
+      { type: 'Comment' },
+    ],
+  });
+
+  const CommentView = view<Comment>()({ id: true });
+  const PostView = view<Post>()({
+    comments: {
+      args: args({ first: v('first', 1) }),
+      items: { node: CommentView },
+    },
+    id: true,
+  });
+
+  await client.request({
+    post: {
+      ids: ['post-1'],
+      root: PostView,
+      type: 'Post',
+    },
+  });
+
+  expect(fetchById).toHaveBeenCalledWith(
+    'Post',
+    ['post-1'],
+    new Set(['comments.id', 'id']),
+    { comments: { first: 1 } },
   );
 });
 
@@ -859,6 +905,7 @@ test(`'request' fetches view selections via the transport`, async () => {
     'Post',
     ['post-1'],
     new Set(['content', 'id']),
+    undefined,
   );
 });
 
@@ -899,8 +946,54 @@ test(`'request' fetches list selections via the transport`, async () => {
   expect(fetchList).toHaveBeenCalledTimes(1);
   expect(fetchList).toHaveBeenCalledWith(
     'comments',
-    { first: 1 },
     new Set(['content', 'id']),
+    { first: 1 },
+  );
+});
+
+test(`'request' forwards nested selection args to list transports`, async () => {
+  const fetchList = vi.fn().mockResolvedValue({
+    items: [],
+    pagination: { hasNext: false, hasPrevious: false },
+  });
+
+  const client = createClient({
+    transport: {
+      async fetchById() {
+        return [];
+      },
+      fetchList,
+    },
+    types: [
+      { fields: { comments: { listOf: 'Comment' } }, type: 'Post' },
+      { type: 'Comment' },
+    ],
+  });
+
+  const CommentView = view<Comment>()({ id: true });
+  const PostView = view<Post>()({
+    comments: {
+      args: args({ first: v('first', 1) }),
+      items: { node: CommentView },
+    },
+    id: true,
+  });
+
+  await client.request({
+    posts: {
+      args: { first: 1 },
+      root: PostView,
+      type: 'Post',
+    },
+  });
+
+  expect(fetchList).toHaveBeenCalledWith(
+    'posts',
+    new Set(['comments.id', 'id']),
+    {
+      comments: { first: 1 },
+      first: 1,
+    },
   );
 });
 
@@ -1122,6 +1215,150 @@ test(`mutation results with arrays mark nested fields as fetched`, async () => {
   ]);
 
   expect(missing).toEqual(new Set());
+});
+
+test(`mutation results with connections reuse view args and hydrate nodes`, async () => {
+  type UpdatePostInput = { id: string };
+  type UpdatePostResult = {
+    __typename: 'Post';
+    comments: {
+      items: Array<{
+        cursor: string;
+        node: Comment;
+      }>;
+      pagination: {
+        hasNext: boolean;
+        hasPrevious: boolean;
+        nextCursor?: string;
+        previousCursor?: string;
+      };
+    };
+    id: string;
+  };
+
+  const fetchById = vi.fn(async () => []);
+  const mutate = vi.fn(
+    async (key: 'updatePost', input: unknown, select: Set<string>) => {
+      expect(key).toBe('updatePost');
+      expect(select).toBeInstanceOf(Set);
+      expect(input).toEqual({
+        args: { comments: { first: 1 } },
+        id: 'post-1',
+      });
+
+      return {
+        __typename: 'Post',
+        comments: {
+          items: [
+            {
+              cursor: 'comment-1',
+              node: {
+                __typename: 'Comment',
+                author: {
+                  __typename: 'User',
+                  id: 'user-1',
+                  name: 'Alice',
+                },
+                content: 'Hello from mutation',
+                id: 'comment-1',
+              },
+            },
+          ],
+          pagination: {
+            hasNext: false,
+            hasPrevious: false,
+            nextCursor: undefined,
+            previousCursor: undefined,
+          },
+        },
+        id: 'post-1',
+      } satisfies UpdatePostResult;
+    },
+  );
+
+  const client = createClient({
+    mutations: {
+      updatePost: mutation<Post, UpdatePostInput, UpdatePostResult>('Post'),
+    },
+    transport: {
+      fetchById,
+      mutate: mutate as any,
+    },
+    types: [
+      { fields: { comments: { listOf: 'Comment' } }, type: 'Post' },
+      { fields: { author: { type: 'User' } }, type: 'Comment' },
+      { type: 'User' },
+    ],
+  });
+
+  const CommentView = view<Comment>()({
+    author: {
+      id: true,
+      name: true,
+    },
+    content: true,
+    id: true,
+  });
+  const PostView = view<Post>()({
+    comments: {
+      args: args({ first: 1 }),
+      items: { node: CommentView },
+    },
+    id: true,
+  });
+
+  await client.mutations.updatePost({
+    input: { id: 'post-1' },
+    view: PostView,
+  });
+
+  expect(mutate).toHaveBeenCalledWith(
+    'updatePost',
+    {
+      args: { comments: { first: 1 } },
+      id: 'post-1',
+    },
+    expect.any(Set),
+  );
+  expect(fetchById).not.toHaveBeenCalled();
+
+  const commentEntityId = toEntityId('Comment', 'comment-1');
+  expect(
+    client.store.missingForSelection(commentEntityId, [
+      'author',
+      'author.id',
+      'author.name',
+      'content',
+      'id',
+    ]),
+  ).toEqual(new Set());
+
+  const commentRef = client.ref<Comment>('Comment', 'comment-1', CommentView);
+  const comment = unwrap(
+    client.readView<
+      Comment,
+      SelectionOf<typeof CommentView>,
+      typeof CommentView
+    >(CommentView, commentRef),
+  );
+
+  expect(comment.id).toBe('comment-1');
+  expect(comment.content).toBe('Hello from mutation');
+  expect(comment.author).toEqual({
+    __typename: 'User',
+    id: 'user-1',
+    name: 'Alice',
+  });
+
+  const postPlan = selectionFromView(PostView, null, {});
+  const listKey = getListKey(
+    toEntityId('Post', 'post-1'),
+    'comments',
+    postPlan.args.get('comments')?.hash,
+  );
+  expect(client.store.getList(listKey)).toEqual([
+    toEntityId('Comment', 'comment-1'),
+  ]);
 });
 
 test(`'write' registers list state for entity lists`, () => {

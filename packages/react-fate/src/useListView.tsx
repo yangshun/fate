@@ -4,7 +4,7 @@ import {
   Pagination,
   type View,
 } from '@nkzw/fate';
-import { useMemo } from 'react';
+import { useCallback, useMemo, useSyncExternalStore } from 'react';
 import { useFateClient } from './context.tsx';
 
 type ConnectionItems<C> = C extends { items?: ReadonlyArray<infer Item> }
@@ -31,14 +31,34 @@ export function useListView<
           | undefined)
       : null;
 
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => {
+      if (!metadata) {
+        return () => {};
+      }
+
+      return client.store.subscribeList(metadata.key, onStoreChange);
+    },
+    [client, metadata],
+  );
+
+  const getSnapshot = useCallback(() => {
+    if (!metadata) {
+      return undefined;
+    }
+
+    return client.store.getListState(metadata.key);
+  }, [client, metadata]);
+
+  const listState = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  const pagination = connection?.pagination ?? listState?.pagination;
+  const hasNext = Boolean(pagination?.hasNext);
+  const hasPrevious = Boolean(pagination?.hasPrevious);
+  const nextCursor = pagination?.nextCursor;
+  const previousCursor = pagination?.previousCursor;
+
   const loadNext: LoadMoreFn = useMemo(() => {
-    const pagination = connection?.pagination;
-    if (
-      !metadata ||
-      !pagination ||
-      !pagination.hasNext ||
-      !pagination.nextCursor
-    ) {
+    if (!metadata || !hasNext || !nextCursor) {
       return null;
     }
 
@@ -49,23 +69,17 @@ export function useListView<
         metadata,
         {
           ...values,
-          after: pagination.nextCursor,
+          after: nextCursor,
         },
         {
           direction: 'forward',
         },
       );
     };
-  }, [client, connection?.pagination, metadata, view]);
+  }, [client, hasNext, metadata, nextCursor, view]);
 
   const loadPrevious: LoadMoreFn = useMemo(() => {
-    const pagination = connection?.pagination;
-    if (
-      !metadata ||
-      !pagination ||
-      !pagination.hasPrevious ||
-      !pagination.previousCursor
-    ) {
+    if (!metadata || !hasPrevious || !previousCursor) {
       return null;
     }
 
@@ -76,14 +90,14 @@ export function useListView<
         metadata,
         {
           ...values,
-          before: pagination.previousCursor,
+          before: previousCursor,
         },
         {
           direction: 'backward',
         },
       );
     };
-  }, [client, connection?.pagination, metadata, view]);
+  }, [client, hasPrevious, metadata, previousCursor, view]);
 
   return [
     connection?.items as unknown as ConnectionItems<NonNullable<C>>,

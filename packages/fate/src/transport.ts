@@ -2,6 +2,8 @@ import type { TRPCClient } from '@trpc/client';
 import type { AnyRouter } from '@trpc/server';
 import { AnyRecord, Pagination, type MutationShape } from './types.ts';
 
+export type ResolvedArgsPayload = AnyRecord;
+
 type TransportMutations = Record<string, MutationShape>;
 type EmptyTransportMutations = Record<never, MutationShape>;
 
@@ -12,11 +14,12 @@ export interface Transport<
     type: string,
     ids: Array<string | number>,
     select: Iterable<string>,
+    args?: ResolvedArgsPayload,
   ): Promise<Array<unknown>>;
   fetchList?(
     proc: string,
-    args: Record<string, unknown> | undefined,
     select: Iterable<string>,
+    args?: ResolvedArgsPayload,
   ): Promise<{
     items: Array<{ cursor: string | undefined; node: unknown }>;
     pagination: Pagination;
@@ -33,6 +36,7 @@ export type TRPCByIdResolvers<AppRouter extends AnyRouter> = Record<
   (
     client: TRPCClient<AppRouter>,
   ) => (input: {
+    args?: ResolvedArgsPayload;
     ids: Array<string | number>;
     select: Array<string>;
   }) => Promise<Array<unknown>>
@@ -40,9 +44,10 @@ export type TRPCByIdResolvers<AppRouter extends AnyRouter> = Record<
 
 export type TRPCListResolvers<AppRouter extends AnyRouter> = Record<
   string,
-  (client: TRPCClient<AppRouter>) => (
-    input: { select: Array<string> } & AnyRecord,
-  ) => Promise<{
+  (client: TRPCClient<AppRouter>) => (input: {
+    args?: ResolvedArgsPayload;
+    select: Array<string>;
+  }) => Promise<{
     items: Array<{ cursor: string | undefined; node: unknown }>;
     pagination: Pagination;
   }>
@@ -87,7 +92,7 @@ export function createFateTransport<
   mutations?: Mutations;
 }): Transport<MutationMapFromResolvers<Mutations>> {
   const transport: Transport<MutationMapFromResolvers<Mutations>> = {
-    async fetchById(type, ids, select) {
+    async fetchById(type, ids, select, args) {
       const resolver = byId[type];
       if (!resolver) {
         throw new Error(
@@ -95,11 +100,12 @@ export function createFateTransport<
         );
       }
       return await resolver(client)({
+        args,
         ids,
         select: [...select],
       });
     },
-    async fetchList(procedure, args, select) {
+    async fetchList(procedure, select, args) {
       if (!lists) {
         throw new Error(
           `fate(trpc): No list resolvers configured; cannot call "${procedure}".`,
@@ -112,7 +118,7 @@ export function createFateTransport<
         );
       }
       return resolver(client)({
-        ...args,
+        args,
         select: [...select],
       });
     },

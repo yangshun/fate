@@ -13,6 +13,11 @@ import { getViewPayloads } from './view.ts';
 
 const paginationKeys = new Set(['after', 'before', 'cursor']);
 
+const isConnectionSelection = (value: AnyRecord): boolean =>
+  isPlainObject(value.items) && 'node' in value.items;
+
+type WalkContext = 'default' | 'connection';
+
 export type SelectionPlan = {
   readonly args: Map<string, { hash: string; value: AnyRecord }>;
   readonly paths: Set<string>;
@@ -42,7 +47,11 @@ export const selectionFromView = <
     args.set(path, { hash, value });
   };
 
-  const walk = (selection: AnyRecord, prefix: string | null) => {
+  const walk = (
+    selection: AnyRecord,
+    prefix: string | null,
+    context: WalkContext = 'default',
+  ) => {
     for (const [key, value] of Object.entries(selection)) {
       if (key === ViewKind) {
         continue;
@@ -51,19 +60,26 @@ export const selectionFromView = <
       const valueType = typeof value;
       const path = prefix ? `${prefix}.${key}` : key;
 
-      if (key === 'items' && isPlainObject(value)) {
-        if (isPlainObject(value.node)) {
-          walk(value.node, prefix);
+      if (context === 'connection') {
+        if (key === 'args' || key === 'pagination') {
+          continue;
         }
-        continue;
+
+        if (key === 'items' && isPlainObject(value)) {
+          if (isPlainObject(value.node)) {
+            walk(value.node, prefix);
+          }
+          continue;
+        }
+
+        if (key === 'node' && isPlainObject(value)) {
+          walk(value, path);
+          continue;
+        }
       }
 
       if (key === 'node' && isPlainObject(value)) {
         walk(value, path);
-        continue;
-      }
-
-      if (key === 'pagination') {
         continue;
       }
 
@@ -88,6 +104,21 @@ export const selectionFromView = <
       }
 
       if (isPlainObject(value)) {
+        if (isConnectionSelection(value)) {
+          if (isArgs(value.args)) {
+            assignArgs(
+              path,
+              resolveArgs(value.args, { args: rootArgs, path }),
+              isPlainObject(value.items) && isPlainObject(value.items.node)
+                ? paginationKeys
+                : undefined,
+            );
+          }
+
+          walk(value, path, 'connection');
+          continue;
+        }
+
         if (isArgs(value.args)) {
           assignArgs(
             path,

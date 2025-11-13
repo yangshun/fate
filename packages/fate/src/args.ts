@@ -58,59 +58,80 @@ type ResolveArgsOptions = {
   path?: string;
 };
 
+const isPlainObject = (value: unknown): value is AnyRecord => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return false;
+  }
+
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+};
+
 export const resolveArgs = (
   marker: Args<AnyRecord>,
   options: ResolveArgsOptions = {},
 ): AnyRecord => {
   const rootArgs = options.args ?? {};
   const basePath = options.path ?? '__root';
-  const result: AnyRecord = {};
+  const cloneValue = (value: unknown, path: string): unknown => {
+    if (Array.isArray(value)) {
+      return value.map((entry, index) =>
+        cloneValue(entry, `${path}[${index}]`),
+      );
+    }
 
-  for (const [key, value] of Object.entries(marker)) {
-    const argPath = `${basePath}.${key}`;
+    if (isPlainObject(value)) {
+      const result: AnyRecord = {};
+      for (const [key, entry] of Object.entries(value)) {
+        result[key] = cloneValue(entry, `${path}.${key}`);
+      }
+      return result;
+    }
 
+    ensureSerializable(value, path);
+    return value;
+  };
+
+  const resolveValue = (value: unknown, path: string): unknown => {
     if (isVarReference(value)) {
       const variable = value.key;
       if (variable in rootArgs) {
         const resolved = rootArgs[variable];
-        ensureSerializable(resolved, argPath);
-        result[key] = resolved;
-      } else if (value.defaultValue !== undefined) {
-        ensureSerializable(value.defaultValue, argPath);
-        result[key] = value.defaultValue;
-      } else {
-        throw new Error(`fate: Missing value for ${variable}.`);
+        ensureSerializable(resolved, path);
+        return cloneValue(resolved, path);
       }
-      continue;
+
+      if (value.defaultValue !== undefined) {
+        ensureSerializable(value.defaultValue, path);
+        return cloneValue(value.defaultValue, path);
+      }
+
+      throw new Error(`fate: Missing value for ${variable}.`);
     }
 
     if (Array.isArray(value)) {
-      result[key] = value.map((entry, index) => {
-        const entryPath = `${argPath}[${index}]`;
-        if (isVarReference(entry)) {
-          const variable = entry.key;
-          if (variable in rootArgs) {
-            const resolved = rootArgs[variable];
-            ensureSerializable(resolved, entryPath);
-            return resolved;
-          }
-
-          if (entry.defaultValue !== undefined) {
-            ensureSerializable(entry.defaultValue, entryPath);
-            return entry.defaultValue;
-          }
-
-          throw new Error(`fate: Missing value for ${variable}.`);
-        }
-
-        ensureSerializable(entry, entryPath);
-        return entry;
-      });
-      continue;
+      return value.map((entry, index) =>
+        resolveValue(entry, `${path}[${index}]`),
+      );
     }
 
-    ensureSerializable(value, argPath);
-    result[key] = value;
+    if (isPlainObject(value)) {
+      const result: AnyRecord = {};
+      for (const [key, entry] of Object.entries(value)) {
+        result[key] = resolveValue(entry, `${path}.${key}`);
+      }
+      return result;
+    }
+
+    ensureSerializable(value, path);
+    return value;
+  };
+
+  const result: AnyRecord = {};
+
+  for (const [key, value] of Object.entries(marker)) {
+    const argPath = `${basePath}.${key}`;
+    result[key] = resolveValue(value, argPath);
   }
 
   return result;

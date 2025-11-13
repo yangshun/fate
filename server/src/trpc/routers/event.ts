@@ -1,9 +1,13 @@
 import { z } from 'zod';
 import {
   arrayToConnection,
+  connectionArgs,
   createConnectionProcedure,
 } from '../../fate-server/connection.ts';
-import { prismaSelect } from '../../fate-server/prismaSelect.tsx';
+import {
+  prismaSelect,
+  scopedArgsForPath,
+} from '../../fate-server/prismaSelect.tsx';
 import { Event, EventAttendee } from '../../prisma/prisma-client/client.ts';
 import { procedure, router } from '../init.ts';
 
@@ -41,9 +45,14 @@ type EventRow = {
   attendees?: Array<EventAttendee>;
 } & Event;
 
-const transformEvent = ({ _count, attendees, ...event }: EventRow) => ({
+const transformEvent = (
+  { _count, attendees, ...event }: EventRow,
+  args?: Record<string, unknown>,
+) => ({
   ...event,
-  attendees: arrayToConnection(attendees),
+  attendees: arrayToConnection(attendees, {
+    args: scopedArgsForPath(args, 'attendees'),
+  }),
   attendingCount: _count?.attendees ?? 0,
 });
 
@@ -51,12 +60,13 @@ export const eventRouter = router({
   byId: procedure
     .input(
       z.object({
+        args: connectionArgs,
         ids: z.array(z.string().min(1)).nonempty(),
         select: z.array(z.string()),
       }),
     )
     .query(async ({ ctx, input }) => {
-      const select = prismaSelect(input.select);
+      const select = prismaSelect(input.select, input.args);
       const events = await ctx.prisma.event.findMany({
         select: { ...select, ...eventSelect },
         where: { id: { in: input.ids } },
@@ -64,7 +74,10 @@ export const eventRouter = router({
 
       const map = new Map(
         events.map((event) => {
-          const result = transformEvent(event as unknown as EventRow);
+          const result = transformEvent(
+            event as unknown as EventRow,
+            input.args,
+          );
           return [result.id, result];
         }),
       );
@@ -72,18 +85,18 @@ export const eventRouter = router({
     }),
   list: createConnectionProcedure({
     defaultSize: 3,
-    map: ({ rows }) =>
+    map: ({ input, rows }) =>
       (rows as Array<EventRow & { _count: { attendees: number } }>).map(
-        (event) => transformEvent(event),
+        (event) => transformEvent(event, input.args),
       ),
-    query: async ({ ctx, cursor, input, skip, take }) => {
-      const select = prismaSelect(input.select);
+    query: async ({ ctx, cursor, direction, input, skip, take }) => {
+      const select = prismaSelect(input.select, input.args);
       delete select.attendingCount;
 
-      return ctx.prisma.event.findMany({
+      const rows = await ctx.prisma.event.findMany({
         orderBy: { startAt: 'asc' },
         select: { ...select, ...eventSelect },
-        take,
+        take: direction === 'forward' ? take : -take,
         ...(cursor
           ? ({
               cursor: { id: cursor },
@@ -91,6 +104,7 @@ export const eventRouter = router({
             } as const)
           : null),
       });
+      return direction === 'forward' ? rows : rows.reverse();
     },
   }),
 });

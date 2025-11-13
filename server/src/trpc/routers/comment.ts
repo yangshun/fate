@@ -1,5 +1,6 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
+import { connectionArgs } from '../../fate-server/connection.ts';
 import { prismaSelect } from '../../fate-server/prismaSelect.tsx';
 import type { CommentFindManyArgs } from '../../prisma/prisma-client/models.ts';
 import { procedure, router } from '../init.ts';
@@ -15,6 +16,7 @@ export const commentRouter = router({
   add: procedure
     .input(
       z.object({
+        args: connectionArgs,
         content: z.string().min(1, 'Content is required'),
         postId: z.string().min(1, 'Post id is required'),
         select: z.array(z.string()),
@@ -41,40 +43,45 @@ export const commentRouter = router({
         });
       }
 
-      const select = prismaSelect(input.select);
+      const select = prismaSelect(input.select, input.args);
       const data = {
         authorId: ctx.sessionUser.id,
         content: input.content,
         postId: input.postId,
       };
 
-      const prismaPostSelection = (
-        select.post as { select?: Record<string, unknown> } | undefined
-      )?.select;
+      const prismaPostSelection = select.post;
+      const mergedPostSelection =
+        prismaPostSelection && typeof prismaPostSelection === 'object'
+          ? {
+              ...(prismaPostSelection as Record<string, unknown>),
+              select: {
+                ...postSelection.select,
+                ...((
+                  prismaPostSelection as { select?: Record<string, unknown> }
+                ).select ?? {}),
+              },
+            }
+          : postSelection;
 
       return ctx.prisma.comment.create({
         data,
         select: {
           ...select,
-          ...(prismaPostSelection
-            ? {
-                post: {
-                  select: { ...postSelection.select, ...prismaPostSelection },
-                },
-              }
-            : {}),
+          post: mergedPostSelection,
         },
       });
     }),
   byId: procedure
     .input(
       z.object({
+        args: connectionArgs,
         ids: z.array(z.string().min(1)).nonempty(),
         select: z.array(z.string()),
       }),
     )
     .query(async ({ ctx, input }) => {
-      const select = prismaSelect(input.select);
+      const select = prismaSelect(input.select, input.args);
       const comments = await ctx.prisma.comment.findMany({
         select,
         where: { id: { in: input.ids } },

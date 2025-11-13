@@ -1,5 +1,6 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
+import { connectionArgs } from '../../fate-server/connection.ts';
 import { prismaSelect } from '../../fate-server/prismaSelect.tsx';
 import { auth } from '../../lib/auth.tsx';
 import { UserFindUniqueArgs } from '../../prisma/prisma-client/models.ts';
@@ -9,6 +10,7 @@ export const userRouter = router({
   update: procedure
     .input(
       z.object({
+        args: connectionArgs,
         name: z
           .string()
           .trim()
@@ -25,7 +27,7 @@ export const userRouter = router({
         });
       }
 
-      const select = prismaSelect(input.select);
+      const select = prismaSelect(input.select, input.args);
 
       await auth.api.updateUser({
         body: { name: input.name },

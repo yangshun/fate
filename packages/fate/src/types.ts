@@ -100,6 +100,17 @@ export type Entity = { __typename: string };
 
 type SelectionArgs = { readonly args?: AnyArgsMarker };
 
+type PlainObjectSelectionField<V> =
+  V extends Array<infer U>
+    ? PlainObjectSelectionField<U> | true
+    : V extends AnyRecord
+      ? PlainObjectSelection<V> | true
+      : true;
+
+type PlainObjectSelection<T> = {
+  [K in keyof T]?: PlainObjectSelectionField<T[K]>;
+};
+
 export type ConnectionSelection<T extends Entity> = SelectionArgs & {
   readonly items: {
     readonly cursor?: true;
@@ -127,7 +138,9 @@ type SelectionFieldValue<T extends Entity, K extends keyof T> =
           | Selection<NonNullable<T[K]>>
           | View<NonNullable<T[K]>, Selection<NonNullable<T[K]>>>
           | AnyArgsMarker
-      : true | AnyArgsMarker;
+      : T[K] extends AnyRecord
+        ? PlainObjectSelection<T[K]> | AnyArgsMarker
+        : true | AnyArgsMarker;
 
 type SelectionShape<T extends Entity> = {
   [K in keyof T as K extends '__typename' ? never : K]?: SelectionFieldValue<
@@ -144,8 +157,7 @@ type SelectionViewSpread<T extends Entity> = {
 };
 
 export type Selection<T extends Entity> = SelectionShape<T> &
-  SelectionViewSpread<T> &
-  SelectionArgs;
+  SelectionViewSpread<T>;
 
 export type SelectionOf<V> = V extends {
   readonly [__FateSelectionBrand]?: infer S;

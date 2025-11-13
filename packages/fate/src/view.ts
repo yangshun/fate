@@ -46,13 +46,7 @@ export const getViewNames = <
 export const getSelectionViewNames = <T extends Entity, S extends Selection<T>>(
   selection: S,
 ): ReadonlySet<ViewTag> => {
-  const result = new Set<ViewTag>();
-  for (const key of Object.keys(selection)) {
-    if (isViewTag(key)) {
-      result.add(key);
-    }
-  }
-  return result;
+  return getViewNames(selection as unknown as View<T, S>);
 };
 
 let id = 0;

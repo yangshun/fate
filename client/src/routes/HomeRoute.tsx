@@ -217,7 +217,7 @@ const PostView = view<Post>()({
   author: UserView,
   category: CategorySummaryView,
   comments: {
-    args: args({ first: v('first', 1) }),
+    args: args({ first: v('comments.first', 1) }),
     items: {
       node: CommentView,
     },
@@ -243,7 +243,7 @@ const Post = ({
   const post = useView(PostView, postRef);
   const author = useView(UserView, post.author);
   const category = useView(CategorySummaryView, post.category);
-  const [comments, _loadNext] = useListView(CommentView, post.comments);
+  const [comments, loadNext] = useListView(CommentView, post.comments);
   const tags = post.tags?.items ?? [];
 
   const [commentText, setCommentText] = useState('');
@@ -372,6 +372,11 @@ const Post = ({
               {comments.map((edge) => (
                 <Comment comment={edge.node} key={edge.node.id} />
               ))}
+              {loadNext ? (
+                <Button onClick={loadNext} variant="ghost">
+                  Load more comments
+                </Button>
+              ) : null}
             </VStack>
           ) : null}
           <VStack as="form" gap onSubmit={handleAddComment}>

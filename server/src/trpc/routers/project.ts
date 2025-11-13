@@ -2,7 +2,10 @@ import {
   arrayToConnection,
   createConnectionProcedure,
 } from '../../fate-server/connection.ts';
-import { prismaSelect } from '../../fate-server/prismaSelect.tsx';
+import {
+  prismaSelect,
+  scopedArgsForPath,
+} from '../../fate-server/prismaSelect.tsx';
 import { Project, ProjectUpdate } from '../../prisma/prisma-client/client.ts';
 import { router } from '../init.ts';
 
@@ -34,23 +37,25 @@ type ProjectRow = Project & {
 export const projectRouter = router({
   list: createConnectionProcedure({
     defaultSize: 3,
-    map: ({ rows }) =>
+    map: ({ input, rows }) =>
       (rows as Array<ProjectRow>).map(
         ({ updates, ...project }: ProjectRow) => ({
           ...project,
-          updates: arrayToConnection(updates),
+          updates: arrayToConnection(updates, {
+            args: scopedArgsForPath(input.args, 'updates'),
+          }),
         }),
       ),
-    query: async ({ ctx, cursor, input, skip, take }) => {
-      const select = prismaSelect(input.select);
+    query: async ({ ctx, cursor, direction, input, skip, take }) => {
+      const select = prismaSelect(input.select, input.args);
 
-      return ctx.prisma.project.findMany({
+      const rows = await ctx.prisma.project.findMany({
         orderBy: { createdAt: 'desc' },
         select: {
           ...projectSelect,
           ...select,
         },
-        take,
+        take: direction === 'forward' ? take : -take,
         ...(cursor
           ? {
               cursor: { id: cursor },
@@ -58,6 +63,7 @@ export const projectRouter = router({
             }
           : {}),
       });
+      return direction === 'forward' ? rows : rows.reverse();
     },
   }),
 });

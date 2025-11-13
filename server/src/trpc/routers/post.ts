@@ -2,9 +2,13 @@ import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 import {
   arrayToConnection,
+  connectionArgs,
   createConnectionProcedure,
 } from '../../fate-server/connection.ts';
-import { prismaSelect } from '../../fate-server/prismaSelect.tsx';
+import {
+  prismaSelect,
+  scopedArgsForPath,
+} from '../../fate-server/prismaSelect.tsx';
 import { Post } from '../../prisma/prisma-client/client.ts';
 import { PostFindManyArgs } from '../../prisma/prisma-client/models.ts';
 import { procedure, router } from '../init.ts';
@@ -19,22 +23,30 @@ type PostRow = {
   tags?: Array<TagRow>;
 } & Post;
 
-const transformPost = ({ comments, tags, ...post }: PostRow) => ({
+const transformPost = (
+  { comments, tags, ...post }: PostRow,
+  args?: Record<string, unknown>,
+) => ({
   ...post,
-  comments: arrayToConnection(comments),
-  tags: arrayToConnection(tags),
+  comments: arrayToConnection(comments, {
+    args: scopedArgsForPath(args, 'comments'),
+  }),
+  tags: arrayToConnection(tags, {
+    args: scopedArgsForPath(args, 'tags'),
+  }),
 });
 
 export const postRouter = router({
   byId: procedure
     .input(
       z.object({
+        args: connectionArgs,
         ids: z.array(z.string().min(1)).nonempty(),
         select: z.array(z.string()),
       }),
     )
     .query(async ({ ctx, input }) => {
-      const select = prismaSelect(input.select);
+      const select = prismaSelect(input.select, input.args);
       const posts = await ctx.prisma.post.findMany({
         select,
         where: { id: { in: input.ids } },
@@ -42,7 +54,7 @@ export const postRouter = router({
 
       const map = new Map(
         posts.map((post) => {
-          const result = transformPost(post as PostRow);
+          const result = transformPost(post as PostRow, input.args);
           return [result.id, result];
         }),
       );
@@ -51,6 +63,7 @@ export const postRouter = router({
   like: procedure
     .input(
       z.object({
+        args: connectionArgs,
         id: z.string().min(1, 'Post id is required.'),
         select: z.array(z.string()),
       }),
@@ -69,7 +82,7 @@ export const postRouter = router({
         });
       }
 
-      const select = prismaSelect(input.select);
+      const select = prismaSelect(input.select, input.args);
       const data = {
         likes: {
           increment: 1,
@@ -82,17 +95,17 @@ export const postRouter = router({
         select,
         where,
       });
-      return transformPost(updated as unknown as PostRow);
+      return transformPost(updated as unknown as PostRow, input.args);
     }),
   list: createConnectionProcedure({
-    map: ({ rows }) =>
-      (rows as Array<PostRow>).map((post) => transformPost(post)),
-    query: async ({ ctx, cursor, input, skip, take }) => {
-      const select = prismaSelect(input.select);
+    map: ({ input, rows }) =>
+      (rows as Array<PostRow>).map((post) => transformPost(post, input.args)),
+    query: async ({ ctx, cursor, direction, input, skip, take }) => {
+      const select = prismaSelect(input.select, input.args);
       const findOptions: PostFindManyArgs = {
         orderBy: { createdAt: 'desc' },
         select,
-        take,
+        take: direction === 'forward' ? take : -take,
       };
 
       if (cursor) {
@@ -100,12 +113,14 @@ export const postRouter = router({
         findOptions.skip = skip;
       }
 
-      return ctx.prisma.post.findMany(findOptions);
+      const rows = await ctx.prisma.post.findMany(findOptions);
+      return direction === 'forward' ? rows : rows.reverse();
     },
   }),
   unlike: procedure
     .input(
       z.object({
+        args: connectionArgs,
         id: z.string().min(1, 'Post id is required.'),
         select: z.array(z.string()),
       }),
@@ -128,7 +143,7 @@ export const postRouter = router({
           });
         }
 
-        const select = prismaSelect(input.select);
+        const select = prismaSelect(input.select, input.args);
         const where = { id: input.id };
 
         if (existing.likes <= 0) {
@@ -136,7 +151,7 @@ export const postRouter = router({
             select,
             where,
           });
-          return transformPost(result as unknown as PostRow);
+          return transformPost(result as unknown as PostRow, input.args);
         }
 
         const data = {
@@ -150,7 +165,7 @@ export const postRouter = router({
           select,
           where,
         });
-        return transformPost(updated as unknown as PostRow);
+        return transformPost(updated as unknown as PostRow, input.args);
       }),
     ),
 });

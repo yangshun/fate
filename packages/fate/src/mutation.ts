@@ -144,6 +144,7 @@ export function wrapMutation<
         identifier.key,
         input,
         selection,
+        { args, plan },
       )) as MutationResult<I>;
 
       if (!isDelete && result && typeof result === 'object') {

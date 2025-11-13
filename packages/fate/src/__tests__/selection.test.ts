@@ -140,3 +140,46 @@ test('selection plan resolves arguments and hashes connection args', () => {
     value: { after: 'cursor-1', first: 5 },
   });
 });
+
+type Example = {
+  __typename: 'Example';
+  args: { value: string };
+  id: string;
+  pagination: string;
+};
+
+test('treats fields named args and pagination as regular selections', () => {
+  const ExampleView = view<Example>()({
+    args: { value: true },
+    id: true,
+    pagination: true,
+  });
+
+  const selection = selectionFromView(ExampleView, null);
+
+  expect(selection.paths).toContain('args.value');
+  expect(selection.paths).toContain('pagination');
+});
+
+test('omits connection cursor selections from paths', () => {
+  type Comment = { __typename: 'Comment'; id: string };
+  type Post = {
+    __typename: 'Post';
+    comments: Array<Comment>;
+  };
+
+  const CommentView = view<Comment>()({
+    id: true,
+  });
+
+  const PostView = view<Post>()({
+    comments: {
+      items: { cursor: true, node: CommentView },
+    },
+  });
+
+  const selection = selectionFromView(PostView, null);
+
+  expect(selection.paths).not.toContain('comments.cursor');
+  expect(selection.paths).toContain('comments.id');
+});

@@ -22,6 +22,7 @@ test('passes selection when fetching by id', async () => {
   expect(byIdResolver).toHaveBeenCalledWith(client);
   expect(call).toHaveBeenCalledTimes(1);
   expect(call).toHaveBeenCalledWith({
+    args: undefined,
     ids: ['post-1'],
     select: ['content', 'author.id'],
   });
@@ -45,16 +46,42 @@ test('passes selection when fetching lists', async () => {
     },
   });
 
-  await transport.fetchList?.(
-    'post.all',
-    { filter: 'recent' },
-    new Set(['id', 'content']),
-  );
+  await transport.fetchList?.('post.all', new Set(['id', 'content']), {
+    filter: 'recent',
+  });
 
   expect(listResolver).toHaveBeenCalledWith(client);
   expect(call).toHaveBeenCalledTimes(1);
   expect(call).toHaveBeenCalledWith({
-    filter: 'recent',
+    args: { filter: 'recent' },
+    select: ['id', 'content'],
+  });
+});
+
+test('omits args when none are provided for lists', async () => {
+  const call = vi.fn(async () => ({
+    items: [],
+    pagination: { hasNext: false, hasPrevious: false },
+  }));
+  const listResolver = vi.fn(() => call);
+  const client = {} as any;
+
+  const transport = createFateTransport({
+    byId: {
+      Post: vi.fn(() => vi.fn(async () => [])),
+    },
+    client,
+    lists: {
+      'post.all': listResolver,
+    },
+  });
+
+  await transport.fetchList?.('post.all', new Set(['id', 'content']));
+
+  expect(listResolver).toHaveBeenCalledWith(client);
+  expect(call).toHaveBeenCalledTimes(1);
+  expect(call).toHaveBeenCalledWith({
+    args: undefined,
     select: ['id', 'content'],
   });
 });

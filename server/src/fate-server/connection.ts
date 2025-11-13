@@ -4,10 +4,53 @@ import { procedure } from '../trpc/init.ts';
 
 type ConnectionCursor = string;
 
-export const connectionInput = z
+const args: z.ZodType<Record<string, unknown>> = z.lazy(() =>
+  z.record(z.string(), z.union([z.unknown(), args])),
+);
+
+export const connectionArgs = args.optional();
+
+const paginationArgKeys = new Set(['after', 'before', 'first', 'last']);
+
+const paginationArgsSchema = z
   .object({
     after: z.string().optional(),
+    before: z.string().optional(),
     first: z.number().int().positive().optional(),
+    last: z.number().int().positive().optional(),
+  })
+  .strict()
+  .partial()
+  .refine(
+    ({ after, before }) => !(after && before),
+    "Connection args can't include both 'after' and 'before'.",
+  )
+  .refine(
+    ({ first, last }) => !(first && last),
+    "Connection args can't include both 'first' and 'last'.",
+  )
+  .refine(
+    ({ before, last }) => !last || before !== undefined,
+    "Connection args using 'last' must also include 'before'.",
+  );
+
+const extractPaginationArgs = (
+  args: Record<string, unknown> | undefined,
+): Record<string, unknown> => {
+  if (!args) {
+    return {};
+  }
+
+  const entries = Object.entries(args).filter(([key]) =>
+    paginationArgKeys.has(key),
+  );
+
+  return Object.fromEntries(entries);
+};
+
+export const connectionInput = z
+  .object({
+    args: connectionArgs,
     select: z.array(z.string()),
   })
   .strict();
@@ -31,28 +74,75 @@ export type ConnectionResult<TNode> = {
   pagination: ConnectionPagination;
 };
 
+type ArrayToConnectionOptions<TNode> = {
+  args?: Record<string, unknown>;
+  getCursor?: (node: TNode) => ConnectionCursor;
+};
+
 export function arrayToConnection<TNode extends { id: string | number }>(
   nodes?: Array<TNode>,
+  options: ArrayToConnectionOptions<TNode> = {},
 ): ConnectionResult<TNode> | undefined {
-  return nodes
-    ? ({
-        items: nodes.map((node) => ({
-          cursor: String(node.id),
-          node,
-        })),
-        pagination: {
-          hasNext: false,
-          hasPrevious: false,
-          nextCursor: undefined,
-          previousCursor: undefined,
-        },
-      } satisfies ConnectionResult<TNode>)
-    : undefined;
+  if (!nodes) {
+    return undefined;
+  }
+
+  const {
+    args,
+    getCursor = (node: TNode) => String((node as { id: string | number }).id),
+  } = options;
+  const paginationArgs = paginationArgsSchema.parse(
+    extractPaginationArgs(args),
+  );
+
+  if (Object.keys(paginationArgs).length === 0) {
+    return {
+      items: nodes.map((node) => ({
+        cursor: getCursor(node),
+        node,
+      })),
+      pagination: {
+        hasNext: false,
+        hasPrevious: false,
+        nextCursor: undefined,
+        previousCursor: undefined,
+      },
+    } satisfies ConnectionResult<TNode>;
+  }
+
+  const isBackward =
+    paginationArgs.before !== undefined || paginationArgs.last !== undefined;
+  const cursor = isBackward ? paginationArgs.before : paginationArgs.after;
+  const pageSize = paginationArgs.first ?? paginationArgs.last ?? nodes.length;
+  const hasMore = nodes.length > pageSize;
+  const limitedNodes = isBackward
+    ? nodes.slice(Math.max(0, nodes.length - pageSize))
+    : nodes.slice(0, pageSize);
+  const items = limitedNodes.map((node) => ({
+    cursor: getCursor(node),
+    node,
+  }));
+  const firstItem = items[0];
+  const lastItem = items.at(-1);
+
+  return {
+    items,
+    pagination: {
+      hasNext: isBackward ? Boolean(cursor) : hasMore,
+      hasPrevious: isBackward ? hasMore : Boolean(cursor),
+      nextCursor: lastItem?.cursor,
+      previousCursor:
+        (isBackward ? hasMore : Boolean(cursor)) && firstItem
+          ? firstItem.cursor
+          : undefined,
+    },
+  } satisfies ConnectionResult<TNode>;
 }
 
 type QueryFn<TRow> = (options: {
   ctx: AppContext;
   cursor?: ConnectionCursor;
+  direction: 'forward' | 'backward';
   input: ConnectionInput;
   skip?: number;
   take: number;
@@ -82,17 +172,27 @@ export const createConnectionProcedure = <TRow, TNode = TRow>(
   } = options;
 
   return procedure.input(connectionInput).query(async ({ ctx, input }) => {
-    const pageSize = input.first ?? defaultSize;
+    const paginationArgs = paginationArgsSchema.parse(
+      extractPaginationArgs(input.args),
+    );
+    const isBackward =
+      paginationArgs.before !== undefined || paginationArgs.last !== undefined;
+    const cursor = isBackward ? paginationArgs.before : paginationArgs.after;
+    const direction = isBackward ? 'backward' : 'forward';
+    const pageSize = paginationArgs.first ?? paginationArgs.last ?? defaultSize;
     const rows = await query({
       ctx,
-      cursor: input.after,
+      cursor,
+      direction,
       input,
-      skip: input.after ? 1 : undefined,
+      skip: cursor ? 1 : undefined,
       take: pageSize + 1,
     });
 
-    const hasNext = rows.length > pageSize;
-    const limitedRows = rows.slice(0, pageSize);
+    const hasMore = rows.length > pageSize;
+    const limitedRows = isBackward
+      ? rows.slice(Math.max(0, rows.length - pageSize))
+      : rows.slice(0, pageSize);
     const nodes = map
       ? await map({ ctx, input, rows: limitedRows })
       : (limitedRows as unknown as Array<TNode>);
@@ -101,15 +201,18 @@ export const createConnectionProcedure = <TRow, TNode = TRow>(
       cursor: getCursor(node),
       node,
     }));
+    const firstItem = items[0];
     const lastItem = items.at(-1);
 
     return {
       items,
       pagination: {
-        hasNext,
-        hasPrevious: Boolean(input.after),
+        hasNext: isBackward ? Boolean(cursor) : hasMore,
+        hasPrevious: isBackward ? hasMore : Boolean(cursor),
         nextCursor: lastItem?.cursor,
-        previousCursor: input.after,
+        previousCursor: (isBackward ? hasMore : Boolean(cursor))
+          ? firstItem?.cursor
+          : undefined,
       },
     } satisfies ConnectionResult<TNode>;
   });
