@@ -239,12 +239,9 @@ export class FateClient<
       baseRecord && typeof baseRecord.args === 'object'
         ? (baseRecord.args as AnyRecord)
         : undefined;
-    const planArgs = options.plan
-      ? resolvedArgsFromPlan(options.plan)
-      : undefined;
     const argsPayload = combineArgsPayload(
+      options.plan ? resolvedArgsFromPlan(options.plan) : undefined,
       combineArgsPayload(inputArgs, options.args),
-      planArgs,
     );
 
     const requestInput =
