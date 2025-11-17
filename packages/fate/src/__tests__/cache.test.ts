@@ -1,4 +1,4 @@
-import { expect, it } from 'vitest';
+import { expect, test } from 'vitest';
 import ViewDataCache from '../cache.ts';
 import {
   ViewsTag,
@@ -29,7 +29,7 @@ const createViewRef = <TName extends string>(
   [ViewsTag]: new Set<string>(),
 });
 
-it('evicts dependents and the dependency when invalidating an entity', () => {
+test('evicts dependents and the dependency when invalidating an entity', () => {
   const cache = new ViewDataCache();
   const dependencyId: EntityId = 'dependency';
   const dependentId: EntityId = 'dependent';

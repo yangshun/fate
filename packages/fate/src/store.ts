@@ -56,18 +56,35 @@ export class Store {
   }
 
   merge(id: EntityId, partial: AnyRecord, paths: Iterable<string>) {
-    this.mergeInternal(id, partial, paths);
-    this.notify(id);
+    if (this.mergeInternal(id, partial, paths)) {
+      this.notify(id);
+    }
   }
 
   private mergeInternal(
     id: EntityId,
     partial: AnyRecord,
     paths: Iterable<string>,
-  ) {
-    const previous = this.records.get(id) ?? {};
-    const next = { ...previous, ...partial };
-    this.records.set(id, next);
+  ): boolean {
+    const previous = this.records.get(id);
+
+    if (previous) {
+      let hasChanges = false;
+      for (const [key, value] of Object.entries(partial)) {
+        if (previous[key] !== value) {
+          hasChanges = true;
+          break;
+        }
+      }
+
+      if (!hasChanges) {
+        return false;
+      }
+
+      this.records.set(id, { ...previous, ...partial });
+    } else {
+      this.records.set(id, { ...partial });
+    }
 
     let mask = this.coverage.get(id);
     if (!mask) {
@@ -76,6 +93,7 @@ export class Store {
     }
 
     union(mask, fromPaths(paths));
+    return true;
   }
 
   deleteRecord(id: EntityId) {
