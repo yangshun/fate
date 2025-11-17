@@ -2,10 +2,10 @@
  * @vitest-environment happy-dom
  */
 
-import { createClient, view } from '@nkzw/fate';
+import { createClient, mutation, view } from '@nkzw/fate';
 import { act, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
-import { expect, test } from 'vitest';
+import { expect, test, vi } from 'vitest';
 import { FateClient } from '../context.tsx';
 import { useView } from '../useView.tsx';
 
@@ -20,6 +20,8 @@ type Post = {
   content: string;
   id: string;
 };
+
+const flushAsync = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 
 test('updates when nested entities change', () => {
   const client = createClient({
@@ -37,20 +39,10 @@ test('updates when nested entities change', () => {
     ],
   });
 
-  const normalizeEntity = (
-    client as unknown as {
-      normalizeEntity: (
-        type: string,
-        record: Record<string, unknown>,
-        select?: Set<string>,
-      ) => string;
-    }
-  ).normalizeEntity.bind(client);
-
   const userSelection = new Set(['id', 'name']);
   const postSelection = new Set(['id', 'content', 'author.id', 'author.name']);
 
-  normalizeEntity(
+  client.write(
     'User',
     {
       __typename: 'User',
@@ -60,7 +52,7 @@ test('updates when nested entities change', () => {
     userSelection,
   );
 
-  normalizeEntity(
+  client.write(
     'Post',
     {
       __typename: 'Post',
@@ -111,7 +103,7 @@ test('updates when nested entities change', () => {
   expect(container.textContent).toBe('Apple');
 
   act(() => {
-    normalizeEntity(
+    client.write(
       'User',
       {
         __typename: 'User',
@@ -125,4 +117,256 @@ test('updates when nested entities change', () => {
   expect(container.textContent).toBe('Banana');
   expect(renders[0]).toBe('Apple');
   expect(renders.at(-1)).toBe('Banana');
+});
+
+test('re-renders when a mutation updates the record', async () => {
+  type UpdatePostInput = { content: string; id: string };
+
+  const { promise, resolve } = Promise.withResolvers<Post>();
+  const mutate = vi.fn(() => promise);
+
+  const client = createClient({
+    mutations: {
+      updatePost: mutation<Post, UpdatePostInput, Post>('Post'),
+    },
+    transport: {
+      async fetchById() {
+        return [];
+      },
+      // @ts-expect-error
+      mutate,
+    },
+    types: [
+      { fields: { author: { type: 'User' } }, type: 'Post' },
+      { type: 'User' },
+    ],
+  });
+
+  const userSelection = new Set(['id', 'name']);
+  const postSelection = new Set(['id', 'content', 'author.id', 'author.name']);
+
+  client.write(
+    'User',
+    {
+      __typename: 'User',
+      id: 'user-1',
+      name: 'Apple',
+    },
+    userSelection,
+  );
+
+  client.write(
+    'Post',
+    {
+      __typename: 'Post',
+      author: {
+        __typename: 'User',
+        id: 'user-1',
+        name: 'Apple',
+      },
+      content: 'Draft',
+      id: 'post-1',
+    },
+    postSelection,
+  );
+
+  const PostView = view<Post>()({
+    author: {
+      id: true,
+      name: true,
+    },
+    content: true,
+    id: true,
+  });
+
+  const postRef = client.ref<Post>('Post', 'post-1', PostView);
+
+  const renders: Array<string> = [];
+
+  const Component = () => {
+    const post = useView(PostView, postRef);
+    renders.push(post.content);
+    return <span>{post.content}</span>;
+  };
+
+  const container = document.createElement('div');
+  const root = createRoot(container);
+
+  await act(async () => {
+    root.render(
+      <FateClient client={client}>
+        <Suspense fallback={null}>
+          <Component />
+        </Suspense>
+      </FateClient>,
+    );
+  });
+
+  expect(container.textContent).toBe('Draft');
+
+  let pendingMutation: Promise<Post>;
+  await act(async () => {
+    pendingMutation = client.mutations.updatePost({
+      input: { content: 'Published', id: 'post-1' },
+      optimisticUpdate: {
+        author: {
+          __typename: 'User',
+          id: 'user-1',
+          name: 'Apple',
+        },
+        content: 'Optimistic',
+        id: 'post-1',
+      },
+      view: PostView,
+    });
+    await flushAsync();
+  });
+  expect(container.textContent).toBe('Optimistic');
+
+  resolve({
+    __typename: 'Post',
+    author: {
+      __typename: 'User',
+      id: 'user-1',
+      name: 'Apple',
+    },
+    content: 'Published',
+    id: 'post-1',
+  });
+
+  await act(async () => {
+    await pendingMutation;
+  });
+
+  expect(container.textContent).toBe('Published');
+  expect(renders).toEqual([
+    'Draft',
+    'Draft',
+    'Optimistic',
+    'Optimistic',
+    'Published',
+  ]);
+  expect(mutate).toHaveBeenCalledTimes(1);
+});
+
+test('rolls back optimistic updates when a mutation fails', async () => {
+  type UpdatePostInput = { content: string; id: string };
+  type UpdatePostResult = Post;
+
+  const { promise, reject } = Promise.withResolvers<UpdatePostResult>();
+  const mutate = vi.fn(() => promise);
+
+  const client = createClient({
+    mutations: {
+      updatePost: mutation<Post, UpdatePostInput, UpdatePostResult>('Post'),
+    },
+    transport: {
+      async fetchById() {
+        return [];
+      },
+      // @ts-expect-error
+      mutate,
+    },
+    types: [
+      { fields: { author: { type: 'User' } }, type: 'Post' },
+      { type: 'User' },
+    ],
+  });
+
+  const userSelection = new Set(['id', 'name']);
+  const postSelection = new Set(['id', 'content', 'author.id', 'author.name']);
+
+  client.write(
+    'User',
+    {
+      __typename: 'User',
+      id: 'user-1',
+      name: 'Apple',
+    },
+    userSelection,
+  );
+
+  client.write(
+    'Post',
+    {
+      __typename: 'Post',
+      author: {
+        __typename: 'User',
+        id: 'user-1',
+        name: 'Apple',
+      },
+      content: 'Draft',
+      id: 'post-1',
+    },
+    postSelection,
+  );
+
+  const PostView = view<Post>()({
+    author: {
+      id: true,
+      name: true,
+    },
+    content: true,
+    id: true,
+  });
+
+  const postRef = client.ref<Post>('Post', 'post-1', PostView);
+
+  const renders: Array<string> = [];
+
+  const Component = () => {
+    const post = useView(PostView, postRef);
+    renders.push(post.content);
+    return <span>{post.content}</span>;
+  };
+
+  const container = document.createElement('div');
+  const root = createRoot(container);
+
+  await act(async () => {
+    root.render(
+      <FateClient client={client}>
+        <Suspense fallback={null}>
+          <Component />
+        </Suspense>
+      </FateClient>,
+    );
+  });
+
+  expect(container.textContent).toBe('Draft');
+
+  let pendingMutation: Promise<UpdatePostResult>;
+  await act(async () => {
+    pendingMutation = client.mutations.updatePost({
+      input: { content: 'Published', id: 'post-1' },
+      optimisticUpdate: {
+        author: {
+          __typename: 'User',
+          id: 'user-1',
+          name: 'Apple',
+        },
+        content: 'Optimistic',
+        id: 'post-1',
+      },
+      view: PostView,
+    });
+    await flushAsync();
+  });
+  expect(container.textContent).toBe('Optimistic');
+
+  reject(new Error('Mutation failed'));
+
+  await act(async () => {
+    await expect(pendingMutation).rejects.toThrow('Mutation failed');
+  });
+
+  expect(container.textContent).toBe('Draft');
+  expect(renders).toEqual([
+    'Draft',
+    'Draft',
+    'Optimistic',
+    'Optimistic',
+    'Draft',
+  ]);
+  expect(mutate).toHaveBeenCalledTimes(1);
 });

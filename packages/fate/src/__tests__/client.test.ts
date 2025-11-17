@@ -670,6 +670,168 @@ test(`'readView' resolves nested selections without view spreads`, () => {
   });
 });
 
+test('mutations write their responses into the store', async () => {
+  type UpdateUserInput = { id: string; name: string };
+  type UpdateUserResult = { __typename: 'User'; id: string; name: string };
+
+  const client = createClient({
+    mutations: {
+      updateUser: mutation<User, UpdateUserInput, UpdateUserResult>('User'),
+    },
+    transport: {
+      async fetchById() {
+        return [];
+      },
+      // @ts-expect-error
+      mutate: vi.fn(
+        async (
+          procedure: string,
+          input: UpdateUserInput,
+          select: Set<string>,
+        ) => {
+          expect(procedure).toBe('updateUser');
+          expect(input).toEqual({ id: 'user-1', name: 'Banana' });
+          expect(new Set(select)).toEqual(new Set(['id', 'name']));
+          return {
+            __typename: 'User',
+            id: 'user-1',
+            name: 'Banana',
+          } satisfies UpdateUserResult;
+        },
+      ),
+    },
+    types: [{ type: 'User' }],
+  });
+
+  const UserView = view<User>()({
+    id: true,
+    name: true,
+  });
+
+  const result = await client.mutations.updateUser({
+    input: { id: 'user-1', name: 'Banana' },
+    view: UserView,
+  });
+
+  expect(result).toEqual({ __typename: 'User', id: 'user-1', name: 'Banana' });
+  expect(client.store.read(toEntityId('User', 'user-1'))).toMatchObject({
+    id: 'user-1',
+    name: 'Banana',
+  });
+});
+
+test('mutations apply optimistic updates before resolving', async () => {
+  type UpdateUserInput = { id: string; name: string };
+  type UpdateUserResult = { __typename: 'User'; id: string; name: string };
+
+  let resolveMutation: ((value: UpdateUserResult) => void) | undefined;
+
+  const client = createClient({
+    mutations: {
+      updateUser: mutation<User, UpdateUserInput, UpdateUserResult>('User'),
+    },
+    transport: {
+      async fetchById() {
+        return [];
+      },
+      // @ts-expect-error
+      mutate: vi.fn(
+        () =>
+          new Promise<UpdateUserResult>((resolve) => {
+            resolveMutation = resolve;
+          }),
+      ),
+    },
+    types: [{ type: 'User' }],
+  });
+
+  const UserView = view<User>()({
+    id: true,
+    name: true,
+  });
+
+  const promise = client.mutations.updateUser({
+    input: { id: 'user-1', name: 'Server' },
+    optimisticUpdate: { name: 'Optimistic' },
+    view: UserView,
+  });
+
+  expect(client.store.read(toEntityId('User', 'user-1'))).toMatchObject({
+    id: 'user-1',
+    name: 'Optimistic',
+  });
+
+  resolveMutation?.({
+    __typename: 'User',
+    id: 'user-1',
+    name: 'Server',
+  });
+
+  await promise;
+
+  expect(client.store.read(toEntityId('User', 'user-1'))).toMatchObject({
+    id: 'user-1',
+    name: 'Server',
+  });
+});
+
+test('mutations roll back optimistic updates when requests fail', async () => {
+  type UpdateUserInput = { id: string; name: string };
+  type UpdateUserResult = { __typename: 'User'; id: string; name: string };
+
+  const mutate = vi.fn(async () => {
+    throw new Error('network error');
+  });
+
+  const client = createClient({
+    mutations: {
+      updateUser: mutation<User, UpdateUserInput, UpdateUserResult>('User'),
+    },
+    transport: {
+      async fetchById() {
+        return [];
+      },
+      mutate,
+    },
+    types: [{ type: 'User' }],
+  });
+
+  const initialRecord = {
+    __typename: 'User',
+    id: 'user-1',
+    name: 'Initial',
+  } satisfies UpdateUserResult;
+
+  client.store.merge(
+    toEntityId('User', 'user-1'),
+    initialRecord,
+    new Set(['__typename', 'id', 'name']),
+  );
+
+  const UserView = view<User>()({
+    id: true,
+    name: true,
+  });
+
+  const promise = client.mutations.updateUser({
+    input: { id: 'user-1', name: 'Server' },
+    optimisticUpdate: { name: 'Optimistic' },
+    view: UserView,
+  });
+
+  expect(client.store.read(toEntityId('User', 'user-1'))).toMatchObject({
+    id: 'user-1',
+    name: 'Optimistic',
+  });
+
+  await expect(promise).rejects.toThrow('network error');
+
+  expect(client.store.read(toEntityId('User', 'user-1'))).toMatchObject({
+    id: 'user-1',
+    name: 'Initial',
+  });
+});
+
 test(`optimistic updates without identifiers are ignored`, async () => {
   type CreatePostInput = { content: string };
   type CreatePostResult = { content: string; id: string };

@@ -124,24 +124,22 @@ export function createFateTransport<
     },
   };
 
-  if (mutations) {
-    transport.mutate = async <K extends Extract<keyof Mutations, string>>(
-      procedure: K,
-      input: MutationMapFromResolvers<Mutations>[K]['input'],
-      select: Set<string>,
-    ) => {
-      const resolver = mutations[procedure];
-      if (!resolver) {
-        throw new Error(
-          `fate(trpc): Missing mutation resolver for procedure '${procedure}'.`,
-        );
-      }
-      return await resolver(client)({
-        ...(input as AnyRecord),
-        select: [...select],
-      });
-    };
-  }
+  transport.mutate = async <K extends Extract<keyof Mutations, string>>(
+    procedure: K,
+    input: MutationMapFromResolvers<Mutations>[K]['input'],
+    select: Set<string>,
+  ) => {
+    const resolver = mutations?.[procedure];
+    if (!resolver) {
+      throw new Error(
+        `fate(trpc): Missing mutation resolver for procedure '${procedure}'.`,
+      );
+    }
+    return await resolver(client)({
+      ...(input as AnyRecord),
+      select: [...select],
+    });
+  };
 
   return transport;
 }
