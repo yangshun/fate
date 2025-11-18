@@ -18,6 +18,11 @@
       "types": "./lib/index.d.mts",
       "development": "./src/index.ts",
       "default": "./lib/index.mjs"
+    },
+    "./server": {
+      "types": "./lib/server.d.mts",
+      "development": "./src/server.ts",
+      "default": "./lib/server.mjs"
     }
   },
   "main": "./lib/index.mjs",
@@ -26,10 +31,11 @@
     "lib"
   ],
   "scripts": {
-    "build": "tsdown -d lib --target=node24"
+    "build": "tsdown -d lib --target=node24 src/index.ts src/server.ts"
   },
   "dependencies": {
-    "superjson": "^2.2.5"
+    "superjson": "^2.2.5",
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "@trpc/client": "^11.7.1",

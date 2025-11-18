@@ -1,4 +1,4 @@
-import { dataView, DataViewResult, resolver } from '../fate-server/dataView.ts';
+import { dataView, DataViewResult, resolver } from '@nkzw/fate/server';
 import type {
   Category as PrismaCategory,
   Comment as PrismaComment,

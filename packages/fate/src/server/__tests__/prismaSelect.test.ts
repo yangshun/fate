@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { prismaSelect } from '../prismaSelect.tsx';
+import { prismaSelect } from '../prismaSelect.ts';
 
 test('prismaSelect applies pagination args to relation selections', () => {
   const select = prismaSelect(['comments.id'], { comments: { first: 2 } });

@@ -1,13 +1,13 @@
-import { TRPCError } from '@trpc/server';
-import { z } from 'zod';
 import {
   arrayToConnection,
   connectionArgs,
-  createConnectionProcedure,
-} from '../../fate-server/connection.ts';
-import { createDataViewSelection } from '../../fate-server/dataView.ts';
-import { scopedArgsForPath } from '../../fate-server/prismaSelect.tsx';
+  createDataViewSelection,
+  scopedArgsForPath,
+} from '@nkzw/fate/server';
+import { TRPCError } from '@trpc/server';
+import { z } from 'zod';
 import { PostFindManyArgs } from '../../prisma/prisma-client/models.ts';
+import { createConnectionProcedure } from '../connection.ts';
 import { procedure, router } from '../init.ts';
 import { postDataView, PostItem } from '../views.ts';
 

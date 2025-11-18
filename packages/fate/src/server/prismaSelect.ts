@@ -18,10 +18,10 @@ const toPrismaArgs = (
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 
-export const scopedArgsForPath = (
+export function scopedArgsForPath(
   args: Record<string, unknown> | undefined,
   path: string,
-): Record<string, unknown> | undefined => {
+): Record<string, unknown> | undefined {
   if (!args) {
     return undefined;
   }
@@ -37,7 +37,7 @@ export const scopedArgsForPath = (
   }
 
   return isRecord(current) ? current : undefined;
-};
+}
 
 export function prismaSelect(
   paths: Array<string>,

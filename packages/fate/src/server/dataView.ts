@@ -1,4 +1,4 @@
-import { prismaSelect } from './prismaSelect.tsx';
+import { prismaSelect } from './prismaSelect.ts';
 
 type AnyRecord = Record<string, unknown>;
 

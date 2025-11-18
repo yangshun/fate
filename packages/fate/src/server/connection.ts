@@ -1,6 +1,5 @@
+import type { TRPCProcedureBuilder } from '@trpc/server';
 import { z } from 'zod';
-import type { AppContext } from '../trpc/context.ts';
-import { procedure } from '../trpc/init.ts';
 
 type ConnectionCursor = string;
 
@@ -139,8 +138,19 @@ export function arrayToConnection<TNode extends { id: string | number }>(
   } satisfies ConnectionResult<TNode>;
 }
 
-type QueryFn<TItem> = (options: {
-  ctx: AppContext;
+type ProcedureLike<TContext> = TRPCProcedureBuilder<
+  TContext,
+  any,
+  any,
+  any,
+  any,
+  any,
+  any,
+  false
+>;
+
+type QueryFn<TContext, TItem> = (options: {
+  ctx: TContext;
   cursor?: ConnectionCursor;
   direction: 'forward' | 'backward';
   input: ConnectionInput;
@@ -148,72 +158,84 @@ type QueryFn<TItem> = (options: {
   take: number;
 }) => Promise<Array<TItem>>;
 
-type MapFn<TItem, TNode> = (options: {
-  ctx: AppContext;
+type MapFn<TContext, TItem, TNode> = (options: {
+  ctx: TContext;
   input: ConnectionInput;
   items: Array<TItem>;
 }) => Promise<Array<TNode>> | Array<TNode>;
 
-type CreateConnectionProcedureOptions<TItem, TNode> = {
+type CreateConnectionProcedureOptions<TContext, TItem, TNode> = {
   defaultSize?: number;
   getCursor?: (node: TNode) => ConnectionCursor;
-  map?: MapFn<TItem, TNode>;
-  query: QueryFn<TItem>;
+  map?: MapFn<TContext, TItem, TNode>;
+  query: QueryFn<TContext, TItem>;
 };
 
-export const createConnectionProcedure = <TItem, TNode = TItem>(
-  options: CreateConnectionProcedureOptions<TItem, TNode>,
-) => {
-  const {
-    defaultSize = 20,
-    getCursor = (node: TNode) => (node as { id: string }).id,
-    map,
-    query,
-  } = options;
+export const createConnectionProcedureFactory =
+  <TContext>(procedure: ProcedureLike<TContext>) =>
+  <TItem, TNode = TItem>(
+    options: CreateConnectionProcedureOptions<TContext, TItem, TNode>,
+  ) => {
+    const {
+      defaultSize = 20,
+      getCursor = (node: TNode) => (node as { id: string }).id,
+      map,
+      query,
+    } = options;
 
-  return procedure.input(connectionInput).query(async ({ ctx, input }) => {
-    const paginationArgs = paginationArgsSchema.parse(
-      extractPaginationArgs(input.args),
-    );
-    const isBackward =
-      paginationArgs.before !== undefined || paginationArgs.last !== undefined;
-    const cursor = isBackward ? paginationArgs.before : paginationArgs.after;
-    const direction = isBackward ? 'backward' : 'forward';
-    const pageSize = paginationArgs.first ?? paginationArgs.last ?? defaultSize;
-    const rawItems = await query({
-      ctx,
-      cursor,
-      direction,
-      input,
-      skip: cursor ? 1 : undefined,
-      take: pageSize + 1,
-    });
+    return procedure
+      .input(connectionInput)
+      .query(async (resolverOptions: unknown) => {
+        const { ctx, input } = resolverOptions as {
+          ctx: TContext;
+          input: ConnectionInput;
+        };
+        const paginationArgs = paginationArgsSchema.parse(
+          extractPaginationArgs(input.args),
+        );
+        const isBackward =
+          paginationArgs.before !== undefined ||
+          paginationArgs.last !== undefined;
+        const cursor = isBackward
+          ? paginationArgs.before
+          : paginationArgs.after;
+        const direction = isBackward ? 'backward' : 'forward';
+        const pageSize =
+          paginationArgs.first ?? paginationArgs.last ?? defaultSize;
+        const rawItems = await query({
+          ctx,
+          cursor,
+          direction,
+          input,
+          skip: cursor ? 1 : undefined,
+          take: pageSize + 1,
+        });
 
-    const hasMore = rawItems.length > pageSize;
-    const limitedItems = isBackward
-      ? rawItems.slice(Math.max(0, rawItems.length - pageSize))
-      : rawItems.slice(0, pageSize);
-    const nodes = map
-      ? await map({ ctx, input, items: limitedItems })
-      : (limitedItems as unknown as Array<TNode>);
+        const hasMore = rawItems.length > pageSize;
+        const limitedItems = isBackward
+          ? rawItems.slice(Math.max(0, rawItems.length - pageSize))
+          : rawItems.slice(0, pageSize);
+        const nodes = map
+          ? await map({ ctx, input, items: limitedItems })
+          : (limitedItems as unknown as Array<TNode>);
 
-    const items = nodes.map((node) => ({
-      cursor: getCursor(node),
-      node,
-    }));
-    const firstItem = items[0];
-    const lastItem = items.at(-1);
+        const items = nodes.map((node) => ({
+          cursor: getCursor(node),
+          node,
+        }));
+        const firstItem = items[0];
+        const lastItem = items.at(-1);
 
-    return {
-      items,
-      pagination: {
-        hasNext: isBackward ? Boolean(cursor) : hasMore,
-        hasPrevious: isBackward ? hasMore : Boolean(cursor),
-        nextCursor: lastItem?.cursor,
-        previousCursor: (isBackward ? hasMore : Boolean(cursor))
-          ? firstItem?.cursor
-          : undefined,
-      },
-    } satisfies ConnectionResult<TNode>;
-  });
-};
+        return {
+          items,
+          pagination: {
+            hasNext: isBackward ? Boolean(cursor) : hasMore,
+            hasPrevious: isBackward ? hasMore : Boolean(cursor),
+            nextCursor: lastItem?.cursor,
+            previousCursor: (isBackward ? hasMore : Boolean(cursor))
+              ? firstItem?.cursor
+              : undefined,
+          },
+        } satisfies ConnectionResult<TNode>;
+      }) as ReturnType<ReturnType<ProcedureLike<TContext>['input']>['query']>;
+  };

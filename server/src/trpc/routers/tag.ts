@@ -1,6 +1,5 @@
+import { connectionArgs, createDataViewSelection } from '@nkzw/fate/server';
 import { z } from 'zod';
-import { connectionArgs } from '../../fate-server/connection.ts';
-import { createDataViewSelection } from '../../fate-server/dataView.ts';
 import type { Tag } from '../../prisma/prisma-client/client.ts';
 import { TagFindManyArgs } from '../../prisma/prisma-client/models.ts';
 import { procedure, router } from '../init.ts';

@@ -1,10 +1,10 @@
 import {
   arrayToConnection,
-  createConnectionProcedure,
-} from '../../fate-server/connection.ts';
-import { createDataViewSelection } from '../../fate-server/dataView.ts';
-import { scopedArgsForPath } from '../../fate-server/prismaSelect.tsx';
+  createDataViewSelection,
+  scopedArgsForPath,
+} from '@nkzw/fate/server';
 import { ProjectSelect } from '../../prisma/prisma-client/models.ts';
+import { createConnectionProcedure } from '../connection.ts';
 import { router } from '../init.ts';
 import { projectDataView, ProjectItem } from '../views.ts';
 

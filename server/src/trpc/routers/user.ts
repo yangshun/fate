@@ -1,7 +1,6 @@
+import { connectionArgs, createDataViewSelection } from '@nkzw/fate/server';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
-import { connectionArgs } from '../../fate-server/connection.ts';
-import { createDataViewSelection } from '../../fate-server/dataView.ts';
 import { auth } from '../../lib/auth.tsx';
 import type { User } from '../../prisma/prisma-client/client.ts';
 import { UserFindUniqueArgs } from '../../prisma/prisma-client/models.ts';
