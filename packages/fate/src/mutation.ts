@@ -9,6 +9,7 @@ import type {
   MutationIdentifier,
   MutationInput,
   MutationResult,
+  OptimisticUpdate,
   Selection,
   Snapshot,
   TypeConfig,
@@ -27,11 +28,13 @@ export function mutation<T extends Entity, I, R>(
 
 type MutationOptions<Identifier extends MutationIdentifier<any, any, any>> = {
   args?: Record<string, unknown>;
+  deleteRecord?: boolean;
   input: Omit<MutationInput<Identifier>, 'select'>;
-  optimisticUpdate?: Partial<MutationResult<Identifier>>;
-  view?:
-    | View<MutationEntity<Identifier>, Selection<MutationEntity<Identifier>>>
-    | 'deleteRecord';
+  optimisticUpdate?: OptimisticUpdate<MutationResult<Identifier>>;
+  view?: View<
+    MutationEntity<Identifier>,
+    Selection<MutationEntity<Identifier>>
+  >;
 };
 
 export type MutationFunction<I extends MutationIdentifier<any, any, any>> = (
@@ -87,13 +90,13 @@ export function wrapMutation<
 
   return async ({
     args,
+    deleteRecord,
     input,
     optimisticUpdate,
     view,
   }: MutationOptions<I>) => {
     const id = maybeGetId(config.getId, input);
-    const isDelete = view === 'deleteRecord';
-    const plan = view && !isDelete ? selectionFromView(view, null) : undefined;
+    const plan = view ? selectionFromView(view, null) : undefined;
     const viewSelection = plan?.paths;
 
     const optimisticRecord: AnyRecord | undefined = optimisticUpdate
@@ -107,7 +110,7 @@ export function wrapMutation<
         : null;
 
     const snapshots = new Map<string, Snapshot>();
-    const listSnapshots = isDelete ? new Map<string, List>() : undefined;
+    const listSnapshots = deleteRecord ? new Map<string, List>() : undefined;
     const optimisticSelection = optimisticRecord
       ? collectImplicitSelectedPaths(optimisticRecord)
       : undefined;
@@ -120,15 +123,7 @@ export function wrapMutation<
           ])
         : new Set<string>();
 
-    if (isDelete) {
-      if (id == null) {
-        throw new Error(
-          `fate: Mutation '${identifier.key}' requires an 'id' to delete.`,
-        );
-      }
-
-      client.deleteRecord(identifier.entity, id, snapshots, listSnapshots);
-    } else if (optimisticRecord && (id != null || optimisticRecordId != null)) {
+    if (optimisticRecord && (id != null || optimisticRecordId != null)) {
       client.write(
         identifier.entity,
         optimisticRecord,
@@ -136,6 +131,16 @@ export function wrapMutation<
         snapshots,
         plan,
       );
+    }
+
+    if (deleteRecord) {
+      if (id == null) {
+        throw new Error(
+          `fate: Mutation '${identifier.key}' requires an 'id' to delete.`,
+        );
+      }
+
+      client.deleteRecord(identifier.entity, id, snapshots, listSnapshots);
     }
 
     try {
@@ -146,9 +151,27 @@ export function wrapMutation<
         { args, plan },
       )) as MutationResult<I>;
 
-      if (!isDelete && result && typeof result === 'object') {
+      const shouldWriteResult =
+        result &&
+        typeof result === 'object' &&
+        (!deleteRecord || Boolean(view));
+
+      if (shouldWriteResult) {
         const select = collectImplicitSelectedPaths(result);
         client.write(identifier.entity, result, select, undefined, plan);
+
+        if (deleteRecord && id != null) {
+          client.deleteRecord(identifier.entity, id);
+        }
+
+        const resultId = maybeGetId(config.getId, result as AnyRecord);
+        if (
+          optimisticRecordId != null &&
+          resultId != null &&
+          optimisticRecordId !== resultId
+        ) {
+          client.deleteRecord(identifier.entity, optimisticRecordId);
+        }
       }
 
       return result;

@@ -24,7 +24,7 @@ test('server views filter unexposed fields from selections', async () => {
     name: 'Jane',
     password: 'secret',
   });
-  expect(result).toEqual({ id: 'user-1', name: 'Jane', password: 'secret' });
+  expect(result).toEqual({ id: 'user-1', name: 'Jane' });
 });
 
 type CategoryItem = {
@@ -55,7 +55,7 @@ test('resolvers can add prisma selections and compute values', async () => {
   });
 
   const item = await selection.resolve({ _count: { posts: 4 }, id: 'cat-1' });
-  expect(item.postCount).toBe(4);
+  expect(item).toEqual({ id: 'cat-1', postCount: 4 });
 });
 
 type ChildItem = {

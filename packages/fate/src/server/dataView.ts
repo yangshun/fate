@@ -1,3 +1,4 @@
+import { isRecord } from '../record.ts';
 import { prismaSelect } from './prismaSelect.ts';
 
 type AnyRecord = Record<string, unknown>;
@@ -144,13 +145,47 @@ const isDataViewField = <Context>(
 ): field is DataView<AnyRecord, Context> =>
   Boolean(field) && typeof field === 'object' && 'fields' in field;
 
-const isPlainObject = (value: unknown): value is AnyRecord =>
-  Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+const filterToViewFields = <Context>(
+  item: unknown,
+  view: DataView<AnyRecord, Context>,
+): AnyRecord => {
+  if (!isRecord(item)) {
+    return item as AnyRecord;
+  }
+
+  const filtered: AnyRecord = {};
+
+  for (const [field, config] of Object.entries(view.fields)) {
+    if (!(field in item)) {
+      continue;
+    }
+
+    const value = item[field];
+
+    if (isDataViewField(config)) {
+      if (Array.isArray(value)) {
+        filtered[field] = value.map((entry) =>
+          isRecord(entry) ? filterToViewFields(entry, config) : entry,
+        );
+        continue;
+      }
+
+      if (isRecord(value)) {
+        filtered[field] = filterToViewFields(value, config);
+        continue;
+      }
+    }
+
+    filtered[field] = value;
+  }
+
+  return filtered;
+};
 
 const mergeObject = (target: AnyRecord, source: AnyRecord) => {
   for (const [key, value] of Object.entries(source)) {
     const existing = target[key];
-    if (isPlainObject(existing) && isPlainObject(value)) {
+    if (isRecord(existing) && isRecord(value)) {
       mergeObject(existing, value);
       continue;
     }
@@ -172,9 +207,9 @@ const ensureRelationSelect = (
   for (const segment of segments) {
     const existing = current[segment];
 
-    if (isPlainObject(existing) && 'select' in existing) {
+    if (isRecord(existing) && 'select' in existing) {
       const relation = existing as AnyRecord & { select?: AnyRecord };
-      if (!isPlainObject(relation.select)) {
+      if (!isRecord(relation.select)) {
         relation.select = {};
       }
       current = relation.select!;
@@ -298,7 +333,7 @@ const collectResolvers = <Context>(
         ? resolver.select({ args, context })
         : resolver.select;
 
-    if (addition && isPlainObject(addition)) {
+    if (addition && isRecord(addition)) {
       const target = ensureRelationSelect(select, node.path);
       mergeObject(target, addition);
     }
@@ -314,7 +349,7 @@ const resolveNode = async <Item extends AnyRecord, Context>(
 ): Promise<Item> => {
   const { item, node, options: resolverOptions } = options;
 
-  if (!isPlainObject(item)) {
+  if (!isRecord(item)) {
     return item;
   }
 
@@ -402,19 +437,26 @@ export function createDataViewSelection<
 
   return {
     resolve: async (item: Item): Promise<Item> =>
-      resolveNode({
-        item,
-        node: root,
-        options: { args, context },
-      }),
+      filterToViewFields(
+        await resolveNode({
+          item,
+          node: root,
+          options: { args, context },
+        }),
+        root.view,
+      ) as Item,
     resolveMany: async (items: Array<Item>): Promise<Array<Item>> =>
       Promise.all(
-        items.map((item) =>
-          resolveNode({
-            item,
-            node: root,
-            options: { args, context },
-          }),
+        items.map(
+          async (item) =>
+            filterToViewFields(
+              await resolveNode({
+                item,
+                node: root,
+                options: { args, context },
+              }),
+              root.view,
+            ) as Item,
         ),
       ),
     select,

@@ -115,15 +115,15 @@ export type ConnectionSelection<T extends Entity> =
   | (SelectionArgs & ConnectionSelectionBase<T>);
 
 type BaseSelectionFieldValue<T extends Entity, K extends keyof T> =
-  T[K] extends Array<infer U extends Entity>
+  NonNullable<T[K]> extends Array<infer U extends Entity>
     ? true | Selection<U> | ConnectionSelection<U> | View<U, Selection<U>>
-    : T[K] extends Entity | null
+    : NonNullable<T[K]> extends Entity
       ?
           | true
           | Selection<NonNullable<T[K]>>
           | View<NonNullable<T[K]>, Selection<NonNullable<T[K]>>>
-      : T[K] extends AnyRecord
-        ? PlainObjectSelection<T[K]>
+      : NonNullable<T[K]> extends AnyRecord
+        ? PlainObjectSelection<NonNullable<T[K]>>
         : true;
 
 type SelectionFieldValue<T extends Entity, K extends keyof T> =
@@ -309,6 +309,20 @@ export type MutationMapFromDefinitions<
     input: MutationInput<D[K]>;
     output: MutationResult<D[K]>;
   };
+};
+
+type Nullish<T> = Extract<T, null | undefined>;
+type NonNullish<T> = Exclude<T, null | undefined>;
+
+type OptimisticUpdateValue<T> =
+  T extends ReadonlyArray<infer U>
+    ? Array<OptimisticUpdateValue<U>>
+    : NonNullish<T> extends AnyRecord
+      ? OptimisticUpdate<NonNullish<T>> | Nullish<T>
+      : NonNullish<T> | Nullish<T>;
+
+export type OptimisticUpdate<T> = {
+  [K in keyof T]?: OptimisticUpdateValue<T[K]>;
 };
 
 export type Snapshot = Readonly<{ mask?: FieldMask; record?: AnyRecord }>;

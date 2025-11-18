@@ -23,10 +23,12 @@ type Comment = {
   author: User | null;
   content: string;
   id: string;
+  post?: Post | null;
 };
 
 type Post = {
   __typename: 'Post';
+  commentCount?: number;
   comments: Array<Comment>;
   content: string;
   id: string;
@@ -608,6 +610,81 @@ test(`'deleteRecord' removes an entity and cleans references`, () => {
   expect(restoredState).toEqual(initialState);
 });
 
+test(`delete mutations can select a view and update related entities`, async () => {
+  const mutate = vi.fn(
+    async (_key, input: { id: string }, select: Set<string>) => {
+      expect([...select]).toEqual(
+        expect.arrayContaining(['id', 'post.commentCount']),
+      );
+
+      return {
+        __typename: 'Comment',
+        id: input.id,
+        post: {
+          __typename: 'Post',
+          commentCount: 1,
+          id: 'post-1',
+        },
+      };
+    },
+  );
+
+  const client = createClient({
+    mutations: {
+      deleteComment: mutation<Comment, { id: string }, Comment>('Comment'),
+    },
+    transport: {
+      async fetchById() {
+        return [];
+      },
+      // @ts-expect-error
+      mutate,
+    },
+    types: [
+      { fields: { comments: { listOf: 'Comment' } }, type: 'Post' },
+      { fields: { post: { type: 'Post' } }, type: 'Comment' },
+    ],
+  });
+
+  const postId = toEntityId('Post', 'post-1');
+  client.store.merge(
+    postId,
+    {
+      __typename: 'Post',
+      commentCount: 2,
+      comments: [],
+      content: 'Hello',
+      id: 'post-1',
+    },
+    new Set(['__typename', 'commentCount', 'comments', 'content', 'id']),
+  );
+
+  const commentId = toEntityId('Comment', 'comment-1');
+  client.store.merge(
+    commentId,
+    {
+      __typename: 'Comment',
+      author: null,
+      content: 'Nice post',
+      id: 'comment-1',
+    },
+    new Set(['__typename', 'author', 'content', 'id']),
+  );
+
+  await client.mutations.deleteComment({
+    deleteRecord: true,
+    input: { id: 'comment-1' },
+    view: view<Comment>()({
+      id: true,
+      post: view<Post>()({ commentCount: true }),
+    }),
+  });
+
+  expect(mutate).toHaveBeenCalledTimes(1);
+  expect(client.store.read(postId)?.commentCount).toBe(1);
+  expect(client.store.read(commentId)).toBeUndefined();
+});
+
 test(`'readView' resolves nested selections without view spreads`, () => {
   const client = createClient({
     transport: {
@@ -869,6 +946,93 @@ test(`optimistic updates without identifiers are ignored`, async () => {
   expect(client.store.read(toEntityId('Post', 'post-1'))).toMatchObject({
     content: 'Published',
     id: 'post-1',
+  });
+});
+
+test('optimistic records are replaced once the mutation resolves', async () => {
+  type CreateCommentInput = { content: string; postId: string };
+  type CreateCommentResult = Comment;
+
+  const mutate = vi.fn().mockResolvedValue({
+    __typename: 'Comment',
+    author: null,
+    content: 'Server comment',
+    id: 'comment-1',
+    post: {
+      __typename: 'Post',
+      commentCount: 0,
+      comments: [],
+      content: 'Post',
+      id: 'post-1',
+    },
+  });
+
+  const client = createClient({
+    mutations: {
+      addComment: mutation<Comment, CreateCommentInput, CreateCommentResult>(
+        'Comment',
+      ),
+    },
+    transport: {
+      async fetchById() {
+        return [];
+      },
+      mutate,
+    },
+    types: [
+      {
+        fields: { post: { type: 'Post' } },
+        type: 'Comment',
+      },
+      {
+        fields: { comments: { listOf: 'Comment' } },
+        type: 'Post',
+      },
+    ],
+  });
+
+  const postId = toEntityId('Post', 'post-1');
+  client.store.merge(
+    postId,
+    {
+      __typename: 'Post',
+      comments: [],
+      content: 'Post',
+      id: 'post-1',
+    },
+    new Set(['__typename', 'comments', 'content', 'id']),
+  );
+
+  const optimisticId = 'optimistic:comment';
+  const CommentView = view<Comment>()({
+    content: true,
+    id: true,
+    post: { id: true },
+  });
+
+  const promise = client.mutations.addComment({
+    input: { content: 'Optimistic', postId: 'post-1' },
+    optimisticUpdate: {
+      content: 'Optimistic',
+      id: optimisticId,
+      post: { id: 'post-1' },
+    },
+    view: CommentView,
+  });
+
+  expect(client.store.read(toEntityId('Comment', optimisticId))).toMatchObject({
+    content: 'Optimistic',
+    id: optimisticId,
+  });
+
+  await promise;
+
+  expect(
+    client.store.read(toEntityId('Comment', optimisticId)),
+  ).toBeUndefined();
+  expect(client.store.read(toEntityId('Comment', 'comment-1'))).toMatchObject({
+    content: 'Server comment',
+    id: 'comment-1',
   });
 });
 

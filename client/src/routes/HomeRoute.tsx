@@ -162,7 +162,13 @@ const CommentView = view<Comment>()({
   id: true,
 });
 
-const Comment = ({ comment: commentRef }: { comment: ViewRef<'Comment'> }) => {
+const Comment = ({
+  comment: commentRef,
+  post,
+}: {
+  comment: ViewRef<'Comment'>;
+  post: { commentCount: number; id: string };
+}) => {
   const comment = useView(CommentView, commentRef);
   const { author } = comment;
 
@@ -179,8 +185,15 @@ const Comment = ({ comment: commentRef }: { comment: ViewRef<'Comment'> }) => {
           className="opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
           onClick={async () => {
             await fate.mutations.deleteComment({
+              deleteRecord: true,
               input: { id: comment.id },
-              view: 'deleteRecord',
+              optimisticUpdate: {
+                post: { commentCount: post.commentCount - 1, id: post.id },
+              },
+              view: view<Comment>()({
+                id: true,
+                post: { commentCount: true },
+              }),
             });
           }}
           size="sm"
@@ -208,6 +221,7 @@ const CategorySummaryView = view<Category>()({
 const PostView = view<Post>()({
   author: UserView,
   category: CategorySummaryView,
+  commentCount: true,
   comments: {
     args: { first: 1 },
     items: {
@@ -272,16 +286,29 @@ const Post = ({
 
     const content = commentText.trim();
 
-    if (!content) {
-      return;
-    }
-
     setAddCommentError(null);
     startAddCommentTransition(async () => {
+      if (!content || !user?.id) {
+        return;
+      }
+
       try {
         await fate.mutations.addComment({
           input: { content, postId: post.id },
-          view: CommentView,
+          optimisticUpdate: {
+            author: {
+              id: user.id,
+              name: user.name ?? 'Anonymous',
+              username: user.username ?? null,
+            },
+            content,
+            id: `optimistic:${Date.now().toString(36)}`,
+            post: { commentCount: post.commentCount + 1, id: post.id },
+          },
+          view: view<Comment>()({
+            ...CommentView,
+            post: { commentCount: true },
+          }),
         });
       } catch (error) {
         setAddCommentError(error);
@@ -298,7 +325,7 @@ const Post = ({
     }
   };
 
-  const isCommentDisabled =
+  const commentingIsDisabled =
     addCommentIsPending || commentText.trim().length === 0;
 
   return (
@@ -324,8 +351,8 @@ const Post = ({
               ) : null}
             </Stack>
             <p className="text-muted-foreground text-sm">
-              by {author?.name ?? 'Unknown author'} · {comments.length}{' '}
-              {comments.length === 1 ? 'comment' : 'comments'}
+              by {author?.name ?? 'Unknown author'} · {post.commentCount}{' '}
+              {post.commentCount === 1 ? 'comment' : 'comments'}
             </p>
           </div>
           <Stack alignCenter gap>
@@ -362,7 +389,7 @@ const Post = ({
           {comments.length > 0 ? (
             <VStack gap={12}>
               {comments.map(({ node }) => (
-                <Comment comment={node} key={node.id} />
+                <Comment comment={node} key={node.id} post={post} />
               ))}
               {loadNext ? (
                 <Button onClick={loadNext} variant="ghost">
@@ -379,7 +406,8 @@ const Post = ({
               Add a comment
             </label>
             <textarea
-              className="bg-background text-foreground min-h-20 w-full rounded-md border border-gray-200 p-3 text-sm placeholder-gray-500 transition outline-none focus:border-gray-500 focus:ring-2 focus:ring-gray-200 dark:border-neutral-800 dark:focus:border-gray-400 dark:focus:ring-gray-900"
+              className="bg-background text-foreground min-h-20 w-full rounded-md border border-gray-200 p-3 text-sm placeholder-gray-500 transition outline-none focus:border-gray-500 focus:ring-2 focus:ring-gray-200 disabled:opacity-50 dark:border-neutral-800 dark:focus:border-gray-400 dark:focus:ring-gray-900"
+              disabled={addCommentIsPending}
               id={`comment-${post.id}`}
               onChange={(event) => setCommentText(event.target.value)}
               onKeyDown={maybeSubmitComment}
@@ -399,7 +427,7 @@ const Post = ({
             ) : null}
             <Stack end gap>
               <Button
-                disabled={isCommentDisabled}
+                disabled={commentingIsDisabled}
                 size="sm"
                 type="submit"
                 variant="secondary"

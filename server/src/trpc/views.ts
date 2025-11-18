@@ -17,6 +17,7 @@ export type CommentItem = PrismaComment & {
 };
 
 export type PostItem = PrismaPost & {
+  _count?: { comments: number };
   author?: PrismaUser | null;
   category?: PrismaCategory | null;
   comments?: Array<CommentItem>;
@@ -59,32 +60,37 @@ export const tagDataView = dataView<PrismaTag>()({
   name: true,
 });
 
-const commentPostDataView = dataView<PrismaPost>()({
-  id: true,
-  title: true,
-});
-
-export const commentDataView = dataView<CommentItem>()({
-  author: userDataView,
-  content: true,
-  id: true,
-  post: commentPostDataView,
-});
-
 const categorySummaryDataView = dataView<PrismaCategory>()({
   id: true,
   name: true,
 });
 
-export const postDataView = dataView<PostItem>()({
+const basePost = {
   author: userDataView,
   category: categorySummaryDataView,
-  comments: commentDataView,
+  commentCount: resolver<PostItem>({
+    resolve: ({ item }) => item._count?.comments ?? 0,
+    select: () => ({
+      _count: { select: { comments: true } },
+    }),
+  }),
   content: true,
   id: true,
   likes: true,
   tags: tagDataView,
   title: true,
+} as const;
+
+export const commentDataView = dataView<CommentItem>()({
+  author: userDataView,
+  content: true,
+  id: true,
+  post: dataView<PostItem>()(basePost),
+});
+
+export const postDataView = dataView<PostItem>()({
+  ...basePost,
+  comments: commentDataView,
 });
 
 export const categoryDataView = dataView<CategoryItem>()({
@@ -165,6 +171,7 @@ export type Tag = DataViewResult<typeof tagDataView> & { __typename: 'Tag' };
 export type Comment = Omit<DataViewResult<typeof commentDataView>, 'author'> & {
   __typename: 'Comment';
   author: User;
+  post: Post;
 };
 export type ProjectUpdate = Omit<
   DataViewResult<typeof projectUpdateDataView>,
@@ -187,6 +194,7 @@ export type Post = Omit<
   __typename: 'Post';
   author: User;
   category: Category | null;
+  commentCount: number;
   comments: Array<Comment>;
   tags: Array<Tag>;
 };

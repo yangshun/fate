@@ -14,6 +14,18 @@ const postSelection = {
   title: true,
 } as const;
 
+const getCommentSelection = (select: Record<string, unknown>) => {
+  return {
+    ...select,
+    post: {
+      select: {
+        ...postSelection,
+        ...(select.post as { select?: Record<string, unknown> })?.select,
+      },
+    },
+  } as CommentSelect;
+};
+
 export const commentRouter = router({
   add: procedure
     .input(
@@ -52,26 +64,16 @@ export const commentRouter = router({
         view: commentDataView,
       });
 
-      const data = {
-        authorId: ctx.sessionUser.id,
-        content: input.content,
-        postId: input.postId,
-      };
-
-      const result = await ctx.prisma.comment.create({
-        data,
-        select: {
-          ...selection.select,
-          post: {
-            select: {
-              ...postSelection,
-              ...(selection.select.post as { select?: Record<string, unknown> })
-                ?.select,
-            },
+      return selection.resolve(
+        await ctx.prisma.comment.create({
+          data: {
+            authorId: ctx.sessionUser.id,
+            content: input.content,
+            postId: input.postId,
           },
-        } as CommentSelect,
-      });
-      return selection.resolve(result);
+          select: getCommentSelection(selection.select),
+        }),
+      ) as Promise<CommentItem & { post?: { commentCount: number } }>;
     }),
   byId: procedure
     .input(
@@ -102,7 +104,9 @@ export const commentRouter = router({
   delete: procedure
     .input(
       z.object({
+        args: connectionArgs.optional(),
         id: z.string().min(1, 'Comment id is required'),
+        select: z.array(z.string()).default([]),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -118,10 +122,36 @@ export const commentRouter = router({
         });
       }
 
-      await ctx.prisma.comment.delete({
-        where: { id: input.id },
+      const selection = createDataViewSelection<CommentItem>({
+        args: input.args,
+        context: ctx,
+        paths: input.select,
+        view: commentDataView,
       });
 
-      return { success: true };
+      let result = (await ctx.prisma.comment.delete({
+        select: getCommentSelection(selection.select),
+        where: { id: input.id },
+      })) as CommentItem & { post?: { _count?: { comments: number } } };
+
+      if (result.post?._count) {
+        result = {
+          ...result,
+          post: {
+            ...result.post,
+            _count: {
+              comments: result.post._count.comments - 1,
+            },
+          },
+        };
+      }
+
+      if (!selection) {
+        return { success: true };
+      }
+
+      return selection.resolve(result) as Promise<
+        CommentItem & { post?: { commentCount: number } }
+      >;
     }),
 });

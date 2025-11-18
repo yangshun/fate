@@ -81,17 +81,15 @@ export const postRouter = router({
         paths: input.select,
         view: postDataView,
       });
-      const data = {
-        likes: {
-          increment: 1,
-        },
-      } as const;
-      const where = { id: input.id };
 
       const updated = await ctx.prisma.post.update({
-        data,
+        data: {
+          likes: {
+            increment: 1,
+          },
+        },
         select: selection.select,
-        where,
+        where: { id: input.id },
       });
       const resolved = await selection.resolve(updated as unknown as PostItem);
       return transformPost(resolved, input.args);
@@ -155,12 +153,10 @@ export const postRouter = router({
           });
         }
 
-        const where = { id: input.id };
-
         if (existing.likes <= 0) {
           const result = await tx.post.findUniqueOrThrow({
             select: selection.select,
-            where,
+            where: { id: input.id },
           });
           const resolved = await selection.resolve(
             result as unknown as PostItem,
@@ -168,16 +164,14 @@ export const postRouter = router({
           return transformPost(resolved, input.args);
         }
 
-        const data = {
-          likes: {
-            decrement: 1,
-          },
-        } as const;
-
         const updated = await tx.post.update({
-          data,
+          data: {
+            likes: {
+              decrement: 1,
+            },
+          },
           select: selection.select,
-          where,
+          where: { id: input.id },
         });
         const resolved = await selection.resolve(
           updated as unknown as PostItem,
