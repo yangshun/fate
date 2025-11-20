@@ -28,7 +28,9 @@ export function mutation<T extends Entity, I, R>(
   }) as MutationDefinition<T, I, R>;
 }
 
-type MutationOptions<Identifier extends MutationIdentifier<any, any, any>> = {
+export type MutationOptions<
+  Identifier extends MutationIdentifier<any, any, any>,
+> = {
   args?: Record<string, unknown>;
   deleteRecord?: boolean;
   input: Omit<MutationInput<Identifier>, 'select'>;
@@ -41,6 +43,14 @@ type MutationOptions<Identifier extends MutationIdentifier<any, any, any>> = {
 
 export type MutationFunction<I extends MutationIdentifier<any, any, any>> = (
   options: MutationOptions<I>,
+) => Promise<
+  | { error: undefined; result: MutationResult<I> }
+  | { error: Error; result: undefined }
+>;
+
+export type MutationAction<I extends MutationIdentifier<any, any, any>> = (
+  previousState: unknown,
+  options: MutationOptions<I> | 'reset',
 ) => Promise<
   | { error: undefined; result: MutationResult<I> }
   | { error: Error; result: undefined }

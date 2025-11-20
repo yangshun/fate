@@ -6,7 +6,12 @@ import {
   scopeArgsPayload,
 } from './args.ts';
 import ViewDataCache from './cache.ts';
-import { MutationFunction, wrapMutation } from './mutation.ts';
+import {
+  MutationAction,
+  MutationFunction,
+  MutationOptions,
+  wrapMutation,
+} from './mutation.ts';
 import { createNodeRef, getNodeRefId, isNodeRef } from './node-ref.ts';
 import createRef, { assignViewTag, parseEntityId, toEntityId } from './ref.ts';
 import { selectionFromView, type SelectionPlan } from './selection.ts';
@@ -179,12 +184,19 @@ export class FateClient<
     >;
   };
 
+  readonly actions: {
+    [K in keyof Mutations]: MutationAction<
+      MutationIdentifierFor<K & string, Mutations[K]>
+    >;
+  };
+
   constructor(options: FateClientOptions<Mutations>) {
     this.transport = options.transport;
     this.types = new Map(
       options.types.map((entity) => [entity.type, { getId, ...entity }]),
     );
     this.mutations = Object.create(null);
+    this.actions = Object.create(null);
 
     if (options.mutations) {
       for (const [key, definition] of Object.entries(options.mutations)) {
@@ -192,6 +204,13 @@ export class FateClient<
           ...definition,
           key,
         });
+
+        (this.actions as Record<string, unknown>)[key] = async <
+          I extends MutationIdentifier<any, any, any>,
+        >(
+          previousState: unknown,
+          data: MutationOptions<I> | 'reset',
+        ) => (data === 'reset' ? null : await this.mutations[key](data));
       }
     }
 
