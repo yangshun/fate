@@ -1,5 +1,6 @@
 import { initTRPC } from '@trpc/server';
 import { expect, test, vi } from 'vitest';
+import { z } from 'zod';
 import {
   arrayToConnection,
   createConnectionProcedureFactory,
@@ -46,6 +47,49 @@ test('allows nested connection args', async () => {
       }),
       skip: undefined,
       take: 21,
+    }),
+  );
+});
+
+test('merges additional input options', async () => {
+  const query = vi.fn(async () => [] as Array<unknown>);
+  const list = createConnectionProcedure({
+    input: z.object({
+      search: z.string().min(1, 'Search query is required'),
+    }),
+    query,
+  });
+  const appRouter = router({ list });
+  const caller = appRouter.createCaller({
+    headers: {},
+    prisma: {} as never,
+    sessionUser: null,
+  });
+
+  await expect(
+    caller.list({
+      args: { first: 1, search: 'comment' },
+      select: [],
+    }),
+  ).resolves.toEqual({
+    items: [],
+    pagination: {
+      hasNext: false,
+      hasPrevious: false,
+      nextCursor: undefined,
+      previousCursor: undefined,
+    },
+  });
+
+  expect(query).toHaveBeenCalledWith(
+    expect.objectContaining({
+      cursor: undefined,
+      direction: 'forward',
+      input: expect.objectContaining({
+        args: { first: 1, search: 'comment' },
+      }),
+      skip: undefined,
+      take: 2,
     }),
   );
 });

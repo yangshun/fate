@@ -95,6 +95,7 @@ export const createFateClient = (options: {
       client: trpcClient,
       lists: {
         categories: (client: TRPCClientType) => client.category.list.query,
+        commentSearch: (client: TRPCClientType) => client.comment.search.query,
         events: (client: TRPCClientType) => client.event.list.query,
         posts: (client: TRPCClientType) => client.post.list.query,
         projects: (client: TRPCClientType) => client.project.list.query,
@@ -159,4 +160,3 @@ export const createFateClient = (options: {
       ],
   });
 };
-

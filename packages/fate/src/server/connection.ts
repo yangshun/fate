@@ -1,60 +1,22 @@
 import type { TRPCProcedureBuilder } from '@trpc/server';
 import { z } from 'zod';
 
-type ConnectionCursor = string;
+type ConnectionInput = z.infer<typeof connectionInput>;
 
-const args: z.ZodType<Record<string, unknown>> = z.lazy(() =>
-  z.record(z.string(), z.union([z.unknown(), args])),
-);
+type AdditionalInputSchema = z.ZodObject<Record<string, z.ZodTypeAny>>;
 
-export const connectionArgs = args.optional();
-
-const paginationArgKeys = new Set(['after', 'before', 'first', 'last']);
-
-const paginationArgsSchema = z
-  .object({
-    after: z.string().optional(),
-    before: z.string().optional(),
-    first: z.number().int().positive().optional(),
-    last: z.number().int().positive().optional(),
-  })
-  .strict()
-  .partial()
-  .refine(
-    ({ after, before }) => !(after && before),
-    "Connection args can't include both 'after' and 'before'.",
-  )
-  .refine(
-    ({ first, last }) => !(first && last),
-    "Connection args can't include both 'first' and 'last'.",
-  )
-  .refine(
-    ({ before, last }) => !last || before !== undefined,
-    "Connection args using 'last' must also include 'before'.",
-  );
-
-const extractPaginationArgs = (
-  args: Record<string, unknown> | undefined,
-): Record<string, unknown> => {
-  if (!args) {
-    return {};
-  }
-
-  const entries = Object.entries(args).filter(([key]) =>
-    paginationArgKeys.has(key),
-  );
-
-  return Object.fromEntries(entries);
+type ConnectionInputWithAdditional<
+  TAdditionalInput extends AdditionalInputSchema | undefined,
+> = ConnectionInput & {
+  args?: ConnectionInput['args'] extends infer A
+    ? A &
+        (TAdditionalInput extends AdditionalInputSchema
+          ? z.infer<TAdditionalInput>
+          : object)
+    : never;
 };
 
-export const connectionInput = z
-  .object({
-    args: connectionArgs,
-    select: z.array(z.string()),
-  })
-  .strict();
-
-export type ConnectionInput = z.infer<typeof connectionInput>;
+type ConnectionCursor = string;
 
 export type ConnectionItem<TNode> = {
   cursor: ConnectionCursor;
@@ -78,18 +40,91 @@ type ArrayToConnectionOptions<TNode> = {
   getCursor?: (node: TNode) => ConnectionCursor;
 };
 
+type ProcedureLike<TContext> = TRPCProcedureBuilder<
+  TContext,
+  any,
+  any,
+  any,
+  any,
+  any,
+  any,
+  false
+>;
+
+type QueryFn<TContext, TItem, TInput extends ConnectionInput> = (options: {
+  ctx: TContext;
+  cursor?: ConnectionCursor;
+  direction: 'forward' | 'backward';
+  input: TInput;
+  skip?: number;
+  take: number;
+}) => Promise<Array<TItem>>;
+
+type MapFn<TContext, TItem, TNode, TInput extends ConnectionInput> = (options: {
+  ctx: TContext;
+  input: TInput;
+  items: Array<TItem>;
+}) => Promise<Array<TNode>> | Array<TNode>;
+
+type CreateConnectionProcedureOptions<TNode> = {
+  defaultSize?: number;
+  getCursor?: (node: TNode) => ConnectionCursor;
+};
+
+const args: z.ZodType<Record<string, unknown>> = z
+  .object({})
+  .catchall(z.union([z.unknown(), z.lazy(() => args)]));
+
+export const connectionArgs = args.optional();
+
+const connectionInput = z.strictObject({
+  args: connectionArgs,
+  select: z.array(z.string()),
+});
+
+const paginationArgKeys = new Set(['after', 'before', 'first', 'last']);
+
+const paginationArgsSchema = z
+  .strictObject({
+    after: z.string().optional(),
+    before: z.string().optional(),
+    first: z.number().int().positive().optional(),
+    last: z.number().int().positive().optional(),
+  })
+  .partial()
+  .refine(
+    ({ after, before }) => !(after && before),
+    "Connection args can't include both 'after' and 'before'.",
+  )
+  .refine(
+    ({ first, last }) => !(first && last),
+    "Connection args can't include both 'first' and 'last'.",
+  )
+  .refine(
+    ({ before, last }) => !last || before !== undefined,
+    "Connection args using 'last' must also include 'before'.",
+  );
+
+const extractPaginationArgs = (
+  args: Record<string, unknown> | undefined,
+): Record<string, unknown> =>
+  args
+    ? Object.fromEntries(
+        Object.entries(args).filter(([key]) => paginationArgKeys.has(key)),
+      )
+    : {};
+
 export function arrayToConnection<TNode extends { id: string | number }>(
   nodes?: Array<TNode>,
-  options: ArrayToConnectionOptions<TNode> = {},
+  {
+    args,
+    getCursor = (node: TNode) => String((node as { id: string | number }).id),
+  }: ArrayToConnectionOptions<TNode> = {},
 ): ConnectionResult<TNode> | undefined {
   if (!nodes) {
     return undefined;
   }
 
-  const {
-    args,
-    getCursor = (node: TNode) => String((node as { id: string | number }).id),
-  } = options;
   const paginationArgs = paginationArgsSchema.parse(
     extractPaginationArgs(args),
   );
@@ -106,7 +141,7 @@ export function arrayToConnection<TNode extends { id: string | number }>(
         nextCursor: undefined,
         previousCursor: undefined,
       },
-    } satisfies ConnectionResult<TNode>;
+    };
   }
 
   const isBackward =
@@ -135,61 +170,51 @@ export function arrayToConnection<TNode extends { id: string | number }>(
           ? firstItem.cursor
           : undefined,
     },
-  } satisfies ConnectionResult<TNode>;
+  };
 }
-
-type ProcedureLike<TContext> = TRPCProcedureBuilder<
-  TContext,
-  any,
-  any,
-  any,
-  any,
-  any,
-  any,
-  false
->;
-
-type QueryFn<TContext, TItem> = (options: {
-  ctx: TContext;
-  cursor?: ConnectionCursor;
-  direction: 'forward' | 'backward';
-  input: ConnectionInput;
-  skip?: number;
-  take: number;
-}) => Promise<Array<TItem>>;
-
-type MapFn<TContext, TItem, TNode> = (options: {
-  ctx: TContext;
-  input: ConnectionInput;
-  items: Array<TItem>;
-}) => Promise<Array<TNode>> | Array<TNode>;
-
-type CreateConnectionProcedureOptions<TContext, TItem, TNode> = {
-  defaultSize?: number;
-  getCursor?: (node: TNode) => ConnectionCursor;
-  map?: MapFn<TContext, TItem, TNode>;
-  query: QueryFn<TContext, TItem>;
-};
 
 export const createConnectionProcedureFactory =
   <TContext>(procedure: ProcedureLike<TContext>) =>
-  <TItem, TNode = TItem>(
-    options: CreateConnectionProcedureOptions<TContext, TItem, TNode>,
-  ) => {
-    const {
-      defaultSize = 20,
-      getCursor = (node: TNode) => (node as { id: string }).id,
-      map,
-      query,
-    } = options;
+  <
+    TItem,
+    TNode = TItem,
+    TAdditionalInput extends AdditionalInputSchema | undefined = undefined,
+  >({
+    defaultSize = 20,
+    getCursor = (node: TNode) => (node as { id: string }).id,
+    input: additionalInput,
+    map,
+    query,
+  }: CreateConnectionProcedureOptions<TNode> & {
+    input?: TAdditionalInput;
+    map?: MapFn<
+      TContext,
+      TItem,
+      TNode,
+      ConnectionInputWithAdditional<TAdditionalInput>
+    >;
+    query: QueryFn<
+      TContext,
+      TItem,
+      ConnectionInputWithAdditional<TAdditionalInput>
+    >;
+  }) => {
+    type Input = ConnectionInputWithAdditional<TAdditionalInput>;
+
+    const inputSchema = additionalInput
+      ? connectionInput.extend({
+          args: connectionArgs.and(additionalInput),
+        })
+      : connectionInput;
 
     return procedure
-      .input(connectionInput)
+      .input(inputSchema)
       .query(async (resolverOptions: unknown) => {
         const { ctx, input } = resolverOptions as {
           ctx: TContext;
-          input: ConnectionInput;
+          input: Input;
         };
+
         const paginationArgs = paginationArgsSchema.parse(
           extractPaginationArgs(input.args),
         );

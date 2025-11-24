@@ -2,8 +2,9 @@ import type { Comment } from '@nkzw/fate-server/src/trpc/views.ts';
 import Stack from '@nkzw/stack';
 import { X } from 'lucide-react';
 import { useView, view, ViewRef } from 'react-fate';
+import { Link } from 'react-router';
 import { fate } from '../lib/fate.tsx';
-import { Button } from '../ui/Button.tsx';
+import { Button } from './Button.tsx';
 
 export const CommentView = view<Comment>()({
   author: {
@@ -20,12 +21,12 @@ export const CommentViewWithPostCount = view<Comment>()({
   post: { commentCount: true },
 });
 
-export default function Comment({
+export default function CommentCard({
   comment: commentRef,
   post,
 }: {
   comment: ViewRef<'Comment'>;
-  post: { commentCount: number; id: string };
+  post: { commentCount: number; id: string; title: string };
 }) {
   const comment = useView(CommentView, commentRef);
   const { author } = comment;
@@ -61,6 +62,7 @@ export default function Comment({
         </Button>
       </Stack>
       <p className="text-foreground/80">{comment.content}</p>
+      <Link to={`/post/${post.id}`}>{post.title}</Link>
     </div>
   );
 }

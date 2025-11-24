@@ -1,6 +1,7 @@
 import Stack from '@nkzw/stack';
 import { FormEvent, useState } from 'react';
 import { Navigate } from 'react-router';
+import Input from '../ui/Input.tsx';
 import AuthClient from './AuthClient.tsx';
 
 export default function SignIn() {
@@ -32,15 +33,13 @@ export default function SignIn() {
     <Stack gap vertical>
       <h2 className="text-lg font-bold">Sign In</h2>
       <Stack as="form" gap onSubmit={signIn}>
-        <input
-          className="rounded-sm border border-gray-500 p-2 font-mono text-gray-500 dark:border-gray-400 dark:text-gray-400"
+        <Input
           onChange={(e) => setEmail(e.target.value)}
           placeholder="email"
           type="email"
           value={email}
         />
-        <input
-          className="rounded-sm border border-gray-500 p-2 font-mono text-gray-500 dark:border-gray-400 dark:text-gray-400"
+        <Input
           onChange={(e) => setPassword(e.target.value)}
           placeholder="password"
           type="password"

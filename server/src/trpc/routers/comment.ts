@@ -5,6 +5,7 @@ import type {
   CommentFindManyArgs,
   CommentSelect,
 } from '../../prisma/prisma-client/models.ts';
+import { createConnectionProcedure } from '../connection.ts';
 import { procedure, router } from '../init.ts';
 import { commentDataView } from '../views.ts';
 import type { CommentItem } from '../views.ts';
@@ -154,4 +155,49 @@ export const commentRouter = router({
         CommentItem & { post?: { commentCount: number } }
       >;
     }),
+
+  search: createConnectionProcedure({
+    input: z.object({
+      query: z.string().min(1, 'Search query is required'),
+    }),
+    query: async ({ ctx, cursor, direction, input, skip, take }) => {
+      const query = input.args?.query?.trim();
+      if (!query?.length) {
+        return [];
+      }
+
+      if (query.length > 1) {
+        // Artificial slowdown.
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+
+      const selection = createDataViewSelection<CommentItem>({
+        args: input.args,
+        context: ctx,
+        paths: input.select,
+        view: commentDataView,
+      });
+      const findOptions: CommentFindManyArgs = {
+        orderBy: { createdAt: 'desc' },
+        select: selection.select,
+        take: direction === 'forward' ? take : -take,
+        where: {
+          content: {
+            contains: query,
+            mode: 'insensitive',
+          },
+        },
+      };
+
+      if (cursor) {
+        findOptions.cursor = { id: cursor };
+        findOptions.skip = skip;
+      }
+
+      const items = await ctx.prisma.comment.findMany(findOptions);
+      return selection.resolveMany(
+        direction === 'forward' ? items : items.reverse(),
+      );
+    },
+  }),
 });

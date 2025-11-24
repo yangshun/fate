@@ -1,5 +1,5 @@
 import Stack from '@nkzw/stack';
-import { ChevronLeft, CircuitBoard, LogIn, LogOut } from 'lucide-react';
+import { ChevronLeft, CircuitBoard, LogIn, LogOut, Search } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router';
 import AuthClient from '../user/AuthClient.tsx';
 import { Button } from './Button.tsx';
@@ -42,6 +42,12 @@ export default function Header() {
           </div>
         </Link>
         <Stack alignCenter gap>
+          <Button asChild size="sm" variant="ghost">
+            <Link to="/search">
+              <Search className="h-4 w-4" />
+              <span className="hidden sm:inline">Search</span>
+            </Link>
+          </Button>
           {session ? (
             <>
               <Button asChild size="sm" variant="ghost">

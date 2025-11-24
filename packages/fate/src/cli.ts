@@ -86,11 +86,18 @@ const generate = async () => {
     router: string;
   }> = [];
   const byIdEntries: Array<{ entityType: string; router: string }> = [];
-  const listEntries: Array<{ list: string; router: string }> = [];
+  const listEntries: Array<{
+    list: string;
+    procedure: string;
+    router: string;
+  }> = [];
 
   for (const [router, procedures] of Object.entries(routerRecord)) {
     const entity = (
-      entities as Record<string, { list?: string; type: string }>
+      entities as Record<
+        string,
+        { list?: string; listProcedure?: string; type: string }
+      >
     )[router];
     if (!entity) {
       continue;
@@ -119,8 +126,13 @@ const generate = async () => {
         continue;
       }
 
-      if (procedureName === 'list' && type === 'query' && entity.list) {
-        listEntries.push({ list: entity.list, router });
+      const listProcedure = entity.listProcedure ?? 'list';
+      if (procedureName === listProcedure && type === 'query' && entity.list) {
+        listEntries.push({
+          list: entity.list,
+          procedure: listProcedure,
+          router,
+        });
       }
     }
   }
@@ -163,8 +175,8 @@ const generate = async () => {
   );
 
   const listLines = listEntries.map(
-    ({ list, router }) =>
-      `${list}: (client: TRPCClientType) => client.${router}.list.query,`,
+    ({ list, procedure, router }) =>
+      `${list}: (client: TRPCClientType) => client.${router}.${procedure}.query,`,
   );
 
   const typeImports = `import type { ${viewTypes.join(', ')} } from '${moduleName}';`;
@@ -226,7 +238,7 @@ ${listsBlock}      mutations,
 `;
 
   const outputPath = path.join(root, targetFile);
-  writeFileSync(outputPath, `${source}\n`);
+  writeFileSync(outputPath, source);
   console.log(
     styleText(
       'green',

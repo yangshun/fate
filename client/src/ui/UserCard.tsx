@@ -8,6 +8,7 @@ import { Button } from '../ui/Button.tsx';
 import Card from '../ui/Card.tsx';
 import H3 from '../ui/H3.tsx';
 import AuthClient from '../user/AuthClient.tsx';
+import Input from './Input.tsx';
 
 export type SessionUser = {
   id?: string | null;
@@ -82,10 +83,9 @@ const UserNameForm = ({ user }: { user: SessionUser }) => {
         <label className="sr-only" htmlFor="header-username">
           Username
         </label>
-        <input
+        <Input
           aria-describedby={error ? 'header-username-error' : undefined}
           aria-invalid={error ? 'true' : undefined}
-          className="border-input bg-background text-foreground focus-visible:ring-ring focus-visible:ring-offset-background flex h-8 w-32 rounded-md border px-2 text-sm shadow-sm transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:bg-neutral-900/40"
           disabled={isPending}
           id="header-username"
           name="name"

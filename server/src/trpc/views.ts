@@ -235,6 +235,7 @@ export type Event = Omit<
 
 export const Lists = {
   categories: categoryDataView,
+  commentSearch: { procedure: 'search', view: commentDataView },
   events: eventDataView,
   posts: postDataView,
   projects: projectDataView,

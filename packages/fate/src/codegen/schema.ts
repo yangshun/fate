@@ -16,12 +16,22 @@ const isDataViewField = (
   typeof field === 'object' &&
   'fields' in (field as AnyRecord);
 
+type ListConfig =
+  | DataView<AnyRecord, unknown>
+  | {
+      procedure?: string;
+      view: DataView<AnyRecord, unknown>;
+    };
+
 export const createFateSchema = (
   dataViews: ReadonlyArray<DataView<AnyRecord, unknown>>,
-  lists: Record<string, DataView<AnyRecord, unknown>>,
+  lists: Record<string, ListConfig>,
 ) => {
   const canonicalViews = new Map<string, DataView<AnyRecord, unknown>>();
-  const entities: Record<string, { list?: string; type: string }> = {};
+  const entities: Record<
+    string,
+    { list?: string; listProcedure?: string; type: string }
+  > = {};
   const fateTypes = new Map<string, FateTypeConfig>();
   const processing = new Set<string>();
 
@@ -79,10 +89,15 @@ export const createFateSchema = (
     entities[typeName.toLowerCase()] = { type: typeName };
   }
 
-  for (const [name, view] of Object.entries(lists)) {
-    const typeName = ensureType(view);
+  for (const [name, list] of Object.entries(lists)) {
+    const config = 'fields' in list ? { view: list } : list;
+    const typeName = ensureType(config.view);
 
-    entities[typeName.toLowerCase()] = { list: name, type: typeName };
+    entities[typeName.toLowerCase()] = {
+      list: name,
+      listProcedure: config.procedure,
+      type: typeName,
+    };
   }
 
   return {

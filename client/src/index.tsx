@@ -9,8 +9,9 @@ import { fate } from './lib/fate.tsx';
 import CategoryRoute from './routes/CategoryRoute.tsx';
 import HomeRoute from './routes/HomeRoute.tsx';
 import PostRoute from './routes/PostRoute.tsx';
+import SearchRoute from './routes/SearchRoute.tsx';
 import SignInRoute from './routes/SignInRoute.tsx';
-import Card from './ui/Card.tsx';
+import Error from './ui/Error.tsx';
 import Header from './ui/Header.tsx';
 import Section from './ui/Section.tsx';
 
@@ -27,23 +28,7 @@ const App = () => {
     <div className="bg-background min-h-screen">
       <div className="min-h-[calc(100vh-206px)]">
         <Header />
-        <ErrorBoundary
-          fallbackRender={({ error }) => (
-            <Section>
-              <Card>
-                <h3 className="text-xl font-semibold text-red-700">Error</h3>
-                <code>{error.stack || `Fate Error: ${error.message}`}</code>
-
-                <a
-                  className="block cursor-pointer underline"
-                  onClick={() => window.location.reload()}
-                >
-                  Try again
-                </a>
-              </Card>
-            </Section>
-          )}
-        >
+        <ErrorBoundary FallbackComponent={Error}>
           <Suspense
             fallback={
               <Section>
@@ -62,6 +47,7 @@ const App = () => {
                 <Route element={<HomeRoute />} path="/" />
                 <Route element={<PostRoute />} path="/post/:id" />
                 <Route element={<CategoryRoute />} path="/category/:id" />
+                <Route element={<SearchRoute />} path="/search" />
                 <Route element={<SignInRoute />} path="/login" />
               </Route>
             </Routes>

@@ -58,3 +58,26 @@ test('derives types and entities from data views', () => {
     },
   ]);
 });
+
+test('allows defining custom list procedure names', () => {
+  const userView = dataView<User>('User')({
+    id: true,
+    name: true,
+  });
+
+  const commentView = dataView<Comment>('Comment')({
+    author: userView,
+    id: true,
+    replies: list(dataView<Comment>('Comment')({ id: true })),
+  });
+
+  const schema = createFateSchema([commentView, userView], {
+    commentSearch: { procedure: 'search', view: commentView },
+  });
+
+  expect(schema.entities.comment).toEqual({
+    list: 'commentSearch',
+    listProcedure: 'search',
+    type: 'Comment',
+  });
+});

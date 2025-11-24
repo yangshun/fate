@@ -1,5 +1,5 @@
 import { RequestResult, type Request, type RequestOptions } from '@nkzw/fate';
-import { use, useEffect } from 'react';
+import { use, useDeferredValue, useEffect } from 'react';
 import { useFateClient } from './context.tsx';
 
 export function useRequest<R extends Request>(
@@ -18,5 +18,5 @@ export function useRequest<R extends Request>(
     }
   }, [client, mode, request]);
 
-  return use(promise);
+  return use(useDeferredValue(promise));
 }
