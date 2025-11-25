@@ -1,10 +1,11 @@
 import {
-  __FateEntityBrand,
-  __FateSelectionBrand,
   EntityId,
   View,
   ViewData,
+  ViewEntity,
+  ViewEntityName,
   ViewRef,
+  ViewSelection,
   ViewSnapshot,
   ViewTag,
 } from '@nkzw/fate';
@@ -16,23 +17,6 @@ import {
   useSyncExternalStore,
 } from 'react';
 import { useFateClient } from './context.tsx';
-
-type ViewEntity<V> = V extends { readonly [__FateEntityBrand]?: infer T }
-  ? T
-  : never;
-
-type ViewEntityName<V> =
-  ViewEntity<V> extends { __typename: infer N }
-    ? N extends string
-      ? N
-      : never
-    : never;
-
-type ViewSelection<V> = V extends {
-  readonly [__FateSelectionBrand]?: infer S;
-}
-  ? S
-  : never;
 
 export function useView<V extends View<any, any>>(
   view: V,

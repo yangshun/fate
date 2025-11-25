@@ -14,7 +14,7 @@ import {
 } from './mutation.ts';
 import { createNodeRef, getNodeRefId, isNodeRef } from './node-ref.ts';
 import createRef, { assignViewTag, parseEntityId, toEntityId } from './ref.ts';
-import { selectionFromView, type SelectionPlan } from './selection.ts';
+import { getSelectionPlan, type SelectionPlan } from './selection.ts';
 import { getListKey, List, Store } from './store.ts';
 import { Transport } from './transport.ts';
 import { Pagination, RequestResult, ViewSnapshot } from './types.js';
@@ -43,7 +43,10 @@ import {
 } from './types.ts';
 import { getViewNames, getViewPayloads } from './view.ts';
 
-export type RequestMode = 'store-or-network' | 'store-and-network' | 'network';
+export type RequestMode =
+  | 'cache-or-network'
+  | 'cache-and-network'
+  | 'network-only';
 
 export type RequestOptions = Readonly<{ mode?: RequestMode }>;
 
@@ -398,7 +401,7 @@ export class FateClient<
       return cached as FateThenable<ViewSnapshot<T, S>>;
     }
 
-    const plan = selectionFromView(view, ref);
+    const plan = getSelectionPlan(view, ref);
     const selectedPaths = plan.paths;
     const missing = this.store.missingForSelection(entityId, selectedPaths);
 
@@ -655,7 +658,7 @@ export class FateClient<
     request: R,
     options?: RequestOptions,
   ): Promise<RequestResult<R>> {
-    const mode = options?.mode ?? 'store-or-network';
+    const mode = options?.mode ?? 'cache-or-network';
     const requestKey = getRequestCacheKey(request);
     const existingRequest = this.requests.get(requestKey)?.get(mode);
     if (existingRequest) {
@@ -664,15 +667,15 @@ export class FateClient<
 
     let promise: Promise<RequestResult<R>>;
     switch (mode) {
-      case 'store-and-network':
+      case 'cache-and-network':
         promise = this.handleStoreAndNetworkRequest(request);
         break;
-      case 'store-or-network':
-      case 'network':
+      case 'cache-or-network':
+      case 'network-only':
       default:
         promise = this.executeRequest(
           request,
-          mode === 'network' ? { fetchAll: true } : undefined,
+          mode === 'network-only' ? { fetchAll: true } : undefined,
         ).then(() => this.getRequestResult(request));
         break;
     }
@@ -735,7 +738,7 @@ export class FateClient<
     const promises: Array<Promise<void>> = [];
     for (const [name, item] of Object.entries(request)) {
       if (isNodeItem(item)) {
-        const plan = selectionFromView(item.root, null);
+        const plan = getSelectionPlan(item.root, null);
         const fields = plan.paths;
         const fieldsSignature = [...fields].slice().sort().join(',');
         const argsSignature = [...plan.args.entries()]
@@ -779,7 +782,7 @@ export class FateClient<
   private hasRequestData(request: Request): boolean {
     for (const [name, item] of Object.entries(request)) {
       if (isNodeItem(item)) {
-        const plan = selectionFromView(item.root, null);
+        const plan = getSelectionPlan(item.root, null);
         const fields = plan.paths;
         for (const raw of item.ids) {
           const entityId = toEntityId(item.type, raw);
@@ -879,7 +882,7 @@ export class FateClient<
     view: View<any, any>,
     args: AnyRecord | undefined,
   ) {
-    const plan = selectionFromView(view, null);
+    const plan = getSelectionPlan(view, null);
     const selection = plan.paths;
     const defaultArgs = resolvedArgsFromPlan(plan);
     const argsPayload = combineArgsPayload(defaultArgs, args);

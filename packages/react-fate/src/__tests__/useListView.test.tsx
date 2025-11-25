@@ -2,7 +2,7 @@
  * @vitest-environment happy-dom
  */
 
-import { createClient, selectionFromView, view } from '@nkzw/fate';
+import { createClient, getSelectionPlan, view } from '@nkzw/fate';
 import { act, Suspense, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { expect, test, vi } from 'vitest';
@@ -78,7 +78,7 @@ test('loads additional items when loadNext is invoked', async () => {
     id: true,
   });
 
-  const plan = selectionFromView(PostView, null);
+  const plan = getSelectionPlan(PostView, null);
 
   client.write(
     'Comment',
@@ -226,7 +226,7 @@ test('uses pagination from list state when not selected', async () => {
     id: true,
   });
 
-  const plan = selectionFromView(PostView, null);
+  const plan = getSelectionPlan(PostView, null);
 
   client.write(
     'Comment',
@@ -373,7 +373,7 @@ test('loads previous items when loadPrevious is invoked', async () => {
     id: true,
   });
 
-  const plan = selectionFromView(PostView, null);
+  const plan = getSelectionPlan(PostView, null);
 
   client.write(
     'Comment',

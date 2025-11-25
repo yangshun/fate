@@ -26,7 +26,7 @@ export type SelectionPlan = {
 const isConnectionSelection = (value: AnyRecord): boolean =>
   isRecord(value.items) && 'node' in value.items;
 
-export const selectionFromView = <
+export const getSelectionPlan = <
   T extends Entity,
   S extends Selection<T>,
   V extends View<T, S>,

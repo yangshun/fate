@@ -8,10 +8,10 @@ export function useRequest<R extends Request>(
 ): RequestResult<R> {
   const client = useFateClient();
   const promise = client.request(request, options);
-  const mode = options?.mode ?? 'store-or-network';
+  const mode = options?.mode ?? 'cache-or-network';
 
   useEffect(() => {
-    if (mode === 'network' || mode === 'store-and-network') {
+    if (mode === 'network-only' || mode === 'cache-and-network') {
       return () => {
         client.releaseRequest(request, mode);
       };

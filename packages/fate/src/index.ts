@@ -1,8 +1,9 @@
 export type {
-  __FateEntityBrand,
-  __FateSelectionBrand,
   AnyRecord as FateRecord,
   ConnectionMetadata,
+  ViewEntity,
+  ViewEntityName,
+  ViewSelection,
   Entity,
   EntityId,
   ListItem,
@@ -34,5 +35,5 @@ export { mutation } from './mutation.ts';
 export { toEntityId } from './ref.ts';
 export { createClient, FateClient } from './client.ts';
 export type { RequestMode, RequestOptions } from './client.ts';
-export { createFateTransport } from './transport.ts';
-export { selectionFromView } from './selection.ts';
+export { createTRPCTransport } from './transport.ts';
+export { getSelectionPlan } from './selection.ts';

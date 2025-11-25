@@ -3,7 +3,7 @@ import { createClient } from '../client.ts';
 import { mutation } from '../mutation.ts';
 import { createNodeRef, getNodeRefId, isNodeRef } from '../node-ref.ts';
 import { toEntityId } from '../ref.ts';
-import { selectionFromView } from '../selection.ts';
+import { getSelectionPlan } from '../selection.ts';
 import { getListKey, List } from '../store.ts';
 import {
   ConnectionMetadata,
@@ -1447,7 +1447,7 @@ test(`'request' refetches cached data when using 'store-and-network' mode`, asyn
         type: 'Post',
       },
     },
-    { mode: 'store-or-network' },
+    { mode: 'cache-or-network' },
   );
 
   expect(fetchById).toHaveBeenCalledTimes(0);
@@ -1460,7 +1460,7 @@ test(`'request' refetches cached data when using 'store-and-network' mode`, asyn
         type: 'Post',
       },
     },
-    { mode: 'store-and-network' },
+    { mode: 'cache-and-network' },
   );
 
   expect(fetchById).toHaveBeenCalledTimes(1);
@@ -1493,7 +1493,7 @@ test(`'request' only fetches once when cache is missing for 'store-and-network'`
         type: 'Post',
       },
     },
-    { mode: 'store-and-network' },
+    { mode: 'cache-and-network' },
   );
 
   expect(fetchById).toHaveBeenCalledTimes(1);
@@ -1537,7 +1537,7 @@ test(`'request' waits for a network response when using 'network' mode`, async (
           type: 'Post',
         },
       },
-      { mode: 'network' },
+      { mode: 'network-only' },
     )
     .then(() => {
       resolved = true;
@@ -1683,7 +1683,7 @@ test('normalizeEntity stores connection lists using argument hashes', () => {
     },
   });
 
-  const plan = selectionFromView(PostView, null);
+  const plan = getSelectionPlan(PostView, null);
 
   client.write(
     'Post',
@@ -1970,7 +1970,7 @@ test(`mutation results with connections reuse view args and hydrate nodes`, asyn
     name: 'Alice',
   });
 
-  const postPlan = selectionFromView(PostView, null);
+  const postPlan = getSelectionPlan(PostView, null);
   const listKey = getListKey(
     toEntityId('Post', 'post-1'),
     'comments',
@@ -2045,7 +2045,7 @@ test('mutations do not reset previously loaded connection entries', async () => 
     id: true,
   });
 
-  const plan = selectionFromView(PostView, null);
+  const plan = getSelectionPlan(PostView, null);
   const postId = toEntityId('Post', 'post-1');
   const commentAId = toEntityId('Comment', 'comment-1');
   const commentBId = toEntityId('Comment', 'comment-2');

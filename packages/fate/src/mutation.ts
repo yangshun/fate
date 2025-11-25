@@ -1,7 +1,7 @@
 import { TRPCError } from '@trpc/server';
 import { getHTTPStatusCodeFromError } from '@trpc/server/http';
 import type { FateClient } from './client.js';
-import { selectionFromView } from './selection.ts';
+import { getSelectionPlan } from './selection.ts';
 import { List } from './store.ts';
 import type {
   AnyRecord,
@@ -111,7 +111,7 @@ export function wrapMutation<
     view,
   }: MutationOptions<I>) => {
     const id = maybeGetId(config.getId, input);
-    const plan = view ? selectionFromView(view, null) : undefined;
+    const plan = view ? getSelectionPlan(view, null) : undefined;
     const viewSelection = plan?.paths;
 
     const optimisticRecord: AnyRecord | undefined = optimisticUpdate

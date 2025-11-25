@@ -206,7 +206,7 @@ const generate = async () => {
 ${typeImports}
 import { createTRPCProxyClient } from '@trpc/client';
 import { inferRouterInputs, inferRouterOutputs } from '@trpc/server';
-import { createClient, createFateTransport, mutation } from 'react-fate';
+import { createClient, createTRPCTransport, mutation } from 'react-fate';
 
 type TRPCClientType = ReturnType<typeof createTRPCProxyClient<AppRouter>>;
 type RouterInputs = inferRouterInputs<AppRouter>;
@@ -225,7 +225,7 @@ ${mutationResolverBlock}
     mutations: {
 ${mutationConfigBlock}
     },
-    transport: createFateTransport<AppRouter, typeof mutations>({
+    transport: createTRPCTransport<AppRouter, typeof mutations>({
       byId: {
 ${byIdBlock}
       },

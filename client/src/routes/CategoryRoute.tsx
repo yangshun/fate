@@ -18,7 +18,7 @@ export default function CategoryRoute() {
         type: 'Category',
       },
     } as const,
-    { mode: 'store-and-network' },
+    { mode: 'cache-and-network' },
   );
 
   return (

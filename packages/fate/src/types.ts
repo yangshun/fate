@@ -20,7 +20,6 @@ type __ViewEntityAnchor<T extends Entity> = {
 type __ViewSelectionAnchor<S> = {
   readonly [__FateSelectionBrand]?: S;
 };
-
 type __MutationEntityAnchor<T extends Entity> = {
   readonly [__FateMutationEntityBrand]?: T;
 };
@@ -242,8 +241,13 @@ export type Mask<T, S> =
             }
         : T;
 
-type ViewEntity<V> = V extends View<infer T, any> ? T : never;
-type ViewEntityName<V> = ViewEntity<V>['__typename'] & string;
+export type ViewEntity<V> = V extends View<infer T, any> ? T : never;
+export type ViewEntityName<V> = ViewEntity<V>['__typename'] & string;
+export type ViewSelection<V> = V extends {
+  readonly [__FateSelectionBrand]?: infer S;
+}
+  ? S
+  : never;
 
 export type ListItem<V extends View<any, any>> = Readonly<{
   args?: Record<string, unknown>;

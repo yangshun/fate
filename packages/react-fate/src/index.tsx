@@ -1,6 +1,6 @@
 export {
   createClient,
-  createFateTransport,
+  createTRPCTransport,
   mutation,
   type ViewRef,
   view,

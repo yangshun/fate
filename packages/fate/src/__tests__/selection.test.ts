@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { selectionFromView } from '../selection.ts';
+import { getSelectionPlan } from '../selection.ts';
 import { ViewsTag } from '../types.ts';
 import { view } from '../view.ts';
 
@@ -25,7 +25,7 @@ test('collects scalar and nested selections', () => {
     title: true,
   });
 
-  const selection = selectionFromView(PostView, null);
+  const selection = getSelectionPlan(PostView, null);
 
   expect(selection.paths).toMatchInlineSnapshot(`
     Set {
@@ -50,7 +50,7 @@ test('collects fields from nested views', () => {
     id: true,
   });
 
-  expect(selectionFromView(PostView, null).paths).toMatchInlineSnapshot(`
+  expect(getSelectionPlan(PostView, null).paths).toMatchInlineSnapshot(`
     Set {
       "author.email",
       "author.id",
@@ -85,13 +85,13 @@ test('filters nested view selections based on ref tags', () => {
     [ViewsTag]: new Set([postViewTag, authorViewTag]),
   } as const;
 
-  expect(selectionFromView(PostView, refWithoutAuthor).paths)
+  expect(getSelectionPlan(PostView, refWithoutAuthor).paths)
     .toMatchInlineSnapshot(`
     Set {
       "content",
     }
   `);
-  expect(selectionFromView(PostView, refWithAuthor).paths)
+  expect(getSelectionPlan(PostView, refWithAuthor).paths)
     .toMatchInlineSnapshot(`
     Set {
       "author.email",
@@ -122,7 +122,7 @@ test('selection plan resolves arguments and hashes connection args', () => {
     content: { args: { format: 'md' } },
   });
 
-  const plan = selectionFromView(PostView, null);
+  const plan = getSelectionPlan(PostView, null);
 
   expect(plan.paths).toContain('content');
   expect(plan.paths).toContain('comments.id');
@@ -152,7 +152,7 @@ test('treats fields named args and pagination as regular selections', () => {
     pagination: true,
   });
 
-  const selection = selectionFromView(ExampleView, null);
+  const selection = getSelectionPlan(ExampleView, null);
 
   expect(selection.paths).toContain('args.value');
   expect(selection.paths).toContain('pagination');
@@ -175,7 +175,7 @@ test('omits connection cursor selections from paths', () => {
     },
   });
 
-  const selection = selectionFromView(PostView, null);
+  const selection = getSelectionPlan(PostView, null);
 
   expect(selection.paths).not.toContain('comments.cursor');
   expect(selection.paths).toContain('comments.id');

@@ -1,12 +1,12 @@
 import { expect, test, vi } from 'vitest';
-import { createFateTransport } from '../transport.ts';
+import { createTRPCTransport } from '../transport.ts';
 
 test('passes selection when fetching by id', async () => {
   const call = vi.fn(async () => []);
   const byIdResolver = vi.fn(() => call);
   const client = {} as any;
 
-  const transport = createFateTransport({
+  const transport = createTRPCTransport({
     byId: {
       Post: byIdResolver,
     },
@@ -36,7 +36,7 @@ test('passes selection when fetching lists', async () => {
   const listResolver = vi.fn(() => call);
   const client = {} as any;
 
-  const transport = createFateTransport({
+  const transport = createTRPCTransport({
     byId: {
       Post: vi.fn(() => vi.fn(async () => [])),
     },
@@ -66,7 +66,7 @@ test('omits args when none are provided for lists', async () => {
   const listResolver = vi.fn(() => call);
   const client = {} as any;
 
-  const transport = createFateTransport({
+  const transport = createTRPCTransport({
     byId: {
       Post: vi.fn(() => vi.fn(async () => [])),
     },
@@ -91,7 +91,7 @@ test('passes selection when invoking mutations', async () => {
   const mutationResolver = vi.fn(() => call);
   const client = {} as any;
 
-  const transport = createFateTransport({
+  const transport = createTRPCTransport({
     byId: {
       Post: vi.fn(() => vi.fn(async () => [])),
     },
