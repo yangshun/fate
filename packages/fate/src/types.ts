@@ -238,7 +238,9 @@ export type Mask<T, S> =
                     NonNullable<T>[Extract<K, keyof T>],
                     Extract<S[K], object>
                   >;
-            }
+            } & (T extends Entity
+              ? Pick<NonNullable<T>, '__typename'>
+              : Record<never, never>)
         : T;
 
 export type ViewEntity<V> = V extends View<infer T, any> ? T : never;

@@ -18,10 +18,14 @@ import {
 } from 'react';
 import { useFateClient } from './context.tsx';
 
+type ViewEntityWithTypename<V extends View<any, any>> = ViewEntity<V> & {
+  __typename: ViewEntityName<V>;
+};
+
 export function useView<V extends View<any, any>>(
   view: V,
   ref: ViewRef<ViewEntityName<V>>,
-): ViewData<ViewEntity<V>, ViewSelection<V>> {
+): ViewData<ViewEntityWithTypename<V>, ViewSelection<V>> {
   const client = useFateClient();
 
   const idRef = useRef<ReadonlySet<EntityId> | null>(null);

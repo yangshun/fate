@@ -29,7 +29,7 @@ const CommentResult = ({
   const comment = useView(CommentSearchView, commentRef);
   const post = useView(CommentPostView, comment.post);
 
-  return <CommentCard comment={commentRef} post={post} />;
+  return <CommentCard comment={comment} post={post} />;
 };
 
 const SearchResults = ({
@@ -72,10 +72,13 @@ export default function Search() {
   return (
     <Card>
       <Stack alignCenter between gap={16}>
-        <Stack alignCenter as="label" gap={16}>
-          Search comments:
-          <Input onChange={(e) => setQuery(e.target.value)} value={query} />
-        </Stack>
+        <Input
+          className="w-64"
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search comments..."
+          ref={(ref) => ref?.focus()}
+          value={query}
+        />
         <div className="text-muted-foreground text-xs">
           500ms artificial slowdown
         </div>

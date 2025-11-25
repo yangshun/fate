@@ -1,9 +1,10 @@
+import { InputHTMLAttributes, Ref } from 'react';
 import cx from '../lib/cx.tsx';
 
 export default function Input({
   className,
   ...props
-}: React.InputHTMLAttributes<HTMLInputElement>) {
+}: InputHTMLAttributes<HTMLInputElement> & { ref?: Ref<HTMLInputElement> }) {
   return (
     <input
       className={cx(

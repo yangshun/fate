@@ -98,6 +98,7 @@ test(`'readView' returns the selected fields`, () => {
 
   expectTypeOf(result).toEqualTypeOf<
     Readonly<{
+      __typename: 'Post';
       content: string;
       id: string;
       [ViewsTag]: Set<string>;
@@ -105,6 +106,7 @@ test(`'readView' returns the selected fields`, () => {
   >();
 
   expect(result).toEqual({
+    __typename: 'Post',
     content: 'Apple Banana',
     id: 'post-1',
   });

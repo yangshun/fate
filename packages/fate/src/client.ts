@@ -1404,7 +1404,9 @@ export class FateClient<
       }
     };
 
-    const data: ViewResult = {};
+    const data: ViewResult = {
+      __typename: parseEntityId(entityId).type,
+    };
 
     for (const viewPayload of getViewPayloads(viewComposition, ref)) {
       walk(viewPayload.select, record, data, entityId, pathPrefix);
