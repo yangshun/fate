@@ -1,8 +1,8 @@
 import {
   arrayToConnection,
   connectionArgs,
-  createDataViewSelection,
-  scopedArgsForPath,
+  createSelectionResolver,
+  getScopedArgs,
 } from '@nkzw/fate/server';
 import { z } from 'zod';
 import type { CategoryFindManyArgs } from '../../prisma/prisma-client/models.ts';
@@ -16,7 +16,7 @@ const transformCategory = (
 ) => ({
   ...category,
   posts: arrayToConnection(posts, {
-    args: scopedArgsForPath(args, 'posts'),
+    args: getScopedArgs(args, 'posts'),
   }),
 });
 
@@ -30,7 +30,7 @@ export const categoryRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const selection = createDataViewSelection<CategoryItem>({
+      const selection = createSelectionResolver<CategoryItem>({
         args: input.args,
         context: ctx,
         paths: input.select,
@@ -57,7 +57,7 @@ export const categoryRouter = router({
         transformCategory(category, input.args),
       ),
     query: async ({ ctx, cursor, direction, input, skip, take }) => {
-      const selection = createDataViewSelection<CategoryItem>({
+      const selection = createSelectionResolver<CategoryItem>({
         args: input.args,
         context: ctx,
         paths: input.select,

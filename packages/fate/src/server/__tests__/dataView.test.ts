@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { createDataViewSelection, dataView, resolver } from '../dataView.ts';
+import { createSelectionResolver, dataView, resolver } from '../dataView.ts';
 
 type UserItem = { id: string; name: string; password: string };
 
@@ -9,7 +9,7 @@ test('server views filter unexposed fields from selections', async () => {
     name: true,
   });
 
-  const selection = createDataViewSelection<UserItem>({
+  const selection = createSelectionResolver<UserItem>({
     paths: ['name', 'password'],
     view,
   });
@@ -44,7 +44,7 @@ test('resolvers can add prisma selections and compute values', async () => {
     }),
   });
 
-  const selection = createDataViewSelection<CategoryItem>({
+  const selection = createSelectionResolver<CategoryItem>({
     paths: ['postCount'],
     view,
   });
@@ -85,7 +85,7 @@ test('nested resolvers apply their selections within relations', async () => {
     id: true,
   });
 
-  const selection = createDataViewSelection<ParentItem>({
+  const selection = createSelectionResolver<ParentItem>({
     paths: ['child.total'],
     view: parentView,
   });
@@ -122,7 +122,7 @@ test('selecting a relation without nested paths respects the child view', () => 
     post: postView,
   });
 
-  const selection = createDataViewSelection<CommentItem>({
+  const selection = createSelectionResolver<CommentItem>({
     paths: ['post'],
     view: commentView,
   });

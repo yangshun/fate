@@ -1,4 +1,4 @@
-import { connectionArgs, createDataViewSelection } from '@nkzw/fate/server';
+import { connectionArgs, createSelectionResolver } from '@nkzw/fate/server';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 import { auth } from '../../lib/auth.tsx';
@@ -28,7 +28,7 @@ export const userRouter = router({
         });
       }
 
-      const selection = createDataViewSelection<User>({
+      const selection = createSelectionResolver<User>({
         args: input.args,
         context: ctx,
         paths: input.select,

@@ -1,8 +1,8 @@
 import {
   arrayToConnection,
   connectionArgs,
-  createDataViewSelection,
-  scopedArgsForPath,
+  createSelectionResolver,
+  getScopedArgs,
 } from '@nkzw/fate/server';
 import { z } from 'zod';
 import type { EventSelect } from '../../prisma/prisma-client/models.ts';
@@ -16,7 +16,7 @@ const transformEvent = (
 ) => ({
   ...event,
   attendees: arrayToConnection(attendees, {
-    args: scopedArgsForPath(args, 'attendees'),
+    args: getScopedArgs(args, 'attendees'),
   }),
 });
 
@@ -30,7 +30,7 @@ export const eventRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const selection = createDataViewSelection<EventItem>({
+      const selection = createSelectionResolver<EventItem>({
         args: input.args,
         context: ctx,
         paths: input.select,
@@ -57,7 +57,7 @@ export const eventRouter = router({
         transformEvent(event, input.args),
       ),
     query: async ({ ctx, cursor, direction, input, skip, take }) => {
-      const selection = createDataViewSelection<EventItem>({
+      const selection = createSelectionResolver<EventItem>({
         args: input.args,
         context: ctx,
         paths: input.select,

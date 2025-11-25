@@ -18,7 +18,7 @@ const toPrismaArgs = (
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 
-export function scopedArgsForPath(
+export function getScopedArgs(
   args: Record<string, unknown> | undefined,
   path: string,
 ): Record<string, unknown> | undefined {
@@ -76,7 +76,7 @@ export function prismaSelect(
               select: Record<string, unknown>;
             });
 
-      const scopedArgs = scopedArgsForPath(args, currentPath);
+      const scopedArgs = getScopedArgs(args, currentPath);
       if (scopedArgs) {
         Object.assign(relation, toPrismaArgs(scopedArgs));
       }

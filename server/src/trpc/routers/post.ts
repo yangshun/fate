@@ -1,8 +1,8 @@
 import {
   arrayToConnection,
   connectionArgs,
-  createDataViewSelection,
-  scopedArgsForPath,
+  createSelectionResolver,
+  getScopedArgs,
 } from '@nkzw/fate/server';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
@@ -17,10 +17,10 @@ const transformPost = (
 ) => ({
   ...post,
   comments: arrayToConnection(comments, {
-    args: scopedArgsForPath(args, 'comments'),
+    args: getScopedArgs(args, 'comments'),
   }),
   tags: arrayToConnection(tags, {
-    args: scopedArgsForPath(args, 'tags'),
+    args: getScopedArgs(args, 'tags'),
   }),
 });
 
@@ -34,7 +34,7 @@ export const postRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const selection = createDataViewSelection<PostItem>({
+      const selection = createSelectionResolver<PostItem>({
         args: input.args,
         context: ctx,
         paths: input.select,
@@ -94,7 +94,7 @@ export const postRouter = router({
         });
       }
 
-      const selection = createDataViewSelection<PostItem>({
+      const selection = createSelectionResolver<PostItem>({
         args: input.args,
         context: ctx,
         paths: input.select,
@@ -117,7 +117,7 @@ export const postRouter = router({
     map: ({ input, items }) =>
       (items as Array<PostItem>).map((post) => transformPost(post, input.args)),
     query: async ({ ctx, cursor, direction, input, skip, take }) => {
-      const selection = createDataViewSelection<PostItem>({
+      const selection = createSelectionResolver<PostItem>({
         args: input.args,
         context: ctx,
         paths: input.select,
@@ -150,7 +150,7 @@ export const postRouter = router({
     )
     .mutation(({ ctx, input }) =>
       ctx.prisma.$transaction(async (tx) => {
-        const selection = createDataViewSelection<PostItem>({
+        const selection = createSelectionResolver<PostItem>({
           args: input.args,
           context: ctx,
           paths: input.select,

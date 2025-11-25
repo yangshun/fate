@@ -1,4 +1,4 @@
-import { connectionArgs, createDataViewSelection } from '@nkzw/fate/server';
+import { connectionArgs, createSelectionResolver } from '@nkzw/fate/server';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 import type {
@@ -58,7 +58,7 @@ export const commentRouter = router({
         });
       }
 
-      const selection = createDataViewSelection<CommentItem>({
+      const selection = createSelectionResolver<CommentItem>({
         args: input.args,
         context: ctx,
         paths: input.select,
@@ -85,7 +85,7 @@ export const commentRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const selection = createDataViewSelection<CommentItem>({
+      const selection = createSelectionResolver<CommentItem>({
         args: input.args,
         context: ctx,
         paths: input.select,
@@ -123,7 +123,7 @@ export const commentRouter = router({
         });
       }
 
-      const selection = createDataViewSelection<CommentItem>({
+      const selection = createSelectionResolver<CommentItem>({
         args: input.args,
         context: ctx,
         paths: input.select,
@@ -171,7 +171,7 @@ export const commentRouter = router({
         await new Promise((resolve) => setTimeout(resolve, 500));
       }
 
-      const selection = createDataViewSelection<CommentItem>({
+      const selection = createSelectionResolver<CommentItem>({
         args: input.args,
         context: ctx,
         paths: input.select,

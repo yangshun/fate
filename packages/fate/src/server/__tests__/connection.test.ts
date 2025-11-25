@@ -1,17 +1,14 @@
 import { initTRPC } from '@trpc/server';
 import { expect, test, vi } from 'vitest';
 import { z } from 'zod';
-import {
-  arrayToConnection,
-  createConnectionProcedureFactory,
-} from '../connection.ts';
+import { arrayToConnection, withConnection } from '../connection.ts';
 
 const t = initTRPC.create();
 
 const router = t.router;
 const procedure = t.procedure;
 
-const createConnectionProcedure = createConnectionProcedureFactory(procedure);
+const createConnectionProcedure = withConnection(procedure);
 
 test('allows nested connection args', async () => {
   const query = vi.fn(async () => [] as Array<unknown>);

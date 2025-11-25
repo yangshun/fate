@@ -236,13 +236,6 @@ const ensureRelationSelect = (
   return current;
 };
 
-type CreateDataViewSelectionOptions<Item extends AnyRecord, Context> = {
-  args?: AnyRecord;
-  context?: Context;
-  paths: Iterable<string>;
-  view: DataView<Item, Context>;
-};
-
 type ResolveOptions<Item extends AnyRecord, Context> = {
   item: Item;
   node: SelectedViewNode<Context>;
@@ -424,7 +417,7 @@ const resolveNode = async <Item extends AnyRecord, Context>(
   return (result ?? item) as Item;
 };
 
-export function createDataViewSelection<
+export function createSelectionResolver<
   Item extends AnyRecord,
   Context = unknown,
 >({
@@ -432,7 +425,12 @@ export function createDataViewSelection<
   context,
   paths,
   view,
-}: CreateDataViewSelectionOptions<Item, Context>) {
+}: {
+  args?: AnyRecord;
+  context?: Context;
+  paths: Iterable<string>;
+  view: DataView<Item, Context>;
+}) {
   const allowedPaths = new Set<string>();
   const root = createSelectedNode(view, null);
 

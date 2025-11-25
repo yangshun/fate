@@ -1,7 +1,7 @@
 import {
   arrayToConnection,
-  createDataViewSelection,
-  scopedArgsForPath,
+  createSelectionResolver,
+  getScopedArgs,
 } from '@nkzw/fate/server';
 import type { ProjectSelect } from '../../prisma/prisma-client/models.ts';
 import { createConnectionProcedure } from '../connection.ts';
@@ -16,12 +16,12 @@ export const projectRouter = router({
         ({ updates, ...project }: ProjectItem) => ({
           ...project,
           updates: arrayToConnection(updates, {
-            args: scopedArgsForPath(input.args, 'updates'),
+            args: getScopedArgs(input.args, 'updates'),
           }),
         }),
       ),
     query: async ({ ctx, cursor, direction, input, skip, take }) => {
-      const selection = createDataViewSelection<ProjectItem>({
+      const selection = createSelectionResolver<ProjectItem>({
         args: input.args,
         context: ctx,
         paths: input.select,

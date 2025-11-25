@@ -66,11 +66,6 @@ type MapFn<TContext, TItem, TNode, TInput extends ConnectionInput> = (options: {
   items: Array<TItem>;
 }) => Promise<Array<TNode>> | Array<TNode>;
 
-type CreateConnectionProcedureOptions<TNode> = {
-  defaultSize?: number;
-  getCursor?: (node: TNode) => ConnectionCursor;
-};
-
 const args: z.ZodType<Record<string, unknown>> = z
   .object({})
   .catchall(z.union([z.unknown(), z.lazy(() => args)]));
@@ -173,7 +168,7 @@ export function arrayToConnection<TNode extends { id: string | number }>(
   };
 }
 
-export const createConnectionProcedureFactory =
+export const withConnection =
   <TContext>(procedure: ProcedureLike<TContext>) =>
   <
     TItem,
@@ -185,7 +180,9 @@ export const createConnectionProcedureFactory =
     input: additionalInput,
     map,
     query,
-  }: CreateConnectionProcedureOptions<TNode> & {
+  }: {
+    defaultSize?: number;
+    getCursor?: (node: TNode) => ConnectionCursor;
     input?: TAdditionalInput;
     map?: MapFn<
       TContext,

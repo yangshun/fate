@@ -1,4 +1,4 @@
-import { connectionArgs, createDataViewSelection } from '@nkzw/fate/server';
+import { connectionArgs, createSelectionResolver } from '@nkzw/fate/server';
 import { z } from 'zod';
 import type { Tag } from '../../prisma/prisma-client/client.ts';
 import type { TagFindManyArgs } from '../../prisma/prisma-client/models.ts';
@@ -15,7 +15,7 @@ export const tagRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const selection = createDataViewSelection<Tag>({
+      const selection = createSelectionResolver<Tag>({
         args: input.args,
         context: ctx,
         paths: input.select,
