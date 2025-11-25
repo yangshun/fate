@@ -22,11 +22,14 @@
   },
   "main": "./lib/index.mjs",
   "types": "./lib/index.d.mts",
+  "bin": {
+    "fate": "./lib/cli.mjs"
+  },
   "files": [
     "lib"
   ],
   "scripts": {
-    "build": "tsdown -d lib --target=node24 src/index.tsx"
+    "build": "tsdown -d lib --target=node24 src/index.tsx src/cli.ts"
   },
   "dependencies": {
     "@nkzw/fate": "workspace:*"

@@ -19,6 +19,11 @@
       "development": "./src/index.ts",
       "default": "./lib/index.mjs"
     },
+    "./cli": {
+      "types": "./lib/cli.d.mts",
+      "development": "./src/cli.ts",
+      "default": "./lib/cli.mjs"
+    },
     "./server": {
       "types": "./lib/server.d.mts",
       "development": "./src/server.ts",
