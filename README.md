@@ -534,10 +534,10 @@ _Note: Currently, fate provides helpers to integrate with Prisma, but the framew
 
 ### tRPC Router Implementation
 
-We can apply the above data view in our tRPC router and resolve the client's selection against it using `createSelectionResolver`. Here is an example implementation of the `byId` query for the `User` type which allows fetching multiple users by `id`:
+We can apply the above data view in our tRPC router and resolve the client's selection against it using `createResolver`. Here is an example implementation of the `byId` query for the `User` type which allows fetching multiple users by `id`:
 
 ```tsx
-import { connectionArgs, createSelectionResolver } from '@nkzw/fate/server';
+import { connectionArgs, createResolver } from '@nkzw/fate/server';
 import { z } from 'zod';
 import type { UserFindManyArgs } from '../../prisma/prisma-client/models.ts';
 import { procedure, router } from '../init.ts';
@@ -553,20 +553,18 @@ export const userRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const selection = createSelectionResolver({
+      const { resolveMany, select } = createResolver({
         ...input,
         ctx,
         view: userDataView,
       });
 
-      return (
-        await selection.resolveMany(
-          await ctx.prisma.user.findMany({
-            select: selection.select,
-            where: { id: { in: input.ids } },
-          } as UserFindManyArgs),
-        )
-      ).values();
+      const users = await ctx.prisma.user.findMany({
+        select: select,
+        where: { id: { in: input.ids } },
+      } as UserFindManyArgs);
+
+      return await resolveMany(users);
     }),
 });
 ```

@@ -1,6 +1,6 @@
 import {
   arrayToConnection,
-  createSelectionResolver,
+  createResolver,
   getScopedArgs,
 } from '@nkzw/fate/server';
 import type { ProjectSelect } from '../../prisma/prisma-client/models.ts';
@@ -21,7 +21,7 @@ export const projectRouter = router({
         }),
       ),
     query: async ({ ctx, cursor, direction, input, skip, take }) => {
-      const selection = createSelectionResolver({
+      const { resolveMany, select } = createResolver({
         ...input,
         ctx,
         view: projectDataView,
@@ -29,7 +29,7 @@ export const projectRouter = router({
 
       const items = await ctx.prisma.project.findMany({
         orderBy: { createdAt: 'desc' },
-        select: selection.select as ProjectSelect,
+        select: select as ProjectSelect,
         take: direction === 'forward' ? take : -take,
         ...(cursor
           ? {
@@ -38,9 +38,7 @@ export const projectRouter = router({
             }
           : {}),
       });
-      return selection.resolveMany(
-        direction === 'forward' ? items : items.reverse(),
-      );
+      return resolveMany(direction === 'forward' ? items : items.reverse());
     },
   }),
 });

@@ -1,4 +1,4 @@
-import { connectionArgs, createSelectionResolver } from '@nkzw/fate/server';
+import { connectionArgs, createResolver } from '@nkzw/fate/server';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 import { auth } from '../../lib/auth.tsx';
@@ -27,7 +27,7 @@ export const userRouter = router({
         });
       }
 
-      const selection = createSelectionResolver({
+      const { resolve, select } = createResolver({
         ...input,
         ctx,
         view: userDataView,
@@ -38,9 +38,9 @@ export const userRouter = router({
         headers: ctx.headers,
       });
 
-      return selection.resolve(
+      return resolve(
         await ctx.prisma.user.findUniqueOrThrow({
-          select: selection.select,
+          select,
           where: { id: ctx.sessionUser.id },
         } as UserFindUniqueArgs),
       );

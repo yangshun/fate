@@ -417,10 +417,7 @@ const resolveNode = async <Item extends AnyRecord, Context>(
   return (result ?? item) as Item;
 };
 
-export function createSelectionResolver<
-  Item extends AnyRecord,
-  Context = unknown,
->({
+export function createResolver<Item extends AnyRecord, Context = unknown>({
   args,
   ctx,
   select: initialSelect,

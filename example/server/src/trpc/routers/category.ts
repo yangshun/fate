@@ -1,7 +1,7 @@
 import {
   arrayToConnection,
   connectionArgs,
-  createSelectionResolver,
+  createResolver,
   getScopedArgs,
 } from '@nkzw/fate/server';
 import { z } from 'zod';
@@ -30,16 +30,16 @@ export const categoryRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const selection = createSelectionResolver({
+      const { resolveMany, select } = createResolver({
         ...input,
         ctx,
         view: categoryDataView,
       });
       const categories = await ctx.prisma.category.findMany({
-        select: selection.select,
+        select,
         where: { id: { in: input.ids } },
       } as CategoryFindManyArgs);
-      const resolved = await selection.resolveMany(categories);
+      const resolved = await resolveMany(categories);
       const map = new Map(
         resolved.map((category) => {
           const result = transformCategory(category, input.args);
@@ -54,7 +54,7 @@ export const categoryRouter = router({
         transformCategory(category, input.args),
       ),
     query: async ({ ctx, cursor, direction, input, skip, take }) => {
-      const selection = createSelectionResolver({
+      const { resolveMany, select } = createResolver({
         ...input,
         ctx,
         view: categoryDataView,
@@ -62,7 +62,7 @@ export const categoryRouter = router({
 
       const findOptions: CategoryFindManyArgs = {
         orderBy: { createdAt: 'asc' },
-        select: selection.select,
+        select,
         take: direction === 'forward' ? take : -take,
       };
 
@@ -72,9 +72,7 @@ export const categoryRouter = router({
       }
 
       const items = await ctx.prisma.category.findMany(findOptions);
-      return selection.resolveMany(
-        direction === 'forward' ? items : items.reverse(),
-      );
+      return resolveMany(direction === 'forward' ? items : items.reverse());
     },
   }),
 });

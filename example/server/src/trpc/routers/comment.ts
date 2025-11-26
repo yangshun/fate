@@ -1,4 +1,4 @@
-import { connectionArgs, createSelectionResolver } from '@nkzw/fate/server';
+import { connectionArgs, createResolver } from '@nkzw/fate/server';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 import type {
@@ -58,20 +58,20 @@ export const commentRouter = router({
         });
       }
 
-      const selection = createSelectionResolver({
+      const { resolve, select } = createResolver({
         ...input,
         ctx,
         view: commentDataView,
       });
 
-      return selection.resolve(
+      return resolve(
         await ctx.prisma.comment.create({
           data: {
             authorId: ctx.sessionUser.id,
             content: input.content,
             postId: input.postId,
           },
-          select: getCommentSelection(selection.select),
+          select: getCommentSelection(select),
         }),
       ) as Promise<CommentItem & { post?: { commentCount: number } }>;
     }),
@@ -84,17 +84,17 @@ export const commentRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const selection = createSelectionResolver({
+      const { resolveMany, select } = createResolver({
         ...input,
         ctx,
         view: commentDataView,
       });
       const comments = await ctx.prisma.comment.findMany({
-        select: selection.select,
+        select,
         where: { id: { in: input.ids } },
       } as CommentFindManyArgs);
 
-      const resolved = await selection.resolveMany(comments);
+      const resolved = await resolveMany(comments);
       const map = new Map(resolved.map((comment) => [comment.id, comment]));
       return input.ids.map((id) => map.get(id)).filter(Boolean);
     }),
@@ -119,14 +119,14 @@ export const commentRouter = router({
         });
       }
 
-      const selection = createSelectionResolver({
+      const { resolve, select } = createResolver({
         ...input,
         ctx,
         view: commentDataView,
       });
 
       let result = (await ctx.prisma.comment.delete({
-        select: getCommentSelection(selection.select),
+        select: getCommentSelection(select),
         where: { id: input.id },
       })) as CommentItem & { post?: { _count?: { comments: number } } };
 
@@ -142,11 +142,7 @@ export const commentRouter = router({
         };
       }
 
-      if (!selection) {
-        return { success: true };
-      }
-
-      return selection.resolve(result) as Promise<
+      return resolve(result) as Promise<
         CommentItem & { post?: { commentCount: number } }
       >;
     }),
@@ -166,14 +162,14 @@ export const commentRouter = router({
         await new Promise((resolve) => setTimeout(resolve, 500));
       }
 
-      const selection = createSelectionResolver({
+      const { resolveMany, select } = createResolver({
         ...input,
         ctx,
         view: commentDataView,
       });
       const findOptions: CommentFindManyArgs = {
         orderBy: { createdAt: 'desc' },
-        select: selection.select,
+        select,
         take: direction === 'forward' ? take : -take,
         where: {
           content: {
@@ -189,9 +185,7 @@ export const commentRouter = router({
       }
 
       const items = await ctx.prisma.comment.findMany(findOptions);
-      return selection.resolveMany(
-        direction === 'forward' ? items : items.reverse(),
-      );
+      return resolveMany(direction === 'forward' ? items : items.reverse());
     },
   }),
 });

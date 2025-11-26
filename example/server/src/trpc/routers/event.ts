@@ -1,7 +1,7 @@
 import {
   arrayToConnection,
   connectionArgs,
-  createSelectionResolver,
+  createResolver,
   getScopedArgs,
 } from '@nkzw/fate/server';
 import { z } from 'zod';
@@ -30,16 +30,16 @@ export const eventRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const selection = createSelectionResolver({
+      const { resolveMany, select } = createResolver({
         ...input,
         ctx,
         view: eventDataView,
       });
       const events = await ctx.prisma.event.findMany({
-        select: selection.select as EventSelect,
+        select: select as EventSelect,
         where: { id: { in: input.ids } },
       });
-      const resolved = await selection.resolveMany(events);
+      const resolved = await resolveMany(events);
 
       const map = new Map(
         resolved.map((event) => {
@@ -56,7 +56,7 @@ export const eventRouter = router({
         transformEvent(event, input.args),
       ),
     query: async ({ ctx, cursor, direction, input, skip, take }) => {
-      const selection = createSelectionResolver({
+      const { resolveMany, select } = createResolver({
         ...input,
         ctx,
         view: eventDataView,
@@ -64,7 +64,7 @@ export const eventRouter = router({
 
       const items = await ctx.prisma.event.findMany({
         orderBy: { startAt: 'asc' },
-        select: selection.select as EventSelect,
+        select: select as EventSelect,
         take: direction === 'forward' ? take : -take,
         ...(cursor
           ? ({
@@ -74,9 +74,7 @@ export const eventRouter = router({
           : null),
       });
 
-      return selection.resolveMany(
-        direction === 'forward' ? items : items.reverse(),
-      );
+      return resolveMany(direction === 'forward' ? items : items.reverse());
     },
   }),
 });

@@ -6,9 +6,4 @@ export {
   arrayToConnection,
   connectionArgs,
 } from './server/connection.ts';
-export {
-  createSelectionResolver,
-  dataView,
-  list,
-  resolver,
-} from './server/dataView.ts';
+export { createResolver, dataView, list, resolver } from './server/dataView.ts';

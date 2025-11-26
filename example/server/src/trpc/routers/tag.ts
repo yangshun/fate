@@ -1,4 +1,4 @@
-import { connectionArgs, createSelectionResolver } from '@nkzw/fate/server';
+import { connectionArgs, createResolver } from '@nkzw/fate/server';
 import { z } from 'zod';
 import type { TagFindManyArgs } from '../../prisma/prisma-client/models.ts';
 import { procedure, router } from '../init.ts';
@@ -14,19 +14,17 @@ export const tagRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const selection = createSelectionResolver({
+      const { resolveMany, select } = createResolver({
         ...input,
         ctx,
         view: tagDataView,
       });
 
-      return (
-        await selection.resolveMany(
-          await ctx.prisma.tag.findMany({
-            select: selection.select,
-            where: { id: { in: input.ids } },
-          } as TagFindManyArgs),
-        )
-      ).values();
+      return await resolveMany(
+        await ctx.prisma.tag.findMany({
+          select,
+          where: { id: { in: input.ids } },
+        } as TagFindManyArgs),
+      );
     }),
 });

@@ -1,7 +1,7 @@
 import {
   arrayToConnection,
   connectionArgs,
-  createSelectionResolver,
+  createResolver,
   getScopedArgs,
 } from '@nkzw/fate/server';
 import { TRPCError } from '@trpc/server';
@@ -34,16 +34,16 @@ export const postRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const selection = createSelectionResolver({
+      const { resolveMany, select } = createResolver({
         ...input,
         ctx,
         view: postDataView,
       });
       const posts = await ctx.prisma.post.findMany({
-        select: selection.select,
+        select,
         where: { id: { in: input.ids } },
       } as PostFindManyArgs);
-      const resolved = await selection.resolveMany(posts);
+      const resolved = await resolveMany(posts);
       const map = new Map(
         resolved.map((post) => {
           const result = transformPost(post, input.args);
@@ -93,7 +93,7 @@ export const postRouter = router({
         });
       }
 
-      const selection = createSelectionResolver({
+      const { resolve, select } = createResolver({
         ...input,
         ctx,
         view: postDataView,
@@ -105,24 +105,24 @@ export const postRouter = router({
             increment: 1,
           },
         },
-        select: selection.select,
+        select,
         where: { id: input.id },
       });
-      const resolved = await selection.resolve(updated as unknown as PostItem);
+      const resolved = await resolve(updated as unknown as PostItem);
       return transformPost(resolved, input.args);
     }),
   list: createConnectionProcedure({
     map: ({ input, items }) =>
       (items as Array<PostItem>).map((post) => transformPost(post, input.args)),
     query: async ({ ctx, cursor, direction, input, skip, take }) => {
-      const selection = createSelectionResolver({
+      const { resolveMany, select } = createResolver({
         ...input,
         ctx,
         view: postDataView,
       });
       const findOptions: PostFindManyArgs = {
         orderBy: { createdAt: 'desc' },
-        select: selection.select,
+        select,
         take: direction === 'forward' ? take : -take,
       };
 
@@ -132,9 +132,7 @@ export const postRouter = router({
       }
 
       const items = await ctx.prisma.post.findMany(findOptions);
-      return selection.resolveMany(
-        direction === 'forward' ? items : items.reverse(),
-      );
+      return resolveMany(direction === 'forward' ? items : items.reverse());
     },
   }),
   unlike: procedure
@@ -147,7 +145,7 @@ export const postRouter = router({
     )
     .mutation(({ ctx, input }) =>
       ctx.prisma.$transaction(async (tx) => {
-        const selection = createSelectionResolver({
+        const { resolve, select } = createResolver({
           ...input,
           ctx,
           view: postDataView,
@@ -170,12 +168,10 @@ export const postRouter = router({
 
         if (existing.likes <= 0) {
           const result = await tx.post.findUniqueOrThrow({
-            select: selection.select,
+            select,
             where: { id: input.id },
           });
-          const resolved = await selection.resolve(
-            result as unknown as PostItem,
-          );
+          const resolved = await resolve(result as unknown as PostItem);
           return transformPost(resolved, input.args);
         }
 
@@ -185,12 +181,10 @@ export const postRouter = router({
               decrement: 1,
             },
           },
-          select: selection.select,
+          select,
           where: { id: input.id },
         });
-        const resolved = await selection.resolve(
-          updated as unknown as PostItem,
-        );
+        const resolved = await resolve(updated as unknown as PostItem);
         return transformPost(resolved, input.args);
       }),
     ),
