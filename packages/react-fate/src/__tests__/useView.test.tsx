@@ -378,3 +378,45 @@ test('rolls back optimistic updates when a mutation fails', async () => {
   ]);
   expect(mutate).toHaveBeenCalledTimes(1);
 });
+
+test('throws when using a view ref that does not include the view', () => {
+  const client = createClient({
+    transport: {
+      async fetchById() {
+        return [];
+      },
+    },
+    types: [{ type: 'Post' }],
+  });
+
+  const AnotherPostView = view<Post>()({
+    content: true,
+  });
+
+  const PostDetailView = view<Post>()({
+    content: true,
+    id: true,
+  });
+
+  const postRef = client.ref<Post>('Post', 'post-1', AnotherPostView);
+
+  const Component = () => {
+    useView(PostDetailView, postRef);
+    return null;
+  };
+
+  const container = document.createElement('div');
+  const root = createRoot(container);
+
+  expect(() => {
+    act(() => {
+      root.render(
+        <FateClient client={client}>
+          <Suspense fallback={null}>
+            <Component />
+          </Suspense>
+        </FateClient>,
+      );
+    });
+  }).toThrowError(/Invalid view reference/);
+});

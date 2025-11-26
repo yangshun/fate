@@ -468,16 +468,12 @@ test(`'readView' resolves fields only if the ref contains the expected views`, (
   expect(resultA.content).toBe('Apple Banana');
 
   // `postRef` contains a ref to `PostContentView`, not `PostView`.
-  const resultB = unwrap(
+  expect(() =>
     client.readView<Post, PostContentSelection, typeof PostView>(
       PostView,
       postRef,
     ),
-  );
-
-  // @ts-expect-error `id` was not selected in the view.
-  expect(resultB.id).toBeUndefined();
-  expect(resultB.content).toBeUndefined();
+  ).toThrowError(/Invalid view reference/);
 
   const FullPostView = {
     ...PostView,

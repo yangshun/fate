@@ -461,6 +461,15 @@ export class FateClient<
     }
 
     const entityId = toEntityId(type, id);
+    const viewNames = getViewNames(view);
+    const refViews = ref[ViewsTag];
+
+    if (!refViews || ![...viewNames].every((name) => refViews.has(name))) {
+      throw new Error(
+        `fate: Invalid view reference. Expected the provided ref to include the view(s) '${[...viewNames].join("', '")}', received '${JSON.stringify(ref, null, 2)}'. Ensure the ref was created using a parent view that spreads the required view.`,
+      );
+    }
+
     const cached = this.viewDataCache.get(entityId, view, ref);
     if (cached) {
       return cached as FateThenable<ViewSnapshot<T, S>>;
