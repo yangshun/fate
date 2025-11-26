@@ -1,8 +1,8 @@
-client/dist/
-client/src/lib/fate.generated.ts
-client/src/translations/
 coverage/
 dist/
+example/client/dist/
+example/client/src/lib/fate.generated.ts
+example/client/src/translations/
+example/server/dist
 pnpm-lock.yaml
 pnpm-lok.yaml
-server/dist

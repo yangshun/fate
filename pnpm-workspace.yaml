@@ -1,7 +1,5 @@
 packages:
-  - client
-  - mix
-  - server
+  - example/*
   - packages/*
 
 onlyBuiltDependencies:

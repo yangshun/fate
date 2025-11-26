@@ -2,10 +2,10 @@
 .pnpm-debug.log
 **/node_modules/
 /node_modules/
-client/dist/
 coverage/
 dist/
+example/client/dist/
+example/server/src/prisma/prisma-client/
 packages/**/lib/
-server/src/prisma/prisma-client/
 tsconfig.tsbuildinfo
 vite.config.ts.timestamp-*

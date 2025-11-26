@@ -19,7 +19,7 @@ importers:
         version: 3.2.1(@typescript-eslint/eslint-plugin@8.48.0(@typescript-eslint/parser@8.48.0(eslint@9.39.1(jiti@2.6.1))(typescript@5.9.3))(eslint@9.39.1(jiti@2.6.1))(typescript@5.9.3))(@typescript-eslint/utils@8.48.0(eslint@9.39.1(jiti@2.6.1))(typescript@5.9.3))(eslint@9.39.1(jiti@2.6.1))(typescript@5.9.3)
       '@nkzw/fate-server':
         specifier: workspace:*
-        version: link:server
+        version: link:example/server
       '@nkzw/find-workspaces':
         specifier: ^1.0.0
         version: 1.0.0
@@ -84,7 +84,7 @@ importers:
         specifier: ^4.0.14
         version: 4.0.14(@types/node@24.10.1)(happy-dom@20.0.10)(jiti@2.6.1)(lightningcss@1.30.2)(yaml@2.8.1)
 
-  client:
+  example/client:
     dependencies:
       '@nkzw/core':
         specifier: ^1.3.1
@@ -139,7 +139,7 @@ importers:
         version: 6.0.0(react@19.2.0)
       react-fate:
         specifier: workspace:*
-        version: link:../packages/react-fate
+        version: link:../../packages/react-fate
       react-router:
         specifier: ^7.9.6
         version: 7.9.6(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -171,6 +171,55 @@ importers:
       tailwindcss:
         specifier: ^4.1.17
         version: 4.1.17
+
+  example/server:
+    dependencies:
+      '@hono/node-server':
+        specifier: ^1.19.6
+        version: 1.19.6(hono@4.10.6)
+      '@hono/trpc-server':
+        specifier: ^0.4.0
+        version: 0.4.0(@trpc/server@11.7.2(typescript@5.9.3))(hono@4.10.6)
+      '@nkzw/core':
+        specifier: ^1.3.1
+        version: 1.3.1
+      '@nkzw/define-env':
+        specifier: ^1.1.0
+        version: 1.1.0
+      '@nkzw/fate':
+        specifier: workspace:*
+        version: link:../../packages/fate
+      '@prisma/adapter-pg':
+        specifier: ^7.0.1
+        version: 7.0.1
+      '@prisma/client':
+        specifier: ^7.0.1
+        version: 7.0.1(prisma@7.0.1(@types/react@19.2.7)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3))(typescript@5.9.3)
+      '@trpc/server':
+        specifier: ^11.7.2
+        version: 11.7.2(typescript@5.9.3)
+      better-auth:
+        specifier: ^1.4.2
+        version: 1.4.2(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      hono:
+        specifier: ^4.10.6
+        version: 4.10.6
+      zod:
+        specifier: ^4.1.13
+        version: 4.1.13
+    devDependencies:
+      '@types/node':
+        specifier: ^24.10.1
+        version: 24.10.1
+      nodemon:
+        specifier: ^3.1.11
+        version: 3.1.11
+      prisma:
+        specifier: ^7.0.1
+        version: 7.0.1(@types/react@19.2.7)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)
+      prisma-json-types-generator:
+        specifier: ^3.6.2
+        version: 3.6.2(@prisma/client@7.0.1(prisma@7.0.1(@types/react@19.2.7)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3))(typescript@5.9.3))(prisma@7.0.1(@types/react@19.2.7)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3))(typescript@5.9.3)
 
   packages/fate:
     dependencies:
@@ -206,55 +255,6 @@ importers:
       react-dom:
         specifier: ^19.2.0
         version: 19.2.0(react@19.2.0)
-
-  server:
-    dependencies:
-      '@hono/node-server':
-        specifier: ^1.19.6
-        version: 1.19.6(hono@4.10.6)
-      '@hono/trpc-server':
-        specifier: ^0.4.0
-        version: 0.4.0(@trpc/server@11.7.2(typescript@5.9.3))(hono@4.10.6)
-      '@nkzw/core':
-        specifier: ^1.3.1
-        version: 1.3.1
-      '@nkzw/define-env':
-        specifier: ^1.1.0
-        version: 1.1.0
-      '@nkzw/fate':
-        specifier: workspace:*
-        version: link:../packages/fate
-      '@prisma/adapter-pg':
-        specifier: ^7.0.1
-        version: 7.0.1
-      '@prisma/client':
-        specifier: ^7.0.1
-        version: 7.0.1(prisma@7.0.1(@types/react@19.2.7)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3))(typescript@5.9.3)
-      '@trpc/server':
-        specifier: ^11.7.2
-        version: 11.7.2(typescript@5.9.3)
-      better-auth:
-        specifier: ^1.4.2
-        version: 1.4.2(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      hono:
-        specifier: ^4.10.6
-        version: 4.10.6
-      zod:
-        specifier: ^4.1.13
-        version: 4.1.13
-    devDependencies:
-      '@types/node':
-        specifier: ^24.10.1
-        version: 24.10.1
-      nodemon:
-        specifier: ^3.1.11
-        version: 3.1.11
-      prisma:
-        specifier: ^7.0.1
-        version: 7.0.1(@types/react@19.2.7)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)
-      prisma-json-types-generator:
-        specifier: ^3.6.2
-        version: 3.6.2(@prisma/client@7.0.1(prisma@7.0.1(@types/react@19.2.7)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3))(typescript@5.9.3))(prisma@7.0.1(@types/react@19.2.7)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3))(typescript@5.9.3)
 
 packages:
 

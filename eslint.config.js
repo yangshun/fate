@@ -7,17 +7,17 @@ export default [
   {
     ignores: [
       'dist',
+      'example/server/src/prisma/pothos-types.ts',
+      'example/server/src/prisma/prisma-client/*',
       'packages/**/lib',
-      'server/src/prisma/pothos-types.ts',
-      'server/src/prisma/prisma-client/*',
     ],
   },
   {
     files: [
+      './example/server/scripts/**/*.tsx',
+      './example/server/src/index.tsx',
+      './example/server/src/prisma/seed.tsx',
       './packages/fate/src/cli.ts',
-      './server/scripts/**/*.tsx',
-      './server/src/index.tsx',
-      './server/src/prisma/seed.tsx',
       '**/__tests__/**',
     ],
     rules: {
@@ -25,7 +25,7 @@ export default [
     },
   },
   {
-    files: ['server/**/*.tsx'],
+    files: ['example/server/**/*.tsx'],
     rules: {
       'react-hooks/rules-of-hooks': 0,
     },
@@ -39,10 +39,10 @@ export default [
         2,
         {
           devDependencies: [
-            './client/vite.config.ts',
             './eslint.config.js',
-            './server/prisma.config.ts',
-            './server/scripts/**/*.tsx',
+            './example/client/vite.config.ts',
+            './example/server/prisma.config.ts',
+            './example/server/scripts/**/*.tsx',
             '**/__tests__/**',
             '**/tsdown.config.js',
             'vitest.config.ts',
