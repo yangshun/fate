@@ -65,7 +65,10 @@ export default function CommentCard({
       </Stack>
       <p className="text-foreground/80">{comment.content}</p>
       {link && (
-        <Link className="text-sky-700 hover:underline" to={`/post/${post.id}`}>
+        <Link
+          className="text-blue-500 underline hover:no-underline"
+          to={`/post/${post.id}`}
+        >
           {post.title}
         </Link>
       )}

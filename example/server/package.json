@@ -15,8 +15,7 @@
   "nodemonConfig": {
     "ext": "ts,tsx",
     "watch": [
-      "src/",
-      "../mix"
+      "src/"
     ]
   },
   "dependencies": {

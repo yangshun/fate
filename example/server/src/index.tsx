@@ -6,7 +6,7 @@ import parseInteger from '@nkzw/core/parseInteger.js';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { auth } from './lib/auth.tsx';
-import env from './lib/env.tsx';
+import env from './lib/env.ts';
 import prisma from './prisma/prisma.tsx';
 import { createContext } from './trpc/context.ts';
 import { appRouter } from './trpc/router.ts';

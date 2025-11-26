@@ -208,102 +208,107 @@ export function PostCard({
   return (
     <Card>
       <VStack gap={16}>
-        <div>
-          <Link to={`/post/${post.id}`}>
-            <h3 className="text-lg font-semibold text-blue-700 hover:underline">
-              {post.title}
-            </h3>
-          </Link>
-          <Stack alignCenter gap={8} wrap>
-            {category ? (
-              <Link to={`/category/${category.id}`}>
-                <span className="text-sm text-sky-700 hover:underline">
-                  {category.name}
-                </span>
-              </Link>
-            ) : null}
-            {tags.length ? (
-              <Stack gap wrap>
-                {tags.map(({ node }) => (
-                  <TagBadge key={node.id} tag={node} />
-                ))}
-              </Stack>
-            ) : null}
-          </Stack>
-          <p className="text-muted-foreground text-sm">
-            by {author?.name ?? 'Unknown author'} · {post.commentCount}{' '}
-            {post.commentCount === 1 ? 'comment' : 'comments'}
-          </p>
-        </div>
-        <Stack alignCenter between={detail} end={!detail} gap>
-          <Button
-            disabled={likeIsPending}
-            onClick={() => handleLike()}
-            size="sm"
-            variant="outline"
-          >
-            Like
-          </Button>
-          {detail && (
-            <Button
-              disabled={likeIsPending}
-              onClick={() => handleLike({ slow: true })}
-              size="sm"
-              variant="outline"
-            >
-              Like (Slow)
-            </Button>
-          )}
-          {detail && (
-            <Button
-              className={cx(
-                'w-34 transition-colors duration-150',
-                likeResult?.error
-                  ? 'border-red-500 text-red-500 hover:text-red-500'
-                  : '',
+        <Stack alignStart between gap={12}>
+          <div>
+            <Link to={`/post/${post.id}`}>
+              <h3 className="text-lg font-semibold text-blue-500 hover:underline">
+                {post.title}
+              </h3>
+            </Link>
+            <Stack alignCenter gap={8} wrap>
+              {category ? (
+                <Link to={`/category/${category.id}`}>
+                  <span className="text-sm text-blue-500 underline hover:no-underline">
+                    {category.name}
+                  </span>
+                </Link>
+              ) : null}
+              {tags.length ? (
+                <Stack gap wrap>
+                  {tags.map(({ node }) => (
+                    <TagBadge key={node.id} tag={node} />
+                  ))}
+                </Stack>
+              ) : null}
+            </Stack>
+            <p className="text-muted-foreground text-sm">
+              by {author?.name ?? 'Unknown author'} · {post.commentCount}{' '}
+              {post.commentCount === 1 ? 'comment' : 'comments'}
+            </p>
+          </div>
+          <Stack alignCenter end gap wrap>
+            <div className="rounded-lg bg-gray-100 px-3 py-1 text-sm font-medium text-gray-900 dark:bg-gray-950 dark:text-gray-200">
+              {post.likes} {post.likes === 1 ? 'like' : 'likes'}
+            </div>
+            <Stack alignCenter end gap wrap>
+              <Button
+                disabled={likeIsPending}
+                onClick={() => handleLike()}
+                size="sm"
+                variant="outline"
+              >
+                Like
+              </Button>
+              {detail && (
+                <Button
+                  disabled={likeIsPending}
+                  onClick={() => handleLike({ slow: true })}
+                  size="sm"
+                  variant="outline"
+                >
+                  Like (Slow)
+                </Button>
               )}
-              disabled={likeIsPending}
-              onClick={() => handleLike({ error: 'callSite' })}
-              size="sm"
-              variant="outline"
-            >
-              {likeResult?.error ? 'Oops, try again!' : `Like (Error)`}
-            </Button>
-          )}
-          {detail && (
-            <Button
-              disabled={likeIsPending}
-              onClick={() => handleLike({ error: 'boundary' })}
-              size="sm"
-              variant="outline"
-            >
-              Like (Major Error)
-            </Button>
-          )}
-          {detail && (
-            <Button onClick={() => handleLike()} size="sm" variant="outline">
-              Like (Many)
-            </Button>
-          )}
-          <Button
-            disabled={unlikeIsPending || post.likes === 0}
-            onClick={handleUnlike}
-            size="sm"
-            variant="outline"
-          >
-            Unlike
-          </Button>
+              {detail && (
+                <Button
+                  className={cx(
+                    'w-34 transition-colors duration-150',
+                    likeResult?.error
+                      ? 'border-red-500 text-red-500 hover:text-red-500'
+                      : '',
+                  )}
+                  disabled={likeIsPending}
+                  onClick={() => handleLike({ error: 'callSite' })}
+                  size="sm"
+                  variant="outline"
+                >
+                  {likeResult?.error ? 'Oops, try again!' : `Like (Error)`}
+                </Button>
+              )}
+              {detail && (
+                <Button
+                  disabled={likeIsPending}
+                  onClick={() => handleLike({ error: 'boundary' })}
+                  size="sm"
+                  variant="outline"
+                >
+                  Like (Major Error)
+                </Button>
+              )}
+              {detail && (
+                <Button
+                  onClick={() => handleLike()}
+                  size="sm"
+                  variant="outline"
+                >
+                  Like (Many)
+                </Button>
+              )}
+              <Button
+                disabled={unlikeIsPending || post.likes === 0}
+                onClick={handleUnlike}
+                size="sm"
+                variant="outline"
+              >
+                Unlike
+              </Button>
+            </Stack>
+          </Stack>
         </Stack>
 
         <p className="text-foreground/90 text-sm leading-relaxed">
           {post.content}
         </p>
-
-        <Stack alignCenter className="text-sm font-medium" gap={12} wrap>
-          <span className="rounded-full bg-gray-100 px-3 py-1 text-gray-900 dark:bg-gray-950 dark:text-gray-200">
-            {post.likes} {post.likes === 1 ? 'like' : 'likes'}
-          </span>
-        </Stack>
         <VStack gap={16}>
           <h4 className="text-foreground text-base font-semibold">Comments</h4>
           {comments.length > 0 ? (

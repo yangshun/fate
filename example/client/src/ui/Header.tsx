@@ -15,10 +15,8 @@ export default function Header() {
       <Stack
         alignCenter
         between
-        className="relative container mx-auto h-11"
+        className="max-w-8xl relative container mx-auto h-11 px-8"
         gap={16}
-        horizontalPadding
-        verticalPadding={4}
       >
         <Link
           onClick={() =>

@@ -4,31 +4,32 @@ import { StrictMode, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ErrorBoundary } from 'react-error-boundary';
 import { FateClient } from 'react-fate';
-import { BrowserRouter, Outlet, Route, Routes } from 'react-router';
+import { BrowserRouter, Route, Routes } from 'react-router';
 import { fate } from './lib/fate.tsx';
 import CategoryRoute from './routes/CategoryRoute.tsx';
 import HomeRoute from './routes/HomeRoute.tsx';
 import PostRoute from './routes/PostRoute.tsx';
 import SearchRoute from './routes/SearchRoute.tsx';
 import SignInRoute from './routes/SignInRoute.tsx';
+import Card from './ui/Card.tsx';
 import Error from './ui/Error.tsx';
 import Header from './ui/Header.tsx';
 import Section from './ui/Section.tsx';
-
-const Layout = () => {
-  return (
-    <>
-      <Outlet />
-    </>
-  );
-};
 
 const App = () => {
   return (
     <div className="bg-background min-h-screen">
       <div className="min-h-[calc(100vh-206px)]">
         <Header />
-        <ErrorBoundary FallbackComponent={Error}>
+        <ErrorBoundary
+          fallbackRender={({ error }) => (
+            <Section>
+              <Card>
+                <Error error={error} />
+              </Card>
+            </Section>
+          )}
+        >
           <Suspense
             fallback={
               <Section>
@@ -37,19 +38,17 @@ const App = () => {
                   className="animate-pulse text-gray-500 italic"
                   verticalPadding={48}
                 >
-                  Thinking...
+                  Thinking…
                 </Stack>
               </Section>
             }
           >
             <Routes>
-              <Route element={<Layout />}>
-                <Route element={<HomeRoute />} path="/" />
-                <Route element={<PostRoute />} path="/post/:id" />
-                <Route element={<CategoryRoute />} path="/category/:id" />
-                <Route element={<SearchRoute />} path="/search" />
-                <Route element={<SignInRoute />} path="/login" />
-              </Route>
+              <Route element={<HomeRoute />} path="/" />
+              <Route element={<PostRoute />} path="/post/:id" />
+              <Route element={<CategoryRoute />} path="/category/:id" />
+              <Route element={<SearchRoute />} path="/search" />
+              <Route element={<SignInRoute />} path="/login" />
             </Routes>
           </Suspense>
         </ErrorBoundary>

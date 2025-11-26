@@ -1,5 +1,5 @@
 import { PrismaPg } from '@prisma/adapter-pg';
-import env from '../lib/env.tsx';
+import env from '../lib/env.ts';
 import { PrismaClient } from './prisma-client/client.ts';
 
 const adapter = new PrismaPg({

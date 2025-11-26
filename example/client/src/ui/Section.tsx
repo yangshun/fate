@@ -10,10 +10,12 @@ export default function Section({
   className?: string;
 }) {
   return (
-    <section className="px-4 py-8">
-      <VStack className={cx('max-w-8xl container mx-auto', className)} gap>
-        {children}
-      </VStack>
-    </section>
+    <VStack
+      as="section"
+      className={cx('max-w-8xl container mx-auto p-8', className)}
+      gap
+    >
+      {children}
+    </VStack>
   );
 }
