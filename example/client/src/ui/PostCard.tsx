@@ -70,7 +70,7 @@ const CommentInput = ({
         return;
       }
 
-      const result = await fate.mutations.addComment({
+      const result = await fate.mutations.comment.add({
         input: { content, postId: post.id },
         optimisticUpdate: {
           author: user
@@ -161,12 +161,12 @@ export function PostCard({
   const tags = post.tags?.items ?? [];
 
   const [likeResult, likeAction, likeIsPending] = useActionState(
-    fate.actions.likePost,
+    fate.actions.post.like,
     null,
   );
 
   const [, unlikeAction, unlikeIsPending] = useActionState(
-    fate.actions.unlikePost,
+    fate.actions.post.unlike,
     null,
   );
 

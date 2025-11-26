@@ -14,36 +14,36 @@ export const createFateClient = (options: {
   const trpcClient = createTRPCProxyClient<AppRouter>(options);
 
   const mutations = {
-    addComment: (client: TRPCClientType) => client.comment.add.mutate,
-    deleteComment: (client: TRPCClientType) => client.comment.delete.mutate,
-    likePost: (client: TRPCClientType) => client.post.like.mutate,
-    unlikePost: (client: TRPCClientType) => client.post.unlike.mutate,
-    updateUser: (client: TRPCClientType) => client.user.update.mutate,
+    'comment.add': (client: TRPCClientType) => client.comment.add.mutate,
+    'comment.delete': (client: TRPCClientType) => client.comment.delete.mutate,
+    'post.like': (client: TRPCClientType) => client.post.like.mutate,
+    'post.unlike': (client: TRPCClientType) => client.post.unlike.mutate,
+    'user.update': (client: TRPCClientType) => client.user.update.mutate,
   } as const;
 
   return createClient({
     mutations: {
-      addComment: mutation<
+      'comment.add': mutation<
         Comment,
         RouterInputs['comment']['add'],
         RouterOutputs['comment']['add']
       >('Comment'),
-      deleteComment: mutation<
+      'comment.delete': mutation<
         Comment,
         RouterInputs['comment']['delete'],
         RouterOutputs['comment']['delete']
       >('Comment'),
-      likePost: mutation<
+      'post.like': mutation<
         Post,
         RouterInputs['post']['like'],
         RouterOutputs['post']['like']
       >('Post'),
-      unlikePost: mutation<
+      'post.unlike': mutation<
         Post,
         RouterInputs['post']['unlike'],
         RouterOutputs['post']['unlike']
       >('Post'),
-      updateUser: mutation<
+      'user.update': mutation<
         User,
         RouterInputs['user']['update'],
         RouterOutputs['user']['update']

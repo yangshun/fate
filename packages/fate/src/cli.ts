@@ -22,18 +22,6 @@ Generates the fate client from the server's tRPC router.
   process.exit(1);
 }
 
-const pascalCase = (value: string) =>
-  value
-    .split(/[._-]/)
-    .filter(Boolean)
-    .map((segment) => segment[0]?.toUpperCase() + segment.slice(1))
-    .join('');
-
-const camelCase = (value: string) => {
-  const [first, ...rest] = pascalCase(value).split('');
-  return [first?.toLowerCase() ?? '', ...rest].join('');
-};
-
 const formatRelation = (value: { listOf?: string; type?: string }) =>
   'listOf' in value
     ? `{ listOf: '${value.listOf}' }`
@@ -114,7 +102,7 @@ const generate = async () => {
       if (type === 'mutation') {
         mutationEntries.push({
           entityType: entity.type,
-          name: `${camelCase(procedureName)}${pascalCase(router)}`,
+          name: `${router}.${procedureName}`,
           procedure: procedureName,
           router,
         });
@@ -148,12 +136,12 @@ const generate = async () => {
 
   const mutationResolverLines = mutationEntries.map(
     ({ name, procedure, router }) =>
-      `${name}: (client: TRPCClientType) => client.${router}.${procedure}.mutate,`,
+      `'${name}': (client: TRPCClientType) => client.${router}.${procedure}.mutate,`,
   );
 
   const mutationConfigLines = mutationEntries.map(
     ({ entityType, name, procedure, router }) =>
-      `${name}: mutation<
+      `'${name}': mutation<
   ${entityType},
   RouterInputs['${router}']['${procedure}'],
   RouterOutputs['${router}']['${procedure}']

@@ -62,6 +62,52 @@ type MutationTransport<
   Mutations extends Record<string, MutationDefinition<any, any, any>>,
 > = MutationMapFromDefinitions<Mutations>;
 
+type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
+  k: infer I,
+) => void
+  ? I
+  : never;
+
+type NestedValue<
+  Path extends string,
+  Value,
+> = Path extends `${infer Head}.${infer Tail}`
+  ? { [K in Head]: NestedValue<Tail, Value> }
+  : { [K in Path]: Value };
+
+type MutationTreeFromRecord<
+  Mutations extends Record<string, MutationDefinition<any, any, any>>,
+  ValueMap extends Record<string, unknown>,
+> = [keyof Mutations] extends [never]
+  ? object
+  : UnionToIntersection<
+      {
+        [K in keyof Mutations & string]: NestedValue<K, ValueMap[K]>;
+      }[keyof Mutations & string]
+    >;
+
+type MutationFunctionsFor<
+  Mutations extends Record<string, MutationDefinition<any, any, any>>,
+> = MutationTreeFromRecord<
+  Mutations,
+  {
+    [K in keyof Mutations & string]: MutationFunction<
+      MutationIdentifierFor<K, Mutations[K]>
+    >;
+  }
+>;
+
+type MutationActionsFor<
+  Mutations extends Record<string, MutationDefinition<any, any, any>>,
+> = MutationTreeFromRecord<
+  Mutations,
+  {
+    [K in keyof Mutations & string]: MutationAction<
+      MutationIdentifierFor<K, Mutations[K]>
+    >;
+  }
+>;
+
 type EmptyMutations = Record<never, MutationDefinition<any, any, any>>;
 
 type FateClientOptions<
@@ -93,6 +139,29 @@ const getId: TypeConfig['getId'] = (record: unknown) => {
 };
 
 const emptySet = new Set<string>();
+
+const setNestedValue = (target: AnyRecord, key: string, value: unknown) => {
+  const path = key.split('.');
+  let current: AnyRecord = target;
+
+  for (let index = 0; index < path.length; index += 1) {
+    const segment = path[index];
+    const isLeaf = index === path.length - 1;
+
+    if (!segment) {
+      continue;
+    }
+
+    if (isLeaf) {
+      current[segment] = value;
+      return;
+    }
+
+    current[segment] =
+      (current[segment] as AnyRecord | undefined) ?? Object.create(null);
+    current = current[segment] as AnyRecord;
+  }
+};
 
 const serializeId = (value: string | number): string =>
   `${typeof value}:${String(value)}`;
@@ -164,6 +233,7 @@ export class FateClient<
     MutationDefinition<any, any, any>
   > = EmptyMutations,
 > {
+  private readonly mutationMap: Record<string, MutationFunction<any>>;
   private readonly parentLists = new Map<
     string,
     Array<{ field: string; parentType: string; via?: string }>
@@ -182,39 +252,34 @@ export class FateClient<
   private readonly transport: Transport<MutationTransport<Mutations>>;
   private readonly viewDataCache = new ViewDataCache();
 
-  readonly mutations: {
-    [K in keyof Mutations]: MutationFunction<
-      MutationIdentifierFor<K & string, Mutations[K]>
-    >;
-  };
+  readonly mutations: MutationFunctionsFor<Mutations>;
 
-  readonly actions: {
-    [K in keyof Mutations]: MutationAction<
-      MutationIdentifierFor<K & string, Mutations[K]>
-    >;
-  };
+  readonly actions: MutationActionsFor<Mutations>;
 
   constructor(options: FateClientOptions<Mutations>) {
     this.transport = options.transport;
     this.types = new Map(
       options.types.map((entity) => [entity.type, { getId, ...entity }]),
     );
-    this.mutations = Object.create(null);
-    this.actions = Object.create(null);
+    this.mutationMap = Object.create(null);
+    this.mutations = Object.create(null) as MutationFunctionsFor<Mutations>;
+    this.actions = Object.create(null) as MutationActionsFor<Mutations>;
 
     if (options.mutations) {
       for (const [key, definition] of Object.entries(options.mutations)) {
-        (this.mutations as Record<string, unknown>)[key] = wrapMutation(this, {
-          ...definition,
-          key,
-        });
+        const mutation = wrapMutation(this, { ...definition, key });
+        this.mutationMap[key] = mutation;
 
-        (this.actions as Record<string, unknown>)[key] = async <
-          I extends MutationIdentifier<any, any, any>,
-        >(
-          previousState: unknown,
-          data: MutationOptions<I> | 'reset',
-        ) => (data === 'reset' ? null : await this.mutations[key](data));
+        setNestedValue(this.mutations as AnyRecord, key, mutation);
+
+        setNestedValue(
+          this.actions as AnyRecord,
+          key,
+          async <I extends MutationIdentifier<any, any, any>>(
+            _previousState: unknown,
+            data: MutationOptions<I> | 'reset',
+          ) => (data === 'reset' ? null : await this.mutationMap[key](data)),
+        );
       }
     }
 

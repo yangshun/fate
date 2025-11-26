@@ -15,7 +15,7 @@
     "dev:client": "cd example/client && pnpm dev",
     "dev:server": "cd example/server && pnpm dev",
     "dev:setup": "(cd example/server && pnpm dev:setup)",
-    "fate": "node --conditions=development --no-warnings --loader ts-node/esm --env-file server/.env packages/fate/src/cli.ts generate @nkzw/fate-server/src/trpc/router.ts client/src/lib/fate.generated.ts",
+    "fate": "node --conditions=development --no-warnings --loader ts-node/esm --env-file example/server/.env packages/fate/src/cli.ts generate @nkzw/fate-server/src/trpc/router.ts example/client/src/lib/fate.generated.ts",
     "format": "prettier --experimental-cli --write .",
     "preinstall": "command -v git >/dev/null 2>&1 && git config core.hooksPath git-hooks || exit 0",
     "lint": "eslint --cache .",
