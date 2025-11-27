@@ -78,8 +78,8 @@ type EmptyMutationResolvers<AppRouter extends AnyRouter> = Record<
 
 export function createTRPCTransport<
   AppRouter extends AnyRouter,
-  Mutations extends
-    TRPCMutationResolvers<AppRouter> = EmptyMutationResolvers<AppRouter>,
+  Mutations extends TRPCMutationResolvers<AppRouter> =
+    EmptyMutationResolvers<AppRouter>,
 >({
   byId,
   client,

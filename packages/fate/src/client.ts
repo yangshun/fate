@@ -111,10 +111,8 @@ type MutationActionsFor<
 type EmptyMutations = Record<never, MutationDefinition<any, any, any>>;
 
 type FateClientOptions<
-  Mutations extends Record<
-    string,
-    MutationDefinition<any, any, any>
-  > = EmptyMutations,
+  Mutations extends Record<string, MutationDefinition<any, any, any>> =
+    EmptyMutations,
 > = {
   mutations?: Mutations;
   transport: Transport<MutationTransport<Mutations>>;
@@ -228,10 +226,8 @@ const groupSelectionByPrefix = (
 };
 
 export class FateClient<
-  Mutations extends Record<
-    string,
-    MutationDefinition<any, any, any>
-  > = EmptyMutations,
+  Mutations extends Record<string, MutationDefinition<any, any, any>> =
+    EmptyMutations,
 > {
   private readonly mutationMap: Record<string, MutationFunction<any>>;
   private readonly parentLists = new Map<
@@ -1126,14 +1122,13 @@ export class FateClient<
             const argsValue = fieldArgs?.value as AnyRecord | undefined;
             const hasCursorArg = Boolean(
               argsValue &&
-                ('after' in argsValue ||
-                  'before' in argsValue ||
-                  'cursor' in argsValue),
+              ('after' in argsValue ||
+                'before' in argsValue ||
+                'cursor' in argsValue),
             );
             const isBackward = Boolean(
               argsValue &&
-                (argsValue.before !== undefined ||
-                  argsValue.last !== undefined),
+              (argsValue.before !== undefined || argsValue.last !== undefined),
             );
 
             const nextListState = this.mergeListState(
@@ -1511,10 +1506,8 @@ export class FateClient<
 }
 
 export function createClient<
-  Mutations extends Record<
-    string,
-    MutationDefinition<any, any, any>
-  > = EmptyMutations,
+  Mutations extends Record<string, MutationDefinition<any, any, any>> =
+    EmptyMutations,
 >(options: FateClientOptions<Mutations>) {
   return new FateClient<Mutations>(options);
 }
