@@ -1,25 +1,10 @@
 import { z } from 'zod';
-import {
-  arrayToConnection,
-  connectionArgs,
-  createResolver,
-  getScopedArgs,
-} from '@nkzw/fate/server';
+import { connectionArgs, createResolver } from '@nkzw/fate/server';
 import { TRPCError } from '@trpc/server';
 import type { PostFindManyArgs } from '../../prisma/prisma-client/models.ts';
 import { createConnectionProcedure } from '../connection.ts';
 import { procedure, router } from '../init.ts';
 import { postDataView, PostItem } from '../views.ts';
-
-const transformPost = ({ comments, tags, ...post }: PostItem, args?: Record<string, unknown>) => ({
-  ...post,
-  comments: arrayToConnection(comments, {
-    args: getScopedArgs(args, 'comments'),
-  }),
-  tags: arrayToConnection(tags, {
-    args: getScopedArgs(args, 'tags'),
-  }),
-});
 
 export const postRouter = router({
   byId: procedure
@@ -36,14 +21,12 @@ export const postRouter = router({
         ctx,
         view: postDataView,
       });
-      return (
-        await resolveMany(
-          await ctx.prisma.post.findMany({
-            select,
-            where: { id: { in: input.ids } },
-          } as PostFindManyArgs),
-        )
-      ).map((post) => transformPost(post, input.args));
+      return resolveMany(
+        await ctx.prisma.post.findMany({
+          select,
+          where: { id: { in: input.ids } },
+        } as PostFindManyArgs),
+      );
     }),
   like: procedure
     .input(
@@ -101,12 +84,9 @@ export const postRouter = router({
         select,
         where: { id: input.id },
       });
-      const resolved = await resolve(updated as unknown as PostItem);
-      return transformPost(resolved, input.args);
+      return resolve(updated as unknown as PostItem);
     }),
   list: createConnectionProcedure({
-    map: ({ input, items }) =>
-      (items as Array<PostItem>).map((post) => transformPost(post, input.args)),
     query: async ({ ctx, cursor, direction, input, skip, take }) => {
       const { resolveMany, select } = createResolver({
         ...input,
@@ -164,8 +144,7 @@ export const postRouter = router({
             select,
             where: { id: input.id },
           });
-          const resolved = await resolve(result as unknown as PostItem);
-          return transformPost(resolved, input.args);
+          return resolve(result as unknown as PostItem);
         }
 
         const updated = await tx.post.update({
@@ -177,8 +156,7 @@ export const postRouter = router({
           select,
           where: { id: input.id },
         });
-        const resolved = await resolve(updated as unknown as PostItem);
-        return transformPost(resolved, input.args);
+        return resolve(updated as unknown as PostItem);
       }),
     ),
 });

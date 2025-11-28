@@ -611,6 +611,43 @@ const UserData = view<User>()({
 });
 ```
 
+### tRPC List Implementation
+
+To implement the `list` query for fetching a paginated list of posts, we can use fate's `createConnectionProcedure` helper. This helper simplifies the implementation of pagination. Here is an example implementation of the `postRouter` with a `list` query:
+
+```tsx
+import { createResolver } from '@nkzw/fate/server';
+import type { PostFindManyArgs } from '../../prisma/prisma-client/models.ts';
+import { createConnectionProcedure } from '../connection.ts';
+import { router } from '../init.ts';
+import { postDataView } from '../views.ts';
+
+export const postRouter = router({
+  list: createConnectionProcedure({
+    query: async ({ ctx, cursor, direction, input, skip, take }) => {
+      const { resolveMany, select } = createResolver({
+        ...input,
+        ctx,
+        view: postDataView,
+      });
+      const findOptions: PostFindManyArgs = {
+        orderBy: { createdAt: 'desc' },
+        select,
+        take: direction === 'forward' ? take : -take,
+      };
+
+      if (cursor) {
+        findOptions.cursor = { id: cursor };
+        findOptions.skip = skip;
+      }
+
+      const items = await ctx.prisma.post.findMany(findOptions);
+      return resolveMany(direction === 'forward' ? items : items.reverse());
+    },
+  }),
+});
+```
+
 ### Data View Composition
 
 Similar to client-side views, data views can be composed of other data views:
@@ -816,6 +853,6 @@ We welcome contributions and ideas to improve fate. Here are some features we ar
 - Support backends other than tRPC.
 - Better code generation and less type repetition.
 - Better server integration for nested connections.
-- Support for subscriptions and real-time updates via `useSubscription` and SSE.
+- Support for live views (subscriptions) and real-time updates via `useLiveView` and SSE.
 - Implement garbage collection for the cache.
 - Add persistent storage for offline support.

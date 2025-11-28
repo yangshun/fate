@@ -1,5 +1,8 @@
 import { z } from 'zod';
 import type { TRPCProcedureBuilder } from '@trpc/server';
+import type { DataView } from './dataView.ts';
+import { isRecord } from '../record.ts';
+import { getScopedArgs } from './prismaSelect.ts';
 
 type ConnectionInput = z.infer<typeof connectionInput>;
 
@@ -39,6 +42,8 @@ export type ConnectionResult<TNode> = {
   items: Array<ConnectionItem<TNode>>;
   pagination: ConnectionPagination;
 };
+
+type AnyRecord = Record<string, unknown>;
 
 type ArrayToConnectionOptions<TNode> = {
   args?: Record<string, unknown>;
@@ -162,6 +167,91 @@ export function arrayToConnection<TNode extends { id: string | number }>(
         (isBackward ? hasMore : Boolean(cursor)) && firstItem ? firstItem.cursor : undefined,
     },
   };
+}
+
+const isDataViewField = <Context>(field: unknown): field is DataView<AnyRecord, Context> =>
+  Boolean(field) && typeof field === 'object' && 'fields' in (field as AnyRecord);
+
+const assignIfChanged = <Value>(
+  current: AnyRecord | null,
+  key: string,
+  next: Value,
+  existing: Value | Array<unknown>,
+): AnyRecord | null => {
+  if (next === existing) {
+    return current;
+  }
+
+  if (!current) {
+    return { [key]: next } as AnyRecord;
+  }
+
+  current[key] = next;
+  return current;
+};
+
+export function toConnectionResult<Item extends AnyRecord, Context>({
+  args,
+  item,
+  path,
+  view,
+}: {
+  args?: Record<string, unknown>;
+  item: Item;
+  path?: string;
+  view: DataView<Item, Context>;
+}): Item {
+  if (!isRecord(item)) {
+    return item;
+  }
+
+  let result: AnyRecord | null = null;
+
+  const base = () => (result ? { ...item, ...result } : item);
+
+  for (const [field, config] of Object.entries(view.fields)) {
+    if (!isDataViewField<Context>(config)) {
+      continue;
+    }
+
+    const current = base()[field];
+    const nextPath = path ? `${path}.${field}` : field;
+
+    if (config.kind === 'list') {
+      if (!Array.isArray(current)) {
+        continue;
+      }
+
+      const wrappedItems = current.map((item) =>
+        toConnectionResult({
+          args,
+          item,
+          path: nextPath,
+          view: config,
+        }),
+      );
+      const connection = arrayToConnection(wrappedItems, {
+        args: getScopedArgs(args, nextPath),
+      });
+      result = assignIfChanged(result, field, connection, current);
+      continue;
+    }
+
+    if (Array.isArray(current)) {
+      const wrapped = current.map((entry) =>
+        toConnectionResult({ args, item: entry as AnyRecord, path: nextPath, view: config }),
+      );
+      result = assignIfChanged(result, field, wrapped, current);
+      continue;
+    }
+
+    if (isRecord(current)) {
+      const wrapped = toConnectionResult({ args, item: current, path: nextPath, view: config });
+      result = assignIfChanged(result, field, wrapped, current);
+    }
+  }
+
+  return (result ? { ...item, ...result } : item) as Item;
 }
 
 /**

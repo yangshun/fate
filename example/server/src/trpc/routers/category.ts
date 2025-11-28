@@ -1,24 +1,9 @@
 import { z } from 'zod';
-import {
-  arrayToConnection,
-  connectionArgs,
-  createResolver,
-  getScopedArgs,
-} from '@nkzw/fate/server';
+import { connectionArgs, createResolver } from '@nkzw/fate/server';
 import type { CategoryFindManyArgs } from '../../prisma/prisma-client/models.ts';
 import { createConnectionProcedure } from '../connection.ts';
 import { procedure, router } from '../init.ts';
-import { categoryDataView, CategoryItem } from '../views.ts';
-
-const transformCategory = (
-  { posts, ...category }: CategoryItem,
-  args?: Record<string, unknown>,
-) => ({
-  ...category,
-  posts: arrayToConnection(posts, {
-    args: getScopedArgs(args, 'posts'),
-  }),
-});
+import { categoryDataView } from '../views.ts';
 
 export const categoryRouter = router({
   byId: procedure
@@ -35,18 +20,14 @@ export const categoryRouter = router({
         ctx,
         view: categoryDataView,
       });
-      return (
-        await resolveMany(
-          await ctx.prisma.category.findMany({
-            select,
-            where: { id: { in: input.ids } },
-          } as CategoryFindManyArgs),
-        )
-      ).map((category) => transformCategory(category, input.args));
+      return resolveMany(
+        await ctx.prisma.category.findMany({
+          select,
+          where: { id: { in: input.ids } },
+        } as CategoryFindManyArgs),
+      );
     }),
   list: createConnectionProcedure({
-    map: ({ input, items }) =>
-      (items as Array<CategoryItem>).map((category) => transformCategory(category, input.args)),
     query: async ({ ctx, cursor, direction, input, skip, take }) => {
       const { resolveMany, select } = createResolver({
         ...input,

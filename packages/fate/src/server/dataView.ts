@@ -1,4 +1,5 @@
 import { isRecord } from '../record.ts';
+import { toConnectionResult } from './connection.ts';
 import { prismaSelect } from './prismaSelect.ts';
 
 const dataViewFieldsKey = Symbol('__fate__DataViewFields');
@@ -458,30 +459,24 @@ export function createResolver<Item extends AnyRecord, Context = unknown>({
   const select = prismaSelect([...allowedPaths], args);
   collectResolvers(root, select, args, ctx);
 
-  return {
-    resolve: async (item: Item): Promise<Item> =>
-      filterToViewFields(
+  const resolve = async (item: Item) =>
+    toConnectionResult({
+      args,
+      item: filterToViewFields(
         await resolveNode({
           item,
           node: root,
           options: { args, context: ctx },
         }),
         root.view,
-      ) as Item,
-    resolveMany: async (items: Array<Item>): Promise<Array<Item>> =>
-      Promise.all(
-        items.map(
-          async (item) =>
-            filterToViewFields(
-              await resolveNode({
-                item,
-                node: root,
-                options: { args, context: ctx },
-              }),
-              root.view,
-            ) as Item,
-        ),
       ),
+      view: root.view,
+    });
+
+  return {
+    resolve,
+    resolveMany: (items: Array<AnyRecord>): Promise<Array<AnyRecord>> =>
+      Promise.all(items.map((item) => resolve(item as Item))),
     select,
   };
 }

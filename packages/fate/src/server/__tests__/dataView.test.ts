@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { createResolver, dataView, resolver } from '../dataView.ts';
+import { createResolver, dataView, list, resolver } from '../dataView.ts';
 
 type UserItem = { id: string; name: string; password: string };
 
@@ -104,7 +104,7 @@ test('nested resolvers apply their selections within relations', async () => {
     id: 'parent-1',
   });
 
-  expect(item.child?.total).toBe(7);
+  expect((item.child as any)?.total).toBe(7);
 });
 
 type PostItem = { id: string; secret: string; title: string };
@@ -131,4 +131,61 @@ test('selecting a relation without nested paths respects the child view', () => 
     id: true,
     post: { select: { id: true, title: true } },
   });
+});
+
+type AuthorItem = { id: string; name: string };
+
+type ReplyItem = { author?: AuthorItem | null; id: string };
+
+type CommentWithRepliesItem = { id: string; replies?: Array<ReplyItem> };
+
+type PostWithDeepRelationsItem = { comments?: Array<CommentWithRepliesItem>; id: string };
+
+test('list fields are wrapped into connections recursively using scoped args', async () => {
+  const authorView = dataView<AuthorItem>()({
+    id: true,
+    name: true,
+  });
+
+  const replyView = dataView<ReplyItem>()({
+    author: authorView,
+    id: true,
+  });
+
+  const commentView = dataView<CommentWithRepliesItem>()({
+    id: true,
+    replies: list(replyView),
+  });
+
+  const postView = dataView<PostWithDeepRelationsItem>()({
+    comments: list(commentView),
+    id: true,
+  });
+
+  const { resolve } = createResolver({
+    args: { comments: { first: 2, replies: { before: 'reply-2', last: 1 } } },
+    select: ['comments.replies.author.name'],
+    view: postView,
+  });
+
+  const result = await resolve({
+    comments: [
+      {
+        id: 'comment-1',
+        replies: [
+          { author: { id: 'author-1', name: 'Ada' }, id: 'reply-1' },
+          { author: { id: 'author-2', name: 'Bea' }, id: 'reply-2' },
+        ],
+      },
+    ],
+    id: 'post-1',
+  });
+
+  const commentsConnection = result.comments as any;
+  expect(commentsConnection?.items).toHaveLength(1);
+
+  const repliesConnection = commentsConnection?.items[0]?.node?.replies;
+  expect(repliesConnection?.items).toHaveLength(1);
+  expect(repliesConnection?.items[0]?.node?.author?.name).toBe('Bea');
+  expect(repliesConnection?.pagination?.hasPrevious).toBe(true);
 });

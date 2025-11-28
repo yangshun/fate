@@ -1,21 +1,9 @@
 import { z } from 'zod';
-import {
-  arrayToConnection,
-  connectionArgs,
-  createResolver,
-  getScopedArgs,
-} from '@nkzw/fate/server';
+import { connectionArgs, createResolver } from '@nkzw/fate/server';
 import type { EventSelect } from '../../prisma/prisma-client/models.ts';
 import { createConnectionProcedure } from '../connection.ts';
 import { procedure, router } from '../init.ts';
-import { eventDataView, EventItem } from '../views.ts';
-
-const transformEvent = ({ attendees, ...event }: EventItem, args?: Record<string, unknown>) => ({
-  ...event,
-  attendees: arrayToConnection(attendees, {
-    args: getScopedArgs(args, 'attendees'),
-  }),
-});
+import { eventDataView } from '../views.ts';
 
 export const eventRouter = router({
   byId: procedure
@@ -32,19 +20,15 @@ export const eventRouter = router({
         ctx,
         view: eventDataView,
       });
-      return (
-        await resolveMany(
-          await ctx.prisma.event.findMany({
-            select: select as EventSelect,
-            where: { id: { in: input.ids } },
-          }),
-        )
-      ).map((event) => transformEvent(event, input.args));
+      return resolveMany(
+        await ctx.prisma.event.findMany({
+          select: select as EventSelect,
+          where: { id: { in: input.ids } },
+        }),
+      );
     }),
   list: createConnectionProcedure({
     defaultSize: 3,
-    map: ({ input, items }) =>
-      (items as Array<EventItem>).map((event) => transformEvent(event, input.args)),
     query: async ({ ctx, cursor, direction, input, skip, take }) => {
       const { resolveMany, select } = createResolver({
         ...input,
