@@ -36,9 +36,7 @@ export function mutation<T extends Entity, I, R>(
  * Options accepted by a mutation invocation, including optimistic updates and
  * optional selection for the returned payload.
  */
-export type MutationOptions<
-  Identifier extends MutationIdentifier<any, any, any>,
-> = {
+export type MutationOptions<Identifier extends MutationIdentifier<any, any, any>> = {
   /** Optional arguments to pass to the mutation resolver. */
   args?: Record<string, unknown>;
   /** If true, deletes the record with the ID specified in the input. */
@@ -48,10 +46,7 @@ export type MutationOptions<
   /** Optional optimistic update to apply immediately. */
   optimisticUpdate?: OptimisticUpdate<MutationResult<Identifier>>;
   /** Optional view specifying which fields to select from the server. */
-  view?: View<
-    MutationEntity<Identifier>,
-    Selection<MutationEntity<Identifier>>
-  >;
+  view?: View<MutationEntity<Identifier>, Selection<MutationEntity<Identifier>>>;
 };
 
 /**
@@ -60,10 +55,7 @@ export type MutationOptions<
  */
 export type MutationFunction<I extends MutationIdentifier<any, any, any>> = (
   options: MutationOptions<I>,
-) => Promise<
-  | { error: undefined; result: MutationResult<I> }
-  | { error: Error; result: undefined }
->;
+) => Promise<{ error: undefined; result: MutationResult<I> } | { error: Error; result: undefined }>;
 
 /**
  * React action-compatible wrapper that can be passed directly to form actions
@@ -75,10 +67,7 @@ export type MutationAction<I extends MutationIdentifier<any, any, any>> = (
    * Mutation options or 'reset' to reset the action state.
    */
   options: MutationOptions<I> | 'reset',
-) => Promise<
-  | { error: undefined; result: MutationResult<I> }
-  | { error: Error; result: undefined }
->;
+) => Promise<{ error: undefined; result: MutationResult<I> } | { error: Error; result: undefined }>;
 
 const collectImplicitSelectedPaths = (value: AnyRecord): Set<string> => {
   const paths = new Set<string>();
@@ -131,26 +120,16 @@ export function wrapMutation<
 >(client: FateClient<M>, identifier: I): MutationFunction<I> {
   const config = client.getTypeConfig(identifier.entity);
 
-  return async ({
-    args,
-    deleteRecord,
-    input,
-    optimisticUpdate,
-    view,
-  }: MutationOptions<I>) => {
+  return async ({ args, deleteRecord, input, optimisticUpdate, view }: MutationOptions<I>) => {
     const id = maybeGetId(config.getId, input);
     const plan = view ? getSelectionPlan(view, null) : undefined;
     const viewSelection = plan?.paths;
 
     const optimisticRecord: AnyRecord | undefined = optimisticUpdate
-      ? ((id != null
-          ? { id, ...optimisticUpdate }
-          : optimisticUpdate) as AnyRecord)
+      ? ((id != null ? { id, ...optimisticUpdate } : optimisticUpdate) as AnyRecord)
       : undefined;
     const optimisticRecordId =
-      optimisticRecord !== undefined
-        ? maybeGetId(config.getId, optimisticRecord)
-        : null;
+      optimisticRecord !== undefined ? maybeGetId(config.getId, optimisticRecord) : null;
 
     const snapshots = new Map<string, Snapshot>();
     const listSnapshots = deleteRecord ? new Map<string, List>() : undefined;
@@ -178,26 +157,20 @@ export function wrapMutation<
 
     if (deleteRecord) {
       if (id == null) {
-        throw new Error(
-          `fate: Mutation '${identifier.key}' requires an 'id' to delete.`,
-        );
+        throw new Error(`fate: Mutation '${identifier.key}' requires an 'id' to delete.`);
       }
 
       client.deleteRecord(identifier.entity, id, snapshots, listSnapshots);
     }
 
     try {
-      const result = (await client.executeMutation(
-        identifier.key,
-        input,
-        selection,
-        { args, plan },
-      )) as MutationResult<I>;
+      const result = (await client.executeMutation(identifier.key, input, selection, {
+        args,
+        plan,
+      })) as MutationResult<I>;
 
       const shouldWriteResult =
-        result &&
-        typeof result === 'object' &&
-        (!deleteRecord || Boolean(view));
+        result && typeof result === 'object' && (!deleteRecord || Boolean(view));
 
       if (shouldWriteResult) {
         const select = collectImplicitSelectedPaths(result);
@@ -208,11 +181,7 @@ export function wrapMutation<
         }
 
         const resultId = maybeGetId(config.getId, result as AnyRecord);
-        if (
-          optimisticRecordId != null &&
-          resultId != null &&
-          optimisticRecordId !== resultId
-        ) {
+        if (optimisticRecordId != null && resultId != null && optimisticRecordId !== resultId) {
           client.deleteRecord(identifier.entity, optimisticRecordId);
         }
       }

@@ -32,9 +32,7 @@ const CategoryPost = ({ post: postRef }: { post: ViewRef<'Post'> }) => {
             {post.title}
           </span>
         </Link>
-        <span className="text-muted-foreground text-xs">
-          {post.likes} likes
-        </span>
+        <span className="text-muted-foreground text-xs">{post.likes} likes</span>
       </Stack>
       <Stack alignCenter gap={8} wrap>
         <span className="text-muted-foreground text-xs">
@@ -69,11 +67,7 @@ export const CategoryView = view<Category>()({
   },
 });
 
-export default function CategoryCard({
-  category: categoryRef,
-}: {
-  category: ViewRef<'Category'>;
-}) {
+export default function CategoryCard({ category: categoryRef }: { category: ViewRef<'Category'> }) {
   const category = useView(CategoryView, categoryRef);
   const posts = category.posts?.items ?? [];
 
@@ -87,9 +81,7 @@ export default function CategoryCard({
                 {category.name}
               </h4>
             </Link>
-            <p className="text-muted-foreground text-sm">
-              {category.description}
-            </p>
+            <p className="text-muted-foreground text-sm">{category.description}</p>
           </div>
           <Badge className="text-nowrap" variant="outline">
             {category.postCount} posts
@@ -98,9 +90,7 @@ export default function CategoryCard({
         <VStack gap={12}>
           {posts.map(({ cursor, node }) => {
             if (cursor !== node.id) {
-              throw new Error(
-                `fate: Cursor '${cursor}' does not match node ID '${node.id}'.`,
-              );
+              throw new Error(`fate: Cursor '${cursor}' does not match node ID '${node.id}'.`);
             }
             return <CategoryPost key={node.id} post={node} />;
           })}

@@ -33,11 +33,7 @@ const App = () => {
           <Suspense
             fallback={
               <Section>
-                <Stack
-                  center
-                  className="animate-pulse text-gray-500 italic"
-                  verticalPadding={48}
-                >
+                <Stack center className="animate-pulse text-gray-500 italic" verticalPadding={48}>
                   Thinking…
                 </Stack>
               </Section>

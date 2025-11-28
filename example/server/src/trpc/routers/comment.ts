@@ -1,10 +1,7 @@
 import { connectionArgs, createResolver } from '@nkzw/fate/server';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
-import type {
-  CommentFindManyArgs,
-  CommentSelect,
-} from '../../prisma/prisma-client/models.ts';
+import type { CommentFindManyArgs, CommentSelect } from '../../prisma/prisma-client/models.ts';
 import { createConnectionProcedure } from '../connection.ts';
 import { procedure, router } from '../init.ts';
 import { commentDataView } from '../views.ts';
@@ -140,9 +137,7 @@ export const commentRouter = router({
         };
       }
 
-      return resolve(result) as Promise<
-        CommentItem & { post?: { commentCount: number } }
-      >;
+      return resolve(result) as Promise<CommentItem & { post?: { commentCount: number } }>;
     }),
 
   search: createConnectionProcedure({

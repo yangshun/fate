@@ -13,11 +13,7 @@ test('passes selection when fetching by id', async () => {
     client,
   });
 
-  await transport.fetchById(
-    'Post',
-    ['post-1'],
-    new Set(['content', 'author.id']),
-  );
+  await transport.fetchById('Post', ['post-1'], new Set(['content', 'author.id']));
 
   expect(byIdResolver).toHaveBeenCalledWith(client);
   expect(call).toHaveBeenCalledTimes(1);

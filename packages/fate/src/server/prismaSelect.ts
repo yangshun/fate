@@ -1,6 +1,4 @@
-const toPrismaArgs = (
-  args: Record<string, unknown>,
-): Record<string, unknown> => {
+const toPrismaArgs = (args: Record<string, unknown>): Record<string, unknown> => {
   const prismaArgs: Record<string, unknown> = {};
 
   if (typeof args.first === 'number') {
@@ -72,10 +70,7 @@ export function prismaSelect(
 
       const existing = current[segment];
       const relation =
-        existing &&
-        typeof existing === 'object' &&
-        existing !== null &&
-        'select' in existing
+        existing && typeof existing === 'object' && existing !== null && 'select' in existing
           ? (existing as Record<string, unknown> & {
               select: Record<string, unknown>;
             })

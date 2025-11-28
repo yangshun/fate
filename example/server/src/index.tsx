@@ -14,10 +14,7 @@ import { appRouter } from './trpc/router.ts';
 try {
   await prisma.$connect();
 } catch (error) {
-  console.error(
-    `${styleText(['red', 'bold'], 'Prisma Database Connection Error')}\n`,
-    error,
-  );
+  console.error(`${styleText(['red', 'bold'], 'Prisma Database Connection Error')}\n`, error);
   process.exit(1);
 }
 

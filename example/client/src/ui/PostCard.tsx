@@ -63,37 +63,36 @@ const CommentInput = ({
   const user = session?.user;
   const [commentText, setCommentText] = useState('');
 
-  const [addCommentResult, handleAddComment, addCommentIsPending] =
-    useActionState(async () => {
-      const content = commentText.trim();
+  const [addCommentResult, handleAddComment, addCommentIsPending] = useActionState(async () => {
+    const content = commentText.trim();
 
-      if (!content) {
-        return;
-      }
+    if (!content) {
+      return;
+    }
 
-      const result = await fate.mutations.comment.add({
-        input: { content, postId: post.id },
-        optimisticUpdate: {
-          author: user
-            ? {
-                id: user.id,
-                name: user.name ?? 'Anonymous',
-              }
-            : null,
-          content,
-          id: `optimistic:${Date.now().toString(36)}`,
-          post: { commentCount: post.commentCount + 1, id: post.id },
-        },
-        view: view<InlineComment>()({
-          ...CommentView,
-          post: { commentCount: true },
-        }),
-      });
+    const result = await fate.mutations.comment.add({
+      input: { content, postId: post.id },
+      optimisticUpdate: {
+        author: user
+          ? {
+              id: user.id,
+              name: user.name ?? 'Anonymous',
+            }
+          : null,
+        content,
+        id: `optimistic:${Date.now().toString(36)}`,
+        post: { commentCount: post.commentCount + 1, id: post.id },
+      },
+      view: view<InlineComment>()({
+        ...CommentView,
+        post: { commentCount: true },
+      }),
+    });
 
-      setCommentText('');
+    setCommentText('');
 
-      return result;
-    }, null);
+    return result;
+  }, null);
 
   const maybeSubmitComment = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
@@ -101,17 +100,13 @@ const CommentInput = ({
     }
   };
 
-  const commentingIsDisabled =
-    addCommentIsPending || commentText.trim().length === 0;
+  const commentingIsDisabled = addCommentIsPending || commentText.trim().length === 0;
 
   const anyServerError = error || addCommentResult?.error;
 
   return (
     <VStack action={handleAddComment} as="form" gap>
-      <label
-        className="text-foreground text-sm font-medium"
-        htmlFor={`comment-${post.id}`}
-      >
+      <label className="text-foreground text-sm font-medium" htmlFor={`comment-${post.id}`}>
         Add a comment
       </label>
       <textarea
@@ -120,11 +115,7 @@ const CommentInput = ({
         id={`comment-${post.id}`}
         onChange={(event) => setCommentText(event.target.value)}
         onKeyDown={maybeSubmitComment}
-        placeholder={
-          user?.name
-            ? `Share your thoughts, ${user.name}!`
-            : 'Share your thoughts...'
-        }
+        placeholder={user?.name ? `Share your thoughts, ${user.name}!` : 'Share your thoughts...'}
         value={commentText}
       />
       {anyServerError ? (
@@ -135,12 +126,7 @@ const CommentInput = ({
         </p>
       ) : null}
       <Stack end gap>
-        <Button
-          disabled={commentingIsDisabled}
-          size="sm"
-          type="submit"
-          variant="secondary"
-        >
+        <Button disabled={commentingIsDisabled} size="sm" type="submit" variant="secondary">
           Post comment
         </Button>
       </Stack>
@@ -148,31 +134,16 @@ const CommentInput = ({
   );
 };
 
-export function PostCard({
-  detail,
-  post: postRef,
-}: {
-  detail?: boolean;
-  post: ViewRef<'Post'>;
-}) {
+export function PostCard({ detail, post: postRef }: { detail?: boolean; post: ViewRef<'Post'> }) {
   const post = useView(PostView, postRef);
   const author = useView(UserView, post.author);
   const category = useView(CategorySummaryView, post.category);
-  const [comments, loadNext] = useListView(
-    CommentConnectionView,
-    post.comments,
-  );
+  const [comments, loadNext] = useListView(CommentConnectionView, post.comments);
   const tags = post.tags?.items ?? [];
 
-  const [likeResult, likeAction, likeIsPending] = useActionState(
-    fate.actions.post.like,
-    null,
-  );
+  const [likeResult, likeAction, likeIsPending] = useActionState(fate.actions.post.like, null);
 
-  const [, unlikeAction, unlikeIsPending] = useActionState(
-    fate.actions.post.unlike,
-    null,
-  );
+  const [, unlikeAction, unlikeIsPending] = useActionState(fate.actions.post.unlike, null);
 
   useEffect(() => {
     if (likeResult?.error) {
@@ -208,9 +179,7 @@ export function PostCard({
         <Stack alignStart between gap={12}>
           <div>
             <Link to={`/post/${post.id}`}>
-              <h3 className="text-lg font-semibold text-blue-500 hover:underline">
-                {post.title}
-              </h3>
+              <h3 className="text-lg font-semibold text-blue-500 hover:underline">{post.title}</h3>
             </Link>
             <Stack alignCenter gap={8} wrap>
               {category ? (
@@ -238,12 +207,7 @@ export function PostCard({
               {post.likes} {post.likes === 1 ? 'like' : 'likes'}
             </div>
             <Stack alignCenter end gap wrap>
-              <Button
-                action={handleLike}
-                disabled={likeIsPending}
-                size="sm"
-                variant="outline"
-              >
+              <Button action={handleLike} disabled={likeIsPending} size="sm" variant="outline">
                 Like
               </Button>
               {detail && (
@@ -261,9 +225,7 @@ export function PostCard({
                   action={() => handleLike({ error: 'callSite' })}
                   className={cx(
                     'w-34 transition-colors duration-150',
-                    likeResult?.error
-                      ? 'border-red-500 text-red-500 hover:text-red-500'
-                      : '',
+                    likeResult?.error ? 'border-red-500 text-red-500 hover:text-red-500' : '',
                   )}
                   disabled={likeIsPending}
                   size="sm"
@@ -299,9 +261,7 @@ export function PostCard({
           </Stack>
         </Stack>
 
-        <p className="text-foreground/90 text-sm leading-relaxed">
-          {post.content}
-        </p>
+        <p className="text-foreground/90 text-sm leading-relaxed">{post.content}</p>
         <VStack gap={16}>
           <h4 className="text-foreground text-base font-semibold">Comments</h4>
           {comments.length > 0 ? (
@@ -316,11 +276,7 @@ export function PostCard({
               ) : null}
             </VStack>
           ) : null}
-          <ErrorBoundary
-            fallbackRender={({ error }) => (
-              <CommentInput error={error} post={post} />
-            )}
-          >
+          <ErrorBoundary fallbackRender={({ error }) => <CommentInput error={error} post={post} />}>
             <CommentInput post={post} />
           </ErrorBoundary>
         </VStack>

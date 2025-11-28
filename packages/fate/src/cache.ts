@@ -11,10 +11,7 @@ import {
 export default class ViewDataCache {
   private cache = new Map<
     string,
-    WeakMap<
-      View<any, any>,
-      WeakMap<ViewRef<string>, FateThenable<ViewSnapshot<any, any>>>
-    >
+    WeakMap<View<any, any>, WeakMap<ViewRef<string>, FateThenable<ViewSnapshot<any, any>>>>
   >();
 
   private rootDependencies = new Map<EntityId, Set<EntityId>>();

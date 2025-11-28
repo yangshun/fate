@@ -1,11 +1,6 @@
 export default function Logo() {
   return (
-    <svg
-      height="42"
-      viewBox="100 300 900 600"
-      width="42"
-      xmlns="http://www.w3.org/2000/svg"
-    >
+    <svg height="42" viewBox="100 300 900 600" width="42" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient
           gradientUnits="userSpaceOnUse"

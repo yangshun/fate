@@ -83,10 +83,7 @@ export function isCovered(mask: FieldMask, path: string): boolean {
   return !!current && (current.all || current.children.size === 0);
 }
 
-export function diffPaths(
-  paths: Iterable<string>,
-  mask: FieldMask,
-): Set<string> {
+export function diffPaths(paths: Iterable<string>, mask: FieldMask): Set<string> {
   const missing = new Set<string>();
   for (const path of paths) {
     if (!isCovered(mask, path)) {

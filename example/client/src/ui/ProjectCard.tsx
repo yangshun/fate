@@ -1,7 +1,4 @@
-import type {
-  Project,
-  ProjectUpdate,
-} from '@nkzw/fate-server/src/trpc/views.ts';
+import type { Project, ProjectUpdate } from '@nkzw/fate-server/src/trpc/views.ts';
 import Stack, { VStack } from '@nkzw/stack';
 import { CalendarDays, Target } from 'lucide-react';
 import { useView, view, ViewRef } from 'react-fate';
@@ -28,11 +25,7 @@ const intlFormatDate = new Intl.DateTimeFormat(undefined, {
 const formatDate = (value: string | null | undefined) =>
   value ? intlFormatDate.format(new Date(value)) : 'TBD';
 
-const ProjectUpdateItem = ({
-  update: updateRef,
-}: {
-  update: ViewRef<'ProjectUpdate'>;
-}) => {
+const ProjectUpdateItem = ({ update: updateRef }: { update: ViewRef<'ProjectUpdate'> }) => {
   const update = useView(ProjectUpdateView, updateRef);
   const author = useView(UserView, update.author);
 
@@ -61,9 +54,7 @@ const ProjectUpdateItem = ({
           ) : null}
         </Stack>
       </Stack>
-      <p className="text-foreground/90 text-sm leading-relaxed">
-        {update.content}
-      </p>
+      <p className="text-foreground/90 text-sm leading-relaxed">{update.content}</p>
     </VStack>
   );
 };
@@ -86,11 +77,7 @@ export const ProjectView = view<Project>()({
   },
 });
 
-export default function ProjectCard({
-  project: projectRef,
-}: {
-  project: ViewRef<'Project'>;
-}) {
+export default function ProjectCard({ project: projectRef }: { project: ViewRef<'Project'> }) {
   const project = useView(ProjectView, projectRef);
   const owner = useView(UserView, project.owner);
   const updates = project.updates?.items ?? [];
@@ -103,9 +90,7 @@ export default function ProjectCard({
       <VStack gap={16}>
         <Stack alignCenter between gap={12}>
           <div>
-            <h4 className="text-foreground text-base font-semibold">
-              {project.name}
-            </h4>
+            <h4 className="text-foreground text-base font-semibold">{project.name}</h4>
             <p className="text-muted-foreground text-sm">{project.summary}</p>
           </div>
           <Badge className="text-nowrap" variant="outline">
@@ -115,17 +100,14 @@ export default function ProjectCard({
         <Stack gap={16} wrap>
           <VStack gap={8}>
             <span className="text-muted-foreground text-xs">Owner</span>
-            <span className="text-foreground text-sm font-medium">
-              {owner?.name ?? 'Unknown'}
-            </span>
+            <span className="text-foreground text-sm font-medium">{owner?.name ?? 'Unknown'}</span>
           </VStack>
           <VStack gap={8}>
             <span className="text-muted-foreground text-xs">Timeline</span>
             <Stack alignCenter gap={8}>
               <CalendarDays className="text-muted-foreground" size={14} />
               <span className="text-foreground/80 text-sm">
-                {formatDate(project.startDate)} →{' '}
-                {formatDate(project.targetDate)}
+                {formatDate(project.startDate)} → {formatDate(project.targetDate)}
               </span>
             </Stack>
           </VStack>
@@ -133,9 +115,7 @@ export default function ProjectCard({
             <span className="text-muted-foreground text-xs">Progress</span>
             <Stack alignCenter gap={8}>
               <Target className="text-muted-foreground" size={14} />
-              <span className="text-foreground text-sm font-medium">
-                {progress}%
-              </span>
+              <span className="text-foreground text-sm font-medium">{progress}%</span>
             </Stack>
           </VStack>
         </Stack>
@@ -153,9 +133,7 @@ export default function ProjectCard({
         ) : null}
         {metrics ? (
           <VStack gap={8}>
-            <span className="text-muted-foreground text-xs">
-              Signals we track
-            </span>
+            <span className="text-muted-foreground text-xs">Signals we track</span>
             <VStack gap>
               {Object.entries(metrics).map(([key, value]) => {
                 let name = key.replaceAll(/([A-Z])/g, ' $1').trim();
@@ -163,9 +141,7 @@ export default function ProjectCard({
                 return (
                   <Stack alignCenter between gap={12} key={key}>
                     <span className="text-xs">{name}</span>
-                    <span className="text-foreground text-sm font-medium">
-                      {String(value)}
-                    </span>
+                    <span className="text-foreground text-sm font-medium">{String(value)}</span>
                   </Stack>
                 );
               })}
@@ -174,9 +150,7 @@ export default function ProjectCard({
         ) : null}
         {updates.length ? (
           <VStack gap={12}>
-            <span className="text-muted-foreground text-xs">
-              Latest updates
-            </span>
+            <span className="text-muted-foreground text-xs">Latest updates</span>
             <VStack gap={12}>
               {updates.map(({ node }) => (
                 <ProjectUpdateItem key={node.id} update={node} />

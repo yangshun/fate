@@ -50,10 +50,7 @@ test('loads additional items when loadNext is invoked', async () => {
     transport: {
       fetchById,
     },
-    types: [
-      { fields: { comments: { listOf: 'Comment' } }, type: 'Post' },
-      { type: 'Comment' },
-    ],
+    types: [{ fields: { comments: { listOf: 'Comment' } }, type: 'Post' }, { type: 'Comment' }],
   });
 
   const CommentView = view<Comment>()({
@@ -127,13 +124,8 @@ test('loads additional items when loadNext is invoked', async () => {
 
   const Component = () => {
     const post = useView(PostView, postRef);
-    const [comments, loadNext] = useListView(
-      CommentConnectionView,
-      post.comments,
-    );
-    renders.push(
-      comments.map(({ node }) => (node?.id ? String(node.id) : null)),
-    );
+    const [comments, loadNext] = useListView(CommentConnectionView, post.comments);
+    renders.push(comments.map(({ node }) => (node?.id ? String(node.id) : null)));
 
     useEffect(() => {
       loadNextRef = loadNext;
@@ -210,10 +202,7 @@ test('uses pagination from list state when not selected', async () => {
     transport: {
       fetchById,
     },
-    types: [
-      { fields: { comments: { listOf: 'Comment' } }, type: 'Post' },
-      { type: 'Comment' },
-    ],
+    types: [{ fields: { comments: { listOf: 'Comment' } }, type: 'Post' }, { type: 'Comment' }],
   });
 
   const CommentView = view<Comment>()({
@@ -280,13 +269,8 @@ test('uses pagination from list state when not selected', async () => {
 
   const Component = () => {
     const post = useView(PostView, postRef);
-    const [comments, loadNext] = useListView(
-      CommentConnectionView,
-      post.comments,
-    );
-    renders.push(
-      comments.map(({ node }) => (node?.id ? String(node.id) : null)),
-    );
+    const [comments, loadNext] = useListView(CommentConnectionView, post.comments);
+    renders.push(comments.map(({ node }) => (node?.id ? String(node.id) : null)));
 
     useEffect(() => {
       loadNextRef = loadNext;
@@ -355,10 +339,7 @@ test('loads previous items when loadPrevious is invoked', async () => {
     transport: {
       fetchById,
     },
-    types: [
-      { fields: { comments: { listOf: 'Comment' } }, type: 'Post' },
-      { type: 'Comment' },
-    ],
+    types: [{ fields: { comments: { listOf: 'Comment' } }, type: 'Post' }, { type: 'Comment' }],
   });
 
   const CommentView = view<Comment>()({
@@ -432,18 +413,13 @@ test('loads previous items when loadPrevious is invoked', async () => {
 
   const Component = () => {
     const post = useView(PostView, postRef);
-    const [comments, , loadPrevious] = useListView(
-      CommentConnectionView,
-      post.comments,
-    );
+    const [comments, , loadPrevious] = useListView(CommentConnectionView, post.comments);
 
     useEffect(() => {
       loadPreviousRef = loadPrevious;
     }, [loadPrevious]);
 
-    renders.push(
-      comments.map(({ node }) => (node?.id ? String(node.id) : null)),
-    );
+    renders.push(comments.map(({ node }) => (node?.id ? String(node.id) : null)));
     return null;
   };
 

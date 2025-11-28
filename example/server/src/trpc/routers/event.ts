@@ -10,10 +10,7 @@ import { createConnectionProcedure } from '../connection.ts';
 import { procedure, router } from '../init.ts';
 import { eventDataView, EventItem } from '../views.ts';
 
-const transformEvent = (
-  { attendees, ...event }: EventItem,
-  args?: Record<string, unknown>,
-) => ({
+const transformEvent = ({ attendees, ...event }: EventItem, args?: Record<string, unknown>) => ({
   ...event,
   attendees: arrayToConnection(attendees, {
     args: getScopedArgs(args, 'attendees'),
@@ -47,9 +44,7 @@ export const eventRouter = router({
   list: createConnectionProcedure({
     defaultSize: 3,
     map: ({ input, items }) =>
-      (items as Array<EventItem>).map((event) =>
-        transformEvent(event, input.args),
-      ),
+      (items as Array<EventItem>).map((event) => transformEvent(event, input.args)),
     query: async ({ ctx, cursor, direction, input, skip, take }) => {
       const { resolveMany, select } = createResolver({
         ...input,

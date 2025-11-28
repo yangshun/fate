@@ -6,18 +6,14 @@ import { AnyRecord } from './types.ts';
 const ensureSerializable = (value: unknown, path: string) => {
   const type = typeof value;
   if (type === 'function' || type === 'symbol') {
-    throw new Error(
-      `fate: Argument '${path}' must be serializable. Received '${type}'.`,
-    );
+    throw new Error(`fate: Argument '${path}' must be serializable. Received '${type}'.`);
   }
 };
 
 export const cloneArgs = (value: AnyRecord, path: string): AnyRecord => {
   const cloneValue = (entry: unknown, currentPath: string): unknown => {
     if (Array.isArray(entry)) {
-      return entry.map((item, index) =>
-        cloneValue(item, `${currentPath}[${index}]`),
-      );
+      return entry.map((item, index) => cloneValue(item, `${currentPath}[${index}]`));
     }
 
     if (isRecord(entry)) {
@@ -62,16 +58,12 @@ const stableSerialize = (value: unknown): string => {
     const entries = Object.entries(value)
       .map(([key, entry]) => [key, entry] as const)
       .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
-      .map(
-        ([_key, entry]) => `${JSON.stringify(_key)}:${stableSerialize(entry)}`,
-      );
+      .map(([_key, entry]) => `${JSON.stringify(_key)}:${stableSerialize(entry)}`);
 
     return `object:{${entries.join(',')}}`;
   }
 
-  throw new Error(
-    `fate: Unable to serialize argument value of type '${type}'.`,
-  );
+  throw new Error(`fate: Unable to serialize argument value of type '${type}'.`);
 };
 
 export const hashArgs = (
@@ -106,9 +98,7 @@ const mergeArgs = (target: AnyRecord, source: AnyRecord) => {
   }
 };
 
-export const resolvedArgsFromPlan = (
-  plan?: SelectionPlan,
-): ResolvedArgsPayload | undefined => {
+export const resolvedArgsFromPlan = (plan?: SelectionPlan): ResolvedArgsPayload | undefined => {
   if (!plan || plan.args.size === 0) {
     return undefined;
   }

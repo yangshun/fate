@@ -20,10 +20,7 @@ const createThenable = <T>(value: T): FateThenable<T> =>
 
 const createView = (): View<any, any> => ({}) as View<any, any>;
 
-const createViewRef = <TName extends string>(
-  __typename: TName,
-  id: string,
-): ViewRef<TName> => ({
+const createViewRef = <TName extends string>(__typename: TName, id: string): ViewRef<TName> => ({
   __typename,
   id,
   [ViewsTag]: new Set<string>(),
@@ -53,13 +50,7 @@ test('evicts dependents and the dependency when invalidating an entity', () => {
   };
   const dependentThenable = createThenable(dependentSnapshot);
 
-  cache.set(
-    dependencyId,
-    dependencyView,
-    dependencyRef,
-    dependencyThenable,
-    new Set(),
-  );
+  cache.set(dependencyId, dependencyView, dependencyRef, dependencyThenable, new Set());
   cache.set(
     dependentId,
     dependentView,
@@ -68,12 +59,8 @@ test('evicts dependents and the dependency when invalidating an entity', () => {
     new Set<EntityId>([dependencyId]),
   );
 
-  expect(cache.get(dependencyId, dependencyView, dependencyRef)).toBe(
-    dependencyThenable,
-  );
-  expect(cache.get(dependentId, dependentView, dependentRef)).toBe(
-    dependentThenable,
-  );
+  expect(cache.get(dependencyId, dependencyView, dependencyRef)).toBe(dependencyThenable);
+  expect(cache.get(dependentId, dependentView, dependentRef)).toBe(dependentThenable);
 
   cache.invalidate(dependencyId);
 

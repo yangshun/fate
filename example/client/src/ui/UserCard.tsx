@@ -68,8 +68,7 @@ const UserNameForm = ({ user }: { user: SessionUser }) => {
 
   const trimmedName = name.trim();
   const originalName = user.name ?? '';
-  const isSaveDisabled =
-    !user.id || !trimmedName || trimmedName === originalName || isPending;
+  const isSaveDisabled = !user.id || !trimmedName || trimmedName === originalName || isPending;
 
   return (
     <div>
@@ -88,12 +87,7 @@ const UserNameForm = ({ user }: { user: SessionUser }) => {
           title={error ?? undefined}
           value={name}
         />
-        <Button
-          disabled={isSaveDisabled}
-          size="sm"
-          type="submit"
-          variant="secondary"
-        >
+        <Button disabled={isSaveDisabled} size="sm" type="submit" variant="secondary">
           Save
         </Button>
       </form>

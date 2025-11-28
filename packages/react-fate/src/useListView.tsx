@@ -1,16 +1,5 @@
-import {
-  ConnectionMetadata,
-  ConnectionTag,
-  isViewTag,
-  Pagination,
-  type View,
-} from '@nkzw/fate';
-import {
-  useCallback,
-  useDeferredValue,
-  useMemo,
-  useSyncExternalStore,
-} from 'react';
+import { ConnectionMetadata, ConnectionTag, isViewTag, Pagination, type View } from '@nkzw/fate';
+import { useCallback, useDeferredValue, useMemo, useSyncExternalStore } from 'react';
 import { useFateClient } from './context.tsx';
 
 type ConnectionItems<C> = C extends { items?: ReadonlyArray<infer Item> }
@@ -40,10 +29,7 @@ const getNodeView = (view: ConnectionSelection) => {
  * helpers to load the next or previous page.
  */
 export function useListView<
-  C extends
-    | { items?: ReadonlyArray<any>; pagination?: Pagination }
-    | null
-    | undefined,
+  C extends { items?: ReadonlyArray<any>; pagination?: Pagination } | null | undefined,
 >(
   selection: ConnectionSelection,
   connection: C,
@@ -52,9 +38,7 @@ export function useListView<
   const nodeView = useMemo(() => getNodeView(selection), [selection]);
   const metadata =
     connection && typeof connection === 'object'
-      ? ((connection as Record<symbol, unknown>)[ConnectionTag] as
-          | ConnectionMetadata
-          | undefined)
+      ? ((connection as Record<symbol, unknown>)[ConnectionTag] as ConnectionMetadata | undefined)
       : null;
 
   const subscribe = useCallback(
@@ -76,9 +60,7 @@ export function useListView<
     return client.store.getListState(metadata.key);
   }, [client, metadata]);
 
-  const listState = useDeferredValue(
-    useSyncExternalStore(subscribe, getSnapshot, getSnapshot),
-  );
+  const listState = useDeferredValue(useSyncExternalStore(subscribe, getSnapshot, getSnapshot));
   const pagination = connection?.pagination ?? listState?.pagination;
   const hasNext = Boolean(pagination?.hasNext);
   const hasPrevious = Boolean(pagination?.hasPrevious);
@@ -127,9 +109,5 @@ export function useListView<
     };
   }, [client, hasPrevious, nodeView, metadata, previousCursor]);
 
-  return [
-    connection?.items as unknown as ConnectionItems<NonNullable<C>>,
-    loadNext,
-    loadPrevious,
-  ];
+  return [connection?.items as unknown as ConnectionItems<NonNullable<C>>, loadNext, loadPrevious];
 }

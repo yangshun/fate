@@ -85,14 +85,12 @@ test('filters nested view selections based on ref tags', () => {
     [ViewsTag]: new Set([postViewTag, authorViewTag]),
   } as const;
 
-  expect(getSelectionPlan(PostView, refWithoutAuthor).paths)
-    .toMatchInlineSnapshot(`
+  expect(getSelectionPlan(PostView, refWithoutAuthor).paths).toMatchInlineSnapshot(`
     Set {
       "content",
     }
   `);
-  expect(getSelectionPlan(PostView, refWithAuthor).paths)
-    .toMatchInlineSnapshot(`
+  expect(getSelectionPlan(PostView, refWithAuthor).paths).toMatchInlineSnapshot(`
     Set {
       "author.email",
       "author.id",

@@ -6,13 +6,7 @@ const FateContext = createContext<FateClientT | null>(null);
 /**
  * Provider component that supplies a configured `FateClient` to React hooks.
  */
-export function FateClient({
-  children,
-  client,
-}: {
-  children: ReactNode;
-  client: FateClientT;
-}) {
+export function FateClient({ children, client }: { children: ReactNode; client: FateClientT }) {
   return <FateContext value={client}>{children}</FateContext>;
 }
 

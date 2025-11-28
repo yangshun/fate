@@ -35,11 +35,7 @@ export const EventView = view<Event>()({
   type: true,
 });
 
-const EventAttendeeChip = ({
-  attendee: attendeeRef,
-}: {
-  attendee: ViewRef<'EventAttendee'>;
-}) => {
+const EventAttendeeChip = ({ attendee: attendeeRef }: { attendee: ViewRef<'EventAttendee'> }) => {
   const attendee = useView(EventAttendeeView, attendeeRef);
   const user = useView(UserView, attendee.user);
 
@@ -57,14 +53,9 @@ const intlFormatDateTime = new Intl.DateTimeFormat(undefined, {
   month: 'short',
 });
 
-const formatDateTime = (date: string) =>
-  intlFormatDateTime.format(new Date(date));
+const formatDateTime = (date: string) => intlFormatDateTime.format(new Date(date));
 
-export default function EventCard({
-  event: eventRef,
-}: {
-  event: ViewRef<'Event'>;
-}) {
+export default function EventCard({ event: eventRef }: { event: ViewRef<'Event'> }) {
   const event = useView(EventView, eventRef);
   const host = useView(UserView, event.host);
   const attendees = event.attendees?.items ?? [];
@@ -75,9 +66,7 @@ export default function EventCard({
       <VStack gap={12}>
         <Stack alignCenter between gap={12}>
           <div>
-            <h4 className="text-foreground text-base font-semibold">
-              {event.name}
-            </h4>
+            <h4 className="text-foreground text-base font-semibold">{event.name}</h4>
             <p className="text-muted-foreground text-sm">{event.description}</p>
           </div>
           <Badge variant="secondary">{formatLabel(event.type)}</Badge>
@@ -95,15 +84,12 @@ export default function EventCard({
         <Stack alignCenter gap={8}>
           <Users className="text-muted-foreground" size={14} />
           <span className="text-foreground/80 text-sm">
-            {event.attendingCount ?? attendees.length} attending · capacity{' '}
-            {event.capacity}
+            {event.attendingCount ?? attendees.length} attending · capacity {event.capacity}
           </span>
         </Stack>
         <Stack alignCenter gap={8}>
           <ArrowUpRight className="text-muted-foreground" size={14} />
-          <span className="text-foreground/80 text-sm">
-            Hosted by {host?.name ?? 'Unknown'}
-          </span>
+          <span className="text-foreground/80 text-sm">Hosted by {host?.name ?? 'Unknown'}</span>
         </Stack>
         {topics.length ? (
           <Stack gap wrap>
@@ -116,9 +102,7 @@ export default function EventCard({
         ) : null}
         {attendees.length ? (
           <VStack gap={8}>
-            <span className="text-muted-foreground text-xs">
-              Community RSVPs
-            </span>
+            <span className="text-muted-foreground text-xs">Community RSVPs</span>
             <Stack gap={8} wrap>
               {attendees.slice(0, 4).map(({ node }) => (
                 <EventAttendeeChip attendee={node} key={node.id} />

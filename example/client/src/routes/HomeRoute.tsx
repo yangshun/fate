@@ -17,11 +17,7 @@ const PostFeed = ({ posts }: { posts: Array<ViewRef<'Post'>> }) => (
   </VStack>
 );
 
-const CategoryFeed = ({
-  categories,
-}: {
-  categories: Array<ViewRef<'Category'>>;
-}) =>
+const CategoryFeed = ({ categories }: { categories: Array<ViewRef<'Category'>> }) =>
   categories.length ? (
     <VStack gap={16}>
       <H3>Explore by theme</H3>

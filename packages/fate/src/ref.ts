@@ -8,11 +8,7 @@ import {
   ViewRef,
   ViewsTag,
 } from './types.ts';
-import {
-  getSelectionViewNames,
-  getViewNames,
-  getViewPayloads,
-} from './view.ts';
+import { getSelectionViewNames, getViewNames, getViewPayloads } from './view.ts';
 
 /**
  * Builds the canonical cache ID for an entity.
@@ -25,9 +21,7 @@ export const toEntityId = (type: TypeName, rawId: string | number): EntityId =>
  */
 export function parseEntityId(id: EntityId) {
   const idx = id.indexOf(':');
-  return idx < 0
-    ? { id, type: '' }
-    : ({ id: id.slice(idx + 1), type: id.slice(0, idx) } as const);
+  return idx < 0 ? { id, type: '' } : ({ id: id.slice(idx + 1), type: id.slice(0, idx) } as const);
 }
 
 /**
@@ -57,11 +51,7 @@ const getRootViewNames = (view: View<any, any>) => {
  * Creates an immutable `ViewRef` for an entity, tagging it with all views from
  * the provided composition so `useView` can resolve the ref against a view.
  */
-export default function createRef<
-  T extends Entity,
-  S extends Selection<T>,
-  V extends View<T, S>,
->(
+export default function createRef<T extends Entity, S extends Selection<T>, V extends View<T, S>>(
   __typename: string,
   id: string | number,
   view: V,

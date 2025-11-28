@@ -104,11 +104,7 @@ function SelectLabel({ className, ...props }: ComponentProps<typeof Label>) {
   );
 }
 
-function SelectItem({
-  children,
-  className,
-  ...props
-}: ComponentProps<typeof Item>) {
+function SelectItem({ children, className, ...props }: ComponentProps<typeof Item>) {
   return (
     <Item
       className={cx(
@@ -128,10 +124,7 @@ function SelectItem({
   );
 }
 
-function SelectSeparator({
-  className,
-  ...props
-}: ComponentProps<typeof Separator>) {
+function SelectSeparator({ className, ...props }: ComponentProps<typeof Separator>) {
   return (
     <Separator
       className={cx('bg-border pointer-events-none -mx-1 my-1 h-px', className)}
@@ -141,16 +134,10 @@ function SelectSeparator({
   );
 }
 
-function SelectScrollUpButton({
-  className,
-  ...props
-}: ComponentProps<typeof ScrollUpButton>) {
+function SelectScrollUpButton({ className, ...props }: ComponentProps<typeof ScrollUpButton>) {
   return (
     <ScrollUpButton
-      className={cx(
-        'flex cursor-default items-center justify-center py-1',
-        className,
-      )}
+      className={cx('flex cursor-default items-center justify-center py-1', className)}
       data-slot="select-scroll-up-button"
       {...props}
     >
@@ -159,16 +146,10 @@ function SelectScrollUpButton({
   );
 }
 
-function SelectScrollDownButton({
-  className,
-  ...props
-}: ComponentProps<typeof ScrollDownButton>) {
+function SelectScrollDownButton({ className, ...props }: ComponentProps<typeof ScrollDownButton>) {
   return (
     <ScrollDownButton
-      className={cx(
-        'flex cursor-default items-center justify-center py-1',
-        className,
-      )}
+      className={cx('flex cursor-default items-center justify-center py-1', className)}
       data-slot="select-scroll-down-button"
       {...props}
     >

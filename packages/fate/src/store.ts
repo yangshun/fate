@@ -21,11 +21,8 @@ type Subscription = Readonly<{ fn: () => void; mask: FieldMask | null }>;
 
 export type Subscriptions = Map<EntityId, Set<Subscription>>;
 
-export const getListKey = (
-  ownerId: EntityId,
-  field: string,
-  hash = 'default',
-): string => `${ownerId} __fate__ ${field} __fate__ ${hash}`;
+export const getListKey = (ownerId: EntityId, field: string, hash = 'default'): string =>
+  `${ownerId} __fate__ ${field} __fate__ ${hash}`;
 
 const cloneValue = (value: unknown): unknown => {
   if (Array.isArray(value)) {
@@ -120,11 +117,7 @@ export class Store {
     return diffPaths(requested, mask);
   }
 
-  subscribe(
-    id: EntityId,
-    selection: ReadonlySet<string> | null,
-    fn: () => void,
-  ): () => void;
+  subscribe(id: EntityId, selection: ReadonlySet<string> | null, fn: () => void): () => void;
 
   subscribe(id: EntityId, fn: () => void): () => void;
 
@@ -172,8 +165,7 @@ export class Store {
     }
 
     const changedPaths = paths ? [...paths] : [];
-    const changedMask =
-      changedPaths.length > 0 ? fromPaths(changedPaths) : null;
+    const changedMask = changedPaths.length > 0 ? fromPaths(changedPaths) : null;
 
     for (const { fn, mask } of set) {
       if (mask && changedMask && !intersects(changedMask, mask)) {
@@ -211,10 +203,7 @@ export class Store {
     return this.lists.get(key);
   }
 
-  getListsForField(
-    ownerId: EntityId,
-    field: string,
-  ): Array<readonly [string, List]> {
+  getListsForField(ownerId: EntityId, field: string): Array<readonly [string, List]> {
     const entries: Array<readonly [string, List]> = [];
     const prefix = getListKey(ownerId, field, '');
     for (const entry of this.lists.entries()) {
@@ -277,9 +266,7 @@ export class Store {
       }
 
       const entityIds: Array<EntityId> = [];
-      const cursors = list.cursors
-        ? ([] as Array<string | undefined>)
-        : undefined;
+      const cursors = list.cursors ? ([] as Array<string | undefined>) : undefined;
 
       for (let index = 0; index < ids.length; index++) {
         const id = ids[index];

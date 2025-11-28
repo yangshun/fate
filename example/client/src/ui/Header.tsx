@@ -20,9 +20,7 @@ export default function Header() {
       >
         <Link
           onClick={() =>
-            pathname !== '/' && history.state?.idx > 0
-              ? navigate(-1)
-              : navigate('/')
+            pathname !== '/' && history.state?.idx > 0 ? navigate(-1) : navigate('/')
           }
           to="/"
         >

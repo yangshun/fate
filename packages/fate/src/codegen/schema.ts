@@ -9,12 +9,8 @@ type FateTypeConfig = {
   type: string;
 };
 
-const isDataViewField = (
-  field: unknown,
-): field is DataView<AnyRecord, unknown> =>
-  Boolean(field) &&
-  typeof field === 'object' &&
-  'fields' in (field as AnyRecord);
+const isDataViewField = (field: unknown): field is DataView<AnyRecord, unknown> =>
+  Boolean(field) && typeof field === 'object' && 'fields' in (field as AnyRecord);
 
 type ListConfig =
   | DataView<AnyRecord, unknown>
@@ -32,10 +28,7 @@ export const createFateSchema = (
   lists: Record<string, ListConfig>,
 ) => {
   const canonicalViews = new Map<string, DataView<AnyRecord, unknown>>();
-  const entities: Record<
-    string,
-    { list?: string; listProcedure?: string; type: string }
-  > = {};
+  const entities: Record<string, { list?: string; listProcedure?: string; type: string }> = {};
   const fateTypes = new Map<string, FateTypeConfig>();
   const processing = new Set<string>();
 
@@ -60,10 +53,7 @@ export const createFateSchema = (
     for (const [field, child] of Object.entries(canonicalView.fields)) {
       if (isDataViewField(child)) {
         const relationType = ensureType(child);
-        fields[field] =
-          child.kind === 'list'
-            ? { listOf: relationType }
-            : { type: relationType };
+        fields[field] = child.kind === 'list' ? { listOf: relationType } : { type: relationType };
       }
     }
 

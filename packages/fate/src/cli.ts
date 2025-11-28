@@ -23,13 +23,9 @@ Generates the fate client from the server's tRPC router.
 }
 
 const formatRelation = (value: { listOf?: string; type?: string }) =>
-  'listOf' in value
-    ? `{ listOf: '${value.listOf}' }`
-    : `{ type: '${value.type}' }`;
+  'listOf' in value ? `{ listOf: '${value.listOf}' }` : `{ type: '${value.type}' }`;
 
-const formatTypes = (
-  types: ReadonlyArray<{ fields?: Record<string, any>; type: string }>,
-) => {
+const formatTypes = (types: ReadonlyArray<{ fields?: Record<string, any>; type: string }>) => {
   if (!types.length) {
     return '[]';
   }
@@ -59,9 +55,7 @@ const indentBlock = (value: string, spaces: number) =>
 const generate = async () => {
   console.log(styleText('bold', `Generating fate client…\n`));
 
-  const [{ appRouter, Lists, ...dataViews }] = await Promise.all([
-    import(moduleName),
-  ]);
+  const [{ appRouter, Lists, ...dataViews }] = await Promise.all([import(moduleName)]);
 
   const { entities, types } = createFateSchema(Object.values(dataViews), Lists);
 
@@ -82,18 +76,13 @@ const generate = async () => {
 
   for (const [router, procedures] of Object.entries(routerRecord)) {
     const entity = (
-      entities as Record<
-        string,
-        { list?: string; listProcedure?: string; type: string }
-      >
+      entities as Record<string, { list?: string; listProcedure?: string; type: string }>
     )[router];
     if (!entity) {
       continue;
     }
 
-    for (const [procedureName, procedure] of Object.entries(
-      procedures as Record<string, any>,
-    )) {
+    for (const [procedureName, procedure] of Object.entries(procedures as Record<string, any>)) {
       const type = procedure?._def?.type;
       if (!type) {
         continue;
@@ -179,10 +168,7 @@ const generate = async () => {
     6,
   );
 
-  const mutationResolverBlock = indentBlock(
-    mutationResolverLines.join('\n'),
-    4,
-  );
+  const mutationResolverBlock = indentBlock(mutationResolverLines.join('\n'), 4);
   const mutationConfigBlock = indentBlock(mutationConfigLines.join('\n'), 6);
   const byIdBlock = indentBlock(byIdLines.join('\n'), 8);
   const listsBlockContent = listLines.join('\n');
@@ -228,10 +214,7 @@ ${listsBlock}      mutations,
   const outputPath = path.join(root, targetFile);
   writeFileSync(outputPath, source);
   console.log(
-    styleText(
-      'green',
-      `  \u2713 fate client generated at '${path.relative(root, outputPath)}'.`,
-    ),
+    styleText('green', `  \u2713 fate client generated at '${path.relative(root, outputPath)}'.`),
   );
 };
 

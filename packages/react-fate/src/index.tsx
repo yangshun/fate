@@ -1,10 +1,4 @@
-export {
-  createClient,
-  createTRPCTransport,
-  mutation,
-  type ViewRef,
-  view,
-} from '@nkzw/fate';
+export { createClient, createTRPCTransport, mutation, type ViewRef, view } from '@nkzw/fate';
 
 export { FateClient, useFateClient } from './context.tsx';
 export { useView } from './useView.tsx';

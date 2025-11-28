@@ -13,11 +13,7 @@ import { getViewTag, isViewTag, ViewKind, ViewsTag } from './types.ts';
 /**
  * Collects all view payloads that apply to the given ref.
  */
-export const getViewPayloads = <
-  T extends Entity,
-  S extends Selection<T>,
-  V extends View<T, S>,
->(
+export const getViewPayloads = <T extends Entity, S extends Selection<T>, V extends View<T, S>>(
   view: V,
   ref: ViewRef<T['__typename']> | null,
 ): ReadonlyArray<ViewPayload<T, S>> => {
@@ -33,11 +29,7 @@ export const getViewPayloads = <
 /**
  * Returns the set of view tags defined on a view composition.
  */
-export const getViewNames = <
-  T extends Entity,
-  S extends Selection<T>,
-  V extends View<T, S>,
->(
+export const getViewNames = <T extends Entity, S extends Selection<T>, V extends View<T, S>>(
   view: V,
 ): ReadonlySet<ViewTag> => {
   const result = new Set<ViewTag>();
@@ -80,9 +72,7 @@ type SelectionValidation<T extends Entity, S extends Selection<T>> =
 export function view<T extends Entity>() {
   const viewId = id++;
 
-  return <S extends Selection<T>>(
-    select: S & SelectionValidation<T, S>,
-  ): View<T, S> => {
+  return <S extends Selection<T>>(select: S & SelectionValidation<T, S>): View<T, S> => {
     const payload = Object.freeze({
       select,
       [ViewKind]: true,

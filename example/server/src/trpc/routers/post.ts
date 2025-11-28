@@ -11,10 +11,7 @@ import { createConnectionProcedure } from '../connection.ts';
 import { procedure, router } from '../init.ts';
 import { postDataView, PostItem } from '../views.ts';
 
-const transformPost = (
-  { comments, tags, ...post }: PostItem,
-  args?: Record<string, unknown>,
-) => ({
+const transformPost = ({ comments, tags, ...post }: PostItem, args?: Record<string, unknown>) => ({
   ...post,
   comments: arrayToConnection(comments, {
     args: getScopedArgs(args, 'comments'),

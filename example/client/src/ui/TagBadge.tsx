@@ -16,10 +16,7 @@ export default function TagBadge({ tag: tagRef }: { tag: ViewRef<'Tag'> }) {
   }
 
   return (
-    <Badge
-      className="bg-secondary/70 text-secondary-foreground"
-      variant="secondary"
-    >
+    <Badge className="bg-secondary/70 text-secondary-foreground" variant="secondary">
       #{tag.name}
     </Badge>
   );

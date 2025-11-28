@@ -20,10 +20,7 @@ type WalkContext = 'default' | 'connection';
  * flat set of field paths to read or fetch.
  */
 export type SelectionPlan = {
-  readonly args: Map<
-    string,
-    { hash: string; ignoreKeys?: ReadonlySet<string>; value: AnyRecord }
-  >;
+  readonly args: Map<string, { hash: string; ignoreKeys?: ReadonlySet<string>; value: AnyRecord }>;
   readonly paths: Set<string>;
 };
 
@@ -34,11 +31,7 @@ const isConnectionSelection = (value: AnyRecord): boolean =>
  * Flattens a view into a `SelectionPlan`, expanding composed views and
  * partitioning nested args so the client can fetch exactly what is declared.
  */
-export const getSelectionPlan = <
-  T extends Entity,
-  S extends Selection<T>,
-  V extends View<T, S>,
->(
+export const getSelectionPlan = <T extends Entity, S extends Selection<T>, V extends View<T, S>>(
   viewComposition: V,
   ref: ViewRef<T['__typename']> | null,
 ): SelectionPlan => {
@@ -48,20 +41,12 @@ export const getSelectionPlan = <
   >();
   const paths = new Set<string>();
 
-  const assignArgs = (
-    path: string,
-    value: AnyRecord,
-    ignoreKeys?: ReadonlySet<string>,
-  ) => {
+  const assignArgs = (path: string, value: AnyRecord, ignoreKeys?: ReadonlySet<string>) => {
     const hash = hashArgs(value, { ignoreKeys });
     args.set(path, { hash, ignoreKeys, value });
   };
 
-  const walk = (
-    selection: AnyRecord,
-    prefix: string | null,
-    context: WalkContext = 'default',
-  ) => {
+  const walk = (selection: AnyRecord, prefix: string | null, context: WalkContext = 'default') => {
     for (const [key, value] of Object.entries(selection)) {
       const valueType = typeof value;
       const path = prefix ? `${prefix}.${key}` : key;
@@ -110,8 +95,7 @@ export const getSelectionPlan = <
           if (selectionObject.args && isRecord(selectionObject.args)) {
             const clonedArgs = cloneArgs(selectionObject.args, path);
             const ignoreKeys =
-              isRecord(selectionObject.items) &&
-              isRecord(selectionObject.items.node)
+              isRecord(selectionObject.items) && isRecord(selectionObject.items.node)
                 ? paginationKeys
                 : undefined;
             assignArgs(path, clonedArgs, ignoreKeys);
@@ -127,8 +111,7 @@ export const getSelectionPlan = <
         if (hasArgs) {
           const clonedArgs = cloneArgs(selectionObject.args as AnyRecord, path);
           const ignoreKeys =
-            isRecord(selectionObject.items) &&
-            isRecord(selectionObject.items?.node)
+            isRecord(selectionObject.items) && isRecord(selectionObject.items?.node)
               ? paginationKeys
               : undefined;
           assignArgs(path, clonedArgs, ignoreKeys);

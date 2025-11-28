@@ -9,13 +9,7 @@ import {
   ViewSnapshot,
   ViewTag,
 } from '@nkzw/fate';
-import {
-  use,
-  useCallback,
-  useDeferredValue,
-  useRef,
-  useSyncExternalStore,
-} from 'react';
+import { use, useCallback, useDeferredValue, useRef, useSyncExternalStore } from 'react';
 import { useFateClient } from './context.tsx';
 
 type ViewEntityWithTypename<V extends View<any, any>> = ViewEntity<V> & {
@@ -34,18 +28,11 @@ export function useView<V extends View<any, any>>(
 ): ViewData<ViewEntityWithTypename<V>, ViewSelection<V>> {
   const client = useFateClient();
 
-  const snapshotRef = useRef<ViewSnapshot<
-    ViewEntity<V>,
-    V[ViewTag]['select']
-  > | null>(null);
+  const snapshotRef = useRef<ViewSnapshot<ViewEntity<V>, V[ViewTag]['select']> | null>(null);
 
   const getSnapshot = useCallback(() => {
-    const snapshot = client.readView<ViewEntity<V>, V[ViewTag]['select'], V>(
-      view,
-      ref,
-    );
-    snapshotRef.current =
-      snapshot.status === 'fulfilled' ? snapshot.value : null;
+    const snapshot = client.readView<ViewEntity<V>, V[ViewTag]['select'], V>(view, ref);
+    snapshotRef.current = snapshot.status === 'fulfilled' ? snapshot.value : null;
     return snapshot;
   }, [client, view, ref]);
 
@@ -60,10 +47,7 @@ export function useView<V extends View<any, any>>(
 
       const subscribe = (entityId: EntityId, paths: ReadonlySet<string>) => {
         if (!subscriptions.has(entityId)) {
-          subscriptions.set(
-            entityId,
-            client.store.subscribe(entityId, paths, onChange),
-          );
+          subscriptions.set(entityId, client.store.subscribe(entityId, paths, onChange));
         }
       };
 
@@ -102,9 +86,7 @@ export function useView<V extends View<any, any>>(
 
   return (
     use(
-      useDeferredValue(
-        useSyncExternalStore(subscribe, getSnapshot, getSnapshot),
-      ),
+      useDeferredValue(useSyncExternalStore(subscribe, getSnapshot, getSnapshot)),
     ) as ViewSnapshot<ViewEntity<V>, ViewSelection<V>>
   ).data;
 }

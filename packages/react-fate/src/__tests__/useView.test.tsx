@@ -208,9 +208,7 @@ test('re-renders when a mutation updates the record', async () => {
   };
 
   const { promise, resolve } = Promise.withResolvers<Post>();
-  const mutate: NonNullable<Transport<UpdateMutations>['mutate']> = vi.fn(
-    () => promise,
-  );
+  const mutate: NonNullable<Transport<UpdateMutations>['mutate']> = vi.fn(() => promise);
 
   const client = createClient({
     mutations: {
@@ -222,10 +220,7 @@ test('re-renders when a mutation updates the record', async () => {
       },
       mutate,
     },
-    types: [
-      { fields: { author: { type: 'User' } }, type: 'Post' },
-      { type: 'User' },
-    ],
+    types: [{ fields: { author: { type: 'User' } }, type: 'Post' }, { type: 'User' }],
   });
 
   const userSelection = new Set(['id', 'name']);
@@ -325,13 +320,7 @@ test('re-renders when a mutation updates the record', async () => {
   });
 
   expect(container.textContent).toBe('Published');
-  expect(renders).toEqual([
-    'Draft',
-    'Draft',
-    'Optimistic',
-    'Optimistic',
-    'Published',
-  ]);
+  expect(renders).toEqual(['Draft', 'Draft', 'Optimistic', 'Optimistic', 'Published']);
   expect(mutate).toHaveBeenCalledTimes(1);
 });
 
@@ -343,9 +332,7 @@ test('rolls back optimistic updates when a mutation fails', async () => {
   };
 
   const { promise, reject } = Promise.withResolvers<UpdatePostResult>();
-  const mutate: NonNullable<Transport<FailedUpdateMutations>['mutate']> = vi.fn(
-    () => promise,
-  );
+  const mutate: NonNullable<Transport<FailedUpdateMutations>['mutate']> = vi.fn(() => promise);
 
   const client = createClient({
     mutations: {
@@ -357,10 +344,7 @@ test('rolls back optimistic updates when a mutation fails', async () => {
       },
       mutate,
     },
-    types: [
-      { fields: { author: { type: 'User' } }, type: 'Post' },
-      { type: 'User' },
-    ],
+    types: [{ fields: { author: { type: 'User' } }, type: 'Post' }, { type: 'User' }],
   });
 
   const userSelection = new Set(['id', 'name']);
@@ -451,13 +435,7 @@ test('rolls back optimistic updates when a mutation fails', async () => {
   });
 
   expect(container.textContent).toBe('Draft');
-  expect(renders).toEqual([
-    'Draft',
-    'Draft',
-    'Optimistic',
-    'Optimistic',
-    'Draft',
-  ]);
+  expect(renders).toEqual(['Draft', 'Draft', 'Optimistic', 'Optimistic', 'Draft']);
   expect(mutate).toHaveBeenCalledTimes(1);
 });
 

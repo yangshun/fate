@@ -21,24 +21,14 @@ const CommentSearchView = view<Comment>()({
   post: CommentPostView,
 });
 
-const CommentResult = ({
-  comment: commentRef,
-}: {
-  comment: ViewRef<'Comment'>;
-}) => {
+const CommentResult = ({ comment: commentRef }: { comment: ViewRef<'Comment'> }) => {
   const comment = useView(CommentSearchView, commentRef);
   const post = useView(CommentPostView, comment.post);
 
   return <CommentCard comment={comment} link post={post} />;
 };
 
-const SearchResults = ({
-  isStale,
-  query,
-}: {
-  isStale: boolean;
-  query: string;
-}) => {
+const SearchResults = ({ isStale, query }: { isStale: boolean; query: string }) => {
   const { commentSearch } = useRequest({
     commentSearch: {
       args: { query },
@@ -79,16 +69,12 @@ export default function Search() {
           ref={(ref) => ref?.focus()}
           value={query}
         />
-        <div className="text-muted-foreground text-xs">
-          500ms artificial slowdown
-        </div>
+        <div className="text-muted-foreground text-xs">500ms artificial slowdown</div>
       </Stack>
 
       <ErrorBoundary FallbackComponent={Error}>
         <Suspense fallback={<h2>Thinking…</h2>}>
-          {query.trim().length > 0 ? (
-            <SearchResults isStale={isStale} query={query} />
-          ) : null}
+          {query.trim().length > 0 ? <SearchResults isStale={isStale} query={query} /> : null}
         </Suspense>
       </ErrorBoundary>
     </Card>

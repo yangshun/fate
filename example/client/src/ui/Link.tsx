@@ -1,9 +1,5 @@
 import { AnchorHTMLAttributes } from 'react';
-import {
-  LinkProps as LinkPropsT,
-  Link as ReactRouterLink,
-  useLocation,
-} from 'react-router';
+import { LinkProps as LinkPropsT, Link as ReactRouterLink, useLocation } from 'react-router';
 
 export type LinkProps = LinkPropsT & AnchorHTMLAttributes<HTMLAnchorElement>;
 

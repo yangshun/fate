@@ -37,9 +37,7 @@ type Post = {
 const tagsFor = (...views: Array<View<any, any>>) =>
   new Set(views.flatMap((view) => Array.from(getViewNames(view))));
 
-const unwrap = <T extends ViewSnapshot<any, any>>(
-  value: FateThenable<T>,
-): T['data'] => {
+const unwrap = <T extends ViewSnapshot<any, any>>(value: FateThenable<T>): T['data'] => {
   if (value.status === 'fulfilled') {
     return value.value.data;
   }
@@ -48,12 +46,9 @@ const unwrap = <T extends ViewSnapshot<any, any>>(
 };
 
 const getNodeRefIds = (value: unknown) =>
-  Array.isArray(value)
-    ? value.map((item) => (isNodeRef(item) ? getNodeRefId(item) : item))
-    : [];
+  Array.isArray(value) ? value.map((item) => (isNodeRef(item) ? getNodeRefId(item) : item)) : [];
 
-const createNodeRefs = (ids: Array<string>) =>
-  ids.map((id) => createNodeRef(id));
+const createNodeRefs = (ids: Array<string>) => ids.map((id) => createNodeRef(id));
 
 test(`'readView' returns the selected fields`, () => {
   const client = createClient({
@@ -90,10 +85,7 @@ test(`'readView' returns the selected fields`, () => {
   const postRef = client.ref<Post>('Post', 'post-1', PostView);
 
   const result = unwrap(
-    client.readView<Post, SelectionOf<typeof PostView>, typeof PostView>(
-      PostView,
-      postRef,
-    ),
+    client.readView<Post, SelectionOf<typeof PostView>, typeof PostView>(PostView, postRef),
   );
 
   expectTypeOf(result).toEqualTypeOf<
@@ -180,10 +172,7 @@ test(`'readView' returns view refs when views are used`, () => {
   const postRef = client.ref<Post>('Post', 'post-1', PostView);
 
   const result = unwrap(
-    client.readView<Post, SelectionOf<typeof PostView>, typeof PostView>(
-      PostView,
-      postRef,
-    ),
+    client.readView<Post, SelectionOf<typeof PostView>, typeof PostView>(PostView, postRef),
   );
 
   expect(result.id).toBe('post-1');
@@ -255,10 +244,7 @@ test(`'readView' returns view refs for list selections`, () => {
   const postRef = client.ref<Post>('Post', 'post-1', PostView);
 
   const result = unwrap(
-    client.readView<Post, SelectionOf<typeof PostView>, typeof PostView>(
-      PostView,
-      postRef,
-    ),
+    client.readView<Post, SelectionOf<typeof PostView>, typeof PostView>(PostView, postRef),
   );
 
   expect(result.id).toBe('post-1');
@@ -337,10 +323,7 @@ test(`'readView' returns only directly selected fields when view spreads are use
   const postRef = client.ref<Post>('Post', 'post-1', PostView);
 
   const result = unwrap(
-    client.readView<Post, SelectionOf<typeof PostView>, typeof PostView>(
-      PostView,
-      postRef,
-    ),
+    client.readView<Post, SelectionOf<typeof PostView>, typeof PostView>(PostView, postRef),
   );
 
   expect(result.id).toBe('post-1');
@@ -352,9 +335,7 @@ test(`'readView' returns only directly selected fields when view spreads are use
     id: 'comment-1',
   });
 
-  expect(comment[ViewsTag]).toEqual(
-    tagsFor(CommentMetaView, CommentContentView),
-  );
+  expect(comment[ViewsTag]).toEqual(tagsFor(CommentMetaView, CommentContentView));
 });
 
 test(`'readView' resolves object references and their views`, () => {
@@ -403,11 +384,10 @@ test(`'readView' resolves object references and their views`, () => {
   const commentRef = client.ref<Comment>('Comment', 'comment-1', CommentView);
 
   const result = unwrap(
-    client.readView<
-      Comment,
-      SelectionOf<typeof CommentView>,
-      typeof CommentView
-    >(CommentView, commentRef),
+    client.readView<Comment, SelectionOf<typeof CommentView>, typeof CommentView>(
+      CommentView,
+      commentRef,
+    ),
   );
 
   expect(result.id).toBe('comment-1');
@@ -457,10 +437,7 @@ test(`'readView' resolves fields only if the ref contains the expected views`, (
 
   type PostContentSelection = SelectionOf<typeof PostContentView>;
   const resultA = unwrap(
-    client.readView<Post, PostContentSelection, typeof PostContentView>(
-      PostContentView,
-      postRef,
-    ),
+    client.readView<Post, PostContentSelection, typeof PostContentView>(PostContentView, postRef),
   );
 
   // @ts-expect-error `id` was not selected in the view.
@@ -469,10 +446,7 @@ test(`'readView' resolves fields only if the ref contains the expected views`, (
 
   // `postRef` contains a ref to `PostContentView`, not `PostView`.
   expect(() =>
-    client.readView<Post, PostContentSelection, typeof PostView>(
-      PostView,
-      postRef,
-    ),
+    client.readView<Post, PostContentSelection, typeof PostView>(PostView, postRef),
   ).toThrowError(/Invalid view reference/);
 
   const FullPostView = {
@@ -609,23 +583,19 @@ test(`'deleteRecord' removes an entity and cleans references`, () => {
 });
 
 test(`delete mutations can select a view and update related entities`, async () => {
-  const mutate = vi.fn(
-    async (_key, input: { id: string }, select: Set<string>) => {
-      expect([...select]).toEqual(
-        expect.arrayContaining(['id', 'post.commentCount']),
-      );
+  const mutate = vi.fn(async (_key, input: { id: string }, select: Set<string>) => {
+    expect([...select]).toEqual(expect.arrayContaining(['id', 'post.commentCount']));
 
-      return {
-        __typename: 'Comment',
-        id: input.id,
-        post: {
-          __typename: 'Post',
-          commentCount: 1,
-          id: 'post-1',
-        },
-      };
-    },
-  );
+    return {
+      __typename: 'Comment',
+      id: input.id,
+      post: {
+        __typename: 'Post',
+        commentCount: 1,
+        id: 'post-1',
+      },
+    };
+  });
 
   const client = createClient({
     mutations: {
@@ -728,11 +698,10 @@ test(`'readView' resolves nested selections without view spreads`, () => {
   const commentRef = client.ref<Comment>('Comment', 'comment-1', CommentView);
 
   const result = unwrap(
-    client.readView<
-      Comment,
-      SelectionOf<typeof CommentView>,
-      typeof CommentView
-    >(CommentView, commentRef),
+    client.readView<Comment, SelectionOf<typeof CommentView>, typeof CommentView>(
+      CommentView,
+      commentRef,
+    ),
   );
 
   expect(result.id).toBe('comment-1');
@@ -757,22 +726,16 @@ test('mutations write their responses into the store', async () => {
         return [];
       },
       // @ts-expect-error
-      mutate: vi.fn(
-        async (
-          procedure: string,
-          input: UpdateUserInput,
-          select: Set<string>,
-        ) => {
-          expect(procedure).toBe('updateUser');
-          expect(input).toEqual({ id: 'user-1', name: 'Banana' });
-          expect(new Set(select)).toEqual(new Set(['id', 'name']));
-          return {
-            __typename: 'User',
-            id: 'user-1',
-            name: 'Banana',
-          } satisfies UpdateUserResult;
-        },
-      ),
+      mutate: vi.fn(async (procedure: string, input: UpdateUserInput, select: Set<string>) => {
+        expect(procedure).toBe('updateUser');
+        expect(input).toEqual({ id: 'user-1', name: 'Banana' });
+        expect(new Set(select)).toEqual(new Set(['id', 'name']));
+        return {
+          __typename: 'User',
+          id: 'user-1',
+          name: 'Banana',
+        } satisfies UpdateUserResult;
+      }),
     },
     types: [{ type: 'User' }],
   });
@@ -911,9 +874,7 @@ test(`optimistic updates without identifiers are ignored`, async () => {
   type CreatePostInput = { content: string };
   type CreatePostResult = { content: string; id: string };
 
-  const mutate = vi
-    .fn()
-    .mockResolvedValue({ content: 'Published', id: 'post-1' });
+  const mutate = vi.fn().mockResolvedValue({ content: 'Published', id: 'post-1' });
 
   const client = createClient({
     mutations: {
@@ -969,9 +930,7 @@ test('optimistic records are replaced once the mutation resolves', async () => {
 
   const client = createClient({
     mutations: {
-      addComment: mutation<Comment, CreateCommentInput, CreateCommentResult>(
-        'Comment',
-      ),
+      addComment: mutation<Comment, CreateCommentInput, CreateCommentResult>('Comment'),
     },
     transport: {
       async fetchById() {
@@ -1027,9 +986,7 @@ test('optimistic records are replaced once the mutation resolves', async () => {
 
   await promise;
 
-  expect(
-    client.store.read(toEntityId('Comment', optimisticId)),
-  ).toBeUndefined();
+  expect(client.store.read(toEntityId('Comment', optimisticId))).toBeUndefined();
   expect(client.store.read(toEntityId('Comment', 'comment-1'))).toMatchObject({
     content: 'Server comment',
     id: 'comment-1',
@@ -1058,21 +1015,14 @@ test('does not fetch missing fields for optimistic records', async () => {
 
   const client = createClient({
     mutations: {
-      addComment: mutation<
-        Comment,
-        { content: string; postId: string },
-        Comment
-      >('Comment'),
+      addComment: mutation<Comment, { content: string; postId: string }, Comment>('Comment'),
     },
     transport: {
       fetchById,
       // @ts-expect-error
       mutate,
     },
-    types: [
-      { fields: { author: { type: 'User' } }, type: 'Comment' },
-      { type: 'User' },
-    ],
+    types: [{ fields: { author: { type: 'User' } }, type: 'Comment' }, { type: 'User' }],
   });
 
   const CommentView = view<Comment>()({
@@ -1146,16 +1096,11 @@ test(`'readView' fetches missing fields using the selection`, async () => {
     transport: {
       fetchById,
     },
-    types: [
-      { fields: { author: { type: 'User' } }, type: 'Post' },
-      { type: 'User' },
-    ],
+    types: [{ fields: { author: { type: 'User' } }, type: 'Post' }, { type: 'User' }],
   });
 
   const postEntityId = toEntityId('Post', 'post-1');
-  client.store.merge(postEntityId, { __typename: 'Post', id: 'post-1' }, [
-    'id',
-  ]);
+  client.store.merge(postEntityId, { __typename: 'Post', id: 'post-1' }, ['id']);
 
   const PostView = view<Post>()({
     author: {
@@ -1168,11 +1113,10 @@ test(`'readView' fetches missing fields using the selection`, async () => {
 
   const postRef = client.ref<Post>('Post', 'post-1', PostView);
 
-  const thenable = client.readView<
-    Post,
-    SelectionOf<typeof PostView>,
-    typeof PostView
-  >(PostView, postRef);
+  const thenable = client.readView<Post, SelectionOf<typeof PostView>, typeof PostView>(
+    PostView,
+    postRef,
+  );
 
   expect(fetchById).toHaveBeenCalledTimes(1);
 
@@ -1210,9 +1154,7 @@ test(`'request' groups ids by selection before fetching`, async () => {
   });
 
   const postEntityId = toEntityId('Post', 'post-1');
-  client.store.merge(postEntityId, { __typename: 'Post', id: 'post-1' }, [
-    'id',
-  ]);
+  client.store.merge(postEntityId, { __typename: 'Post', id: 'post-1' }, ['id']);
 
   const PostView = view<Post>()({
     content: true,
@@ -1228,12 +1170,7 @@ test(`'request' groups ids by selection before fetching`, async () => {
   });
 
   expect(fetchById).toHaveBeenCalledTimes(1);
-  expect(fetchById).toHaveBeenCalledWith(
-    'Post',
-    ['post-1'],
-    new Set(['content', 'id']),
-    undefined,
-  );
+  expect(fetchById).toHaveBeenCalledWith('Post', ['post-1'], new Set(['content', 'id']), undefined);
 });
 
 test(`'request' forwards nested selection args to by-id transports`, async () => {
@@ -1249,10 +1186,7 @@ test(`'request' forwards nested selection args to by-id transports`, async () =>
     transport: {
       fetchById,
     },
-    types: [
-      { fields: { comments: { listOf: 'Comment' } }, type: 'Post' },
-      { type: 'Comment' },
-    ],
+    types: [{ fields: { comments: { listOf: 'Comment' } }, type: 'Post' }, { type: 'Comment' }],
   });
 
   const CommentView = view<Comment>()({ id: true });
@@ -1272,20 +1206,15 @@ test(`'request' forwards nested selection args to by-id transports`, async () =>
     },
   });
 
-  expect(fetchById).toHaveBeenCalledWith(
-    'Post',
-    ['post-1'],
-    new Set(['comments.id', 'id']),
-    { comments: { first: 1 } },
-  );
+  expect(fetchById).toHaveBeenCalledWith('Post', ['post-1'], new Set(['comments.id', 'id']), {
+    comments: { first: 1 },
+  });
 });
 
 test(`'request' fetches view selections via the transport`, async () => {
   const fetchById = vi
     .fn()
-    .mockResolvedValue([
-      { __typename: 'Post', content: 'Apple Banana', id: 'post-1' },
-    ]);
+    .mockResolvedValue([{ __typename: 'Post', content: 'Apple Banana', id: 'post-1' }]);
 
   const client = createClient({
     transport: {
@@ -1318,12 +1247,7 @@ test(`'request' fetches view selections via the transport`, async () => {
   });
 
   expect(fetchById).toHaveBeenCalledTimes(1);
-  expect(fetchById).toHaveBeenCalledWith(
-    'Post',
-    ['post-1'],
-    new Set(['content', 'id']),
-    undefined,
-  );
+  expect(fetchById).toHaveBeenCalledWith('Post', ['post-1'], new Set(['content', 'id']), undefined);
 });
 
 test(`'request' fetches list selections via the transport`, async () => {
@@ -1361,11 +1285,7 @@ test(`'request' fetches list selections via the transport`, async () => {
   });
 
   expect(fetchList).toHaveBeenCalledTimes(1);
-  expect(fetchList).toHaveBeenCalledWith(
-    'comments',
-    new Set(['content', 'id']),
-    { first: 1 },
-  );
+  expect(fetchList).toHaveBeenCalledWith('comments', new Set(['content', 'id']), { first: 1 });
 });
 
 test(`'request' forwards nested selection args to list transports`, async () => {
@@ -1381,10 +1301,7 @@ test(`'request' forwards nested selection args to list transports`, async () => 
       },
       fetchList,
     },
-    types: [
-      { fields: { comments: { listOf: 'Comment' } }, type: 'Post' },
-      { type: 'Comment' },
-    ],
+    types: [{ fields: { comments: { listOf: 'Comment' } }, type: 'Post' }, { type: 'Comment' }],
   });
 
   const CommentView = view<Comment>()({ id: true });
@@ -1404,14 +1321,10 @@ test(`'request' forwards nested selection args to list transports`, async () => 
     },
   });
 
-  expect(fetchList).toHaveBeenCalledWith(
-    'posts',
-    new Set(['comments.id', 'id']),
-    {
-      comments: { first: 1 },
-      first: 1,
-    },
-  );
+  expect(fetchList).toHaveBeenCalledWith('posts', new Set(['comments.id', 'id']), {
+    comments: { first: 1 },
+    first: 1,
+  });
 });
 
 test(`'request' refetches cached data when using 'store-and-network' mode`, async () => {
@@ -1419,9 +1332,7 @@ test(`'request' refetches cached data when using 'store-and-network' mode`, asyn
 
   const fetchById = vi
     .fn()
-    .mockResolvedValue([
-      { __typename: 'Post', content: 'Banana', id: 'post-1' },
-    ]);
+    .mockResolvedValue([{ __typename: 'Post', content: 'Banana', id: 'post-1' }]);
 
   const client = createClient({
     transport: { fetchById },
@@ -1472,9 +1383,7 @@ test(`'request' only fetches once when cache is missing for 'store-and-network'`
 
   const fetchById = vi
     .fn()
-    .mockResolvedValue([
-      { __typename: 'Post', content: 'Banana', id: 'post-1' },
-    ]);
+    .mockResolvedValue([{ __typename: 'Post', content: 'Banana', id: 'post-1' }]);
 
   const client = createClient({
     transport: { fetchById },
@@ -1637,17 +1546,11 @@ test(`'readView' returns list metadata when available`, () => {
   const postRef = client.ref<Post>('Post', 'post-1', PostView);
 
   const result = unwrap(
-    client.readView<Post, SelectionOf<typeof PostView>, typeof PostView>(
-      PostView,
-      postRef,
-    ),
+    client.readView<Post, SelectionOf<typeof PostView>, typeof PostView>(PostView, postRef),
   );
 
   expect(result.comments?.items).toHaveLength(2);
-  expect(result.comments?.items?.map(({ node }) => node?.id)).toEqual([
-    'comment-1',
-    'comment-2',
-  ]);
+  expect(result.comments?.items?.map(({ node }) => node?.id)).toEqual(['comment-1', 'comment-2']);
   expect(result.comments?.items?.[0]?.cursor).toBe('cursor-a');
   expect(result.comments?.items?.[1]?.cursor).toBe('cursor-b');
   expect(result.comments?.pagination).toEqual({
@@ -1670,10 +1573,7 @@ test('stores connection lists using argument hashes', () => {
         return [];
       },
     },
-    types: [
-      { fields: { comments: { listOf: 'Comment' } }, type: 'Post' },
-      { type: 'Comment' },
-    ],
+    types: [{ fields: { comments: { listOf: 'Comment' } }, type: 'Post' }, { type: 'Comment' }],
   });
 
   const CommentView = view<Comment>()({ id: true });
@@ -1705,13 +1605,8 @@ test('stores connection lists using argument hashes', () => {
 
   const postId = toEntityId('Post', 'post-1');
   expect(
-    client.store.getList(
-      getListKey(postId, 'comments', plan.args.get('comments')?.hash),
-    ),
-  ).toEqual([
-    toEntityId('Comment', 'comment-1'),
-    toEntityId('Comment', 'comment-2'),
-  ]);
+    client.store.getList(getListKey(postId, 'comments', plan.args.get('comments')?.hash)),
+  ).toEqual([toEntityId('Comment', 'comment-1'), toEntityId('Comment', 'comment-2')]);
 });
 
 test(`'loadConnection' scopes args to the connection field`, async () => {
@@ -1740,10 +1635,7 @@ test(`'loadConnection' scopes args to the connection field`, async () => {
     transport: {
       fetchById,
     },
-    types: [
-      { fields: { comments: { listOf: 'Comment' } }, type: 'Post' },
-      { type: 'Comment' },
-    ],
+    types: [{ fields: { comments: { listOf: 'Comment' } }, type: 'Post' }, { type: 'Comment' }],
   });
 
   const CommentView = view<Comment>()({
@@ -1813,10 +1705,7 @@ test(`mutation results with arrays mark nested fields as fetched`, async () => {
       },
       mutate,
     },
-    types: [
-      { fields: { comments: { listOf: 'Comment' } }, type: 'Post' },
-      { type: 'Comment' },
-    ],
+    types: [{ fields: { comments: { listOf: 'Comment' } }, type: 'Post' }, { type: 'Comment' }],
   });
 
   await client.mutations.updatePost({
@@ -1830,10 +1719,7 @@ test(`mutation results with arrays mark nested fields as fetched`, async () => {
     id: 'comment-1',
   });
 
-  const missing = client.store.missingForSelection(commentEntityId, [
-    'content',
-    'id',
-  ]);
+  const missing = client.store.missingForSelection(commentEntityId, ['content', 'id']);
 
   expect(missing).toEqual(new Set());
 });
@@ -1858,44 +1744,42 @@ test(`mutation results with connections reuse view args and hydrate nodes`, asyn
   };
 
   const fetchById = vi.fn(async () => []);
-  const mutate = vi.fn(
-    async (key: 'updatePost', input: unknown, select: Set<string>) => {
-      expect(key).toBe('updatePost');
-      expect(select).toBeInstanceOf(Set);
-      expect(input).toEqual({
-        args: { comments: { first: 1 } },
-        id: 'post-1',
-      });
+  const mutate = vi.fn(async (key: 'updatePost', input: unknown, select: Set<string>) => {
+    expect(key).toBe('updatePost');
+    expect(select).toBeInstanceOf(Set);
+    expect(input).toEqual({
+      args: { comments: { first: 1 } },
+      id: 'post-1',
+    });
 
-      return {
-        __typename: 'Post',
-        comments: {
-          items: [
-            {
-              cursor: 'comment-1',
-              node: {
-                __typename: 'Comment',
-                author: {
-                  __typename: 'User',
-                  id: 'user-1',
-                  name: 'Alice',
-                },
-                content: 'Banana from mutation',
-                id: 'comment-1',
+    return {
+      __typename: 'Post',
+      comments: {
+        items: [
+          {
+            cursor: 'comment-1',
+            node: {
+              __typename: 'Comment',
+              author: {
+                __typename: 'User',
+                id: 'user-1',
+                name: 'Alice',
               },
+              content: 'Banana from mutation',
+              id: 'comment-1',
             },
-          ],
-          pagination: {
-            hasNext: false,
-            hasPrevious: false,
-            nextCursor: undefined,
-            previousCursor: undefined,
           },
+        ],
+        pagination: {
+          hasNext: false,
+          hasPrevious: false,
+          nextCursor: undefined,
+          previousCursor: undefined,
         },
-        id: 'post-1',
-      } satisfies UpdatePostResult;
-    },
-  );
+      },
+      id: 'post-1',
+    } satisfies UpdatePostResult;
+  });
 
   const client = createClient({
     mutations: {
@@ -1956,11 +1840,10 @@ test(`mutation results with connections reuse view args and hydrate nodes`, asyn
 
   const commentRef = client.ref<Comment>('Comment', 'comment-1', CommentView);
   const comment = unwrap(
-    client.readView<
-      Comment,
-      SelectionOf<typeof CommentView>,
-      typeof CommentView
-    >(CommentView, commentRef),
+    client.readView<Comment, SelectionOf<typeof CommentView>, typeof CommentView>(
+      CommentView,
+      commentRef,
+    ),
   );
 
   expect(comment.id).toBe('comment-1');
@@ -1977,9 +1860,7 @@ test(`mutation results with connections reuse view args and hydrate nodes`, asyn
     'comments',
     postPlan.args.get('comments')?.hash,
   );
-  expect(client.store.getList(listKey)).toEqual([
-    toEntityId('Comment', 'comment-1'),
-  ]);
+  expect(client.store.getList(listKey)).toEqual([toEntityId('Comment', 'comment-1')]);
 });
 
 test('mutations do not reset previously loaded connection entries', async () => {
@@ -1994,13 +1875,7 @@ test('mutations do not reset previously loaded connection entries', async () => 
   };
 
   const mutate = vi
-    .fn<
-      (
-        key: 'updatePost',
-        input: unknown,
-        select: Set<string>,
-      ) => Promise<UpdatePostResult>
-    >()
+    .fn<(key: 'updatePost', input: unknown, select: Set<string>) => Promise<UpdatePostResult>>()
     .mockResolvedValue({
       __typename: 'Post',
       comments: {
@@ -2030,10 +1905,7 @@ test('mutations do not reset previously loaded connection entries', async () => 
       },
       mutate: mutate as any,
     },
-    types: [
-      { fields: { comments: { listOf: 'Comment' } }, type: 'Post' },
-      { type: 'Comment' },
-    ],
+    types: [{ fields: { comments: { listOf: 'Comment' } }, type: 'Post' }, { type: 'Comment' }],
   });
 
   const CommentView = view<Comment>()({ content: true, id: true });
@@ -2050,11 +1922,7 @@ test('mutations do not reset previously loaded connection entries', async () => 
   const postId = toEntityId('Post', 'post-1');
   const commentAId = toEntityId('Comment', 'comment-1');
   const commentBId = toEntityId('Comment', 'comment-2');
-  const listKey = getListKey(
-    postId,
-    'comments',
-    plan.args.get('comments')?.hash,
-  );
+  const listKey = getListKey(postId, 'comments', plan.args.get('comments')?.hash);
 
   client.store.merge(
     commentAId,
@@ -2143,14 +2011,9 @@ test(`'write' registers list state for entity lists`, () => {
   );
 
   const postId = toEntityId('Post', 'post-1');
-  const commentIds = [
-    toEntityId('Comment', 'comment-1'),
-    toEntityId('Comment', 'comment-2'),
-  ];
+  const commentIds = [toEntityId('Comment', 'comment-1'), toEntityId('Comment', 'comment-2')];
 
-  expect(client.store.getList(getListKey(postId, 'comments'))).toEqual(
-    commentIds,
-  );
+  expect(client.store.getList(getListKey(postId, 'comments'))).toEqual(commentIds);
 });
 
 test(`'linkParentLists' maintains list registrations for parent entities`, () => {
@@ -2192,20 +2055,11 @@ test(`'linkParentLists' maintains list registrations for parent entities`, () =>
       id: 'comment-1',
       post: { __typename: 'Post', id: 'post-1' },
     },
-    new Set([
-      '__typename',
-      'content',
-      'id',
-      'post',
-      'post.__typename',
-      'post.id',
-    ]),
+    new Set(['__typename', 'content', 'id', 'post', 'post.__typename', 'post.id']),
   );
 
   const commentId = toEntityId('Comment', 'comment-1');
-  expect(client.store.getList(getListKey(postId, 'comments'))).toEqual([
-    commentId,
-  ]);
+  expect(client.store.getList(getListKey(postId, 'comments'))).toEqual([commentId]);
 });
 
 test(`'linkParentLists' preserves pagination metadata across scoped lists`, () => {
@@ -2261,14 +2115,7 @@ test(`'linkParentLists' preserves pagination metadata across scoped lists`, () =
       id: 'comment-2',
       post: { __typename: 'Post', id: 'post-1' },
     },
-    new Set([
-      '__typename',
-      'content',
-      'id',
-      'post',
-      'post.__typename',
-      'post.id',
-    ]),
+    new Set(['__typename', 'content', 'id', 'post', 'post.__typename', 'post.id']),
   );
 
   const newCommentId = toEntityId('Comment', 'comment-2');

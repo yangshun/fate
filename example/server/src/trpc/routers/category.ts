@@ -46,9 +46,7 @@ export const categoryRouter = router({
     }),
   list: createConnectionProcedure({
     map: ({ input, items }) =>
-      (items as Array<CategoryItem>).map((category) =>
-        transformCategory(category, input.args),
-      ),
+      (items as Array<CategoryItem>).map((category) => transformCategory(category, input.args)),
     query: async ({ ctx, cursor, direction, input, skip, take }) => {
       const { resolveMany, select } = createResolver({
         ...input,

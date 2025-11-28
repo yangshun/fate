@@ -1,11 +1,5 @@
 import { expect, expectTypeOf, test } from 'vitest';
-import {
-  getViewTag,
-  SelectionOf,
-  type View,
-  type ViewData,
-  type ViewRef,
-} from '../types.ts';
+import { getViewTag, SelectionOf, type View, type ViewData, type ViewRef } from '../types.ts';
 import { view } from '../view.ts';
 
 type Post = {
@@ -109,9 +103,7 @@ test('supports nested views and connection selections', () => {
 
   type PostData = ViewData<PostWithComments, SelectionOf<typeof PostView>>;
 
-  expectTypeOf<PostData['comments']['items'][number]['node']>().toEqualTypeOf<
-    ViewRef<'Comment'>
-  >();
+  expectTypeOf<PostData['comments']['items'][number]['node']>().toEqualTypeOf<ViewRef<'Comment'>>();
 });
 
 test('infer view refs for list selections', () => {
@@ -148,9 +140,7 @@ test('infer view refs for list selections', () => {
 
   type PostData = ViewData<PostWithCommentList, SelectionOf<typeof PostView>>;
 
-  expectTypeOf<PostData['comments'][number]>().toEqualTypeOf<
-    ViewRef<'Comment'>
-  >();
+  expectTypeOf<PostData['comments'][number]>().toEqualTypeOf<ViewRef<'Comment'>>();
 });
 
 test('rejects selecting fields not defined on the entity', () => {

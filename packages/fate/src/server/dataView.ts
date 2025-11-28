@@ -14,11 +14,7 @@ type Bivariant<Fn extends (...args: Array<any>) => unknown> = {
 }['bivarianceHack'];
 
 type ResolverResolve<Item extends AnyRecord, Context> = Bivariant<
-  (options: {
-    args?: AnyRecord;
-    context?: Context;
-    item: Item;
-  }) => Promise<unknown> | unknown
+  (options: { args?: AnyRecord; context?: Context; item: Item }) => Promise<unknown> | unknown
 >;
 
 /**
@@ -73,9 +69,7 @@ export type DataViewConfig<Item extends AnyRecord, Context> = Record<
  *   title: true,
  * });
  */
-export function dataView<Item extends AnyRecord, Context = unknown>(
-  typeName?: string,
-) {
+export function dataView<Item extends AnyRecord, Context = unknown>(typeName?: string) {
   return <Fields extends DataViewConfig<Item, Context>>(fields: Fields) => {
     return {
       [dataViewFieldsKey]: fields,
@@ -91,9 +85,7 @@ export function dataView<Item extends AnyRecord, Context = unknown>(
  * Marks a data view as a list resolver so the server can respond with
  * connection information.
  */
-export const list = <Item extends AnyRecord, Context>(
-  view: DataView<Item, Context>,
-) => {
+export const list = <Item extends AnyRecord, Context>(view: DataView<Item, Context>) => {
   return { ...view, kind: 'list' as const };
 };
 
@@ -122,9 +114,7 @@ type WithNullish<Original, Value> = null extends Original
     : Value;
 
 type ResolverResult<Field> =
-  Field extends ResolverField<AnyRecord, unknown>
-    ? Awaited<ReturnType<Field['resolve']>>
-    : never;
+  Field extends ResolverField<AnyRecord, unknown> ? Awaited<ReturnType<Field['resolve']>> : never;
 
 type RelationResult<ItemField, V extends DataView<AnyRecord, unknown>> =
   NonNullish<ItemField> extends Array<unknown>
@@ -156,19 +146,16 @@ type RawFieldResult<
 type RawDataViewResult<V extends DataView<AnyRecord, unknown>> =
   V extends DataView<infer Item, unknown>
     ? {
-        [K in keyof ViewFieldConfig<V>]: RawFieldResult<
-          Item,
-          K,
-          ViewFieldConfig<V>[K]
-        >;
+        [K in keyof ViewFieldConfig<V>]: RawFieldResult<Item, K, ViewFieldConfig<V>[K]>;
       }
     : never;
 
 /**
  * Resolved and serialized shape returned from a data view.
  */
-export type DataViewResult<V extends DataView<AnyRecord, unknown>> =
-  Serializable<RawDataViewResult<V>>;
+export type DataViewResult<V extends DataView<AnyRecord, unknown>> = Serializable<
+  RawDataViewResult<V>
+>;
 
 type SelectedViewNode<Context> = {
   path: string | null;
@@ -180,10 +167,7 @@ type SelectedViewNode<Context> = {
 const isResolverField = <Item extends AnyRecord, Context>(
   field: DataField<Item, Context>,
 ): field is ResolverField<Item, Context> =>
-  Boolean(field) &&
-  typeof field === 'object' &&
-  'kind' in field &&
-  field.kind === 'resolver';
+  Boolean(field) && typeof field === 'object' && 'kind' in field && field.kind === 'resolver';
 
 const isDataViewField = <Context>(
   field: DataField<AnyRecord, Context>,
@@ -238,10 +222,7 @@ const mergeObject = (target: AnyRecord, source: AnyRecord) => {
   }
 };
 
-const ensureRelationSelect = (
-  select: AnyRecord,
-  path: string | null,
-): AnyRecord => {
+const ensureRelationSelect = (select: AnyRecord, path: string | null): AnyRecord => {
   if (!path) {
     return select;
   }
@@ -367,9 +348,7 @@ const collectResolvers = <Context>(
     }
 
     const addition =
-      typeof resolver.select === 'function'
-        ? resolver.select({ args, context })
-        : resolver.select;
+      typeof resolver.select === 'function' ? resolver.select({ args, context }) : resolver.select;
 
     if (addition && isRecord(addition)) {
       const target = ensureRelationSelect(select, node.path);

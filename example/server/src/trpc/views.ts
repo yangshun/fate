@@ -111,9 +111,7 @@ export const categoryDataView = dataView<CategoryItem>('Category')({
   posts: list(postDataView),
 });
 
-export const projectUpdateDataView = dataView<ProjectUpdateItem>(
-  'ProjectUpdate',
-)({
+export const projectUpdateDataView = dataView<ProjectUpdateItem>('ProjectUpdate')({
   author: userDataView,
   confidence: true,
   content: true,
@@ -136,9 +134,7 @@ export const projectDataView = dataView<ProjectItem>('Project')({
   updates: list(projectUpdateDataView),
 });
 
-export const eventAttendeeDataView = dataView<EventAttendeeItem>(
-  'EventAttendee',
-)({
+export const eventAttendeeDataView = dataView<EventAttendeeItem>('EventAttendee')({
   id: true,
   notes: true,
   status: true,
@@ -182,17 +178,11 @@ export type Comment = Omit<DataViewResult<typeof commentDataView>, 'author'> & {
   author: User;
   post: Post;
 };
-export type ProjectUpdate = Omit<
-  DataViewResult<typeof projectUpdateDataView>,
-  'author'
-> & {
+export type ProjectUpdate = Omit<DataViewResult<typeof projectUpdateDataView>, 'author'> & {
   __typename: 'ProjectUpdate';
   author: User;
 };
-export type EventAttendee = Omit<
-  DataViewResult<typeof eventAttendeeDataView>,
-  'user'
-> & {
+export type EventAttendee = Omit<DataViewResult<typeof eventAttendeeDataView>, 'user'> & {
   __typename: 'EventAttendee';
   user: User;
 };
@@ -207,26 +197,17 @@ export type Post = Omit<
   comments: Array<Comment>;
   tags: Array<Tag>;
 };
-export type Category = Omit<
-  DataViewResult<typeof categoryDataView>,
-  'posts'
-> & {
+export type Category = Omit<DataViewResult<typeof categoryDataView>, 'posts'> & {
   __typename: 'Category';
   postCount: number;
   posts: Array<Post>;
 };
-export type Project = Omit<
-  DataViewResult<typeof projectDataView>,
-  'owner' | 'updates'
-> & {
+export type Project = Omit<DataViewResult<typeof projectDataView>, 'owner' | 'updates'> & {
   __typename: 'Project';
   owner: User;
   updates: Array<ProjectUpdate>;
 };
-export type Event = Omit<
-  DataViewResult<typeof eventDataView>,
-  'attendees' | 'host'
-> & {
+export type Event = Omit<DataViewResult<typeof eventDataView>, 'attendees' | 'host'> & {
   __typename: 'Event';
   attendees: Array<EventAttendee>;
   attendingCount: number;

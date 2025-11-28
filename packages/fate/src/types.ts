@@ -142,10 +142,7 @@ type BaseSelectionFieldValue<T extends Entity, K extends keyof T> =
   NonNullable<T[K]> extends Array<infer U extends Entity>
     ? true | Selection<U> | ConnectionSelection<U> | View<U, Selection<U>>
     : NonNullable<T[K]> extends Entity
-      ?
-          | true
-          | Selection<NonNullable<T[K]>>
-          | View<NonNullable<T[K]>, Selection<NonNullable<T[K]>>>
+      ? true | Selection<NonNullable<T[K]>> | View<NonNullable<T[K]>, Selection<NonNullable<T[K]>>>
       : NonNullable<T[K]> extends AnyRecord
         ? PlainObjectSelection<NonNullable<T[K]>>
         : true;
@@ -156,10 +153,7 @@ type SelectionFieldValue<T extends Entity, K extends keyof T> =
   | (SelectionArgs & Extract<BaseSelectionFieldValue<T, K>, object>);
 
 type SelectionShape<T extends Entity> = {
-  [K in keyof T as K extends '__typename' ? never : K]?: SelectionFieldValue<
-    T,
-    K
-  >;
+  [K in keyof T as K extends '__typename' ? never : K]?: SelectionFieldValue<T, K>;
 } & { __typename?: true };
 
 type SelectionViewSpread<T extends Entity> = {
@@ -170,8 +164,7 @@ type SelectionViewSpread<T extends Entity> = {
 };
 
 /** Declarative selection of the fields a view needs from an entity. */
-export type Selection<T extends Entity> = SelectionShape<T> &
-  SelectionViewSpread<T>;
+export type Selection<T extends Entity> = SelectionShape<T> & SelectionViewSpread<T>;
 
 /** Extracts the selection type that was used to build a view. */
 export type SelectionOf<V> = V extends {
@@ -181,19 +174,13 @@ export type SelectionOf<V> = V extends {
   : never;
 
 /** View payload stored on a view tag containing the raw selection used to mask data. */
-export type ViewPayload<
-  T extends Entity,
-  S extends Selection<T> = Selection<T>,
-> = Readonly<{
+export type ViewPayload<T extends Entity, S extends Selection<T> = Selection<T>> = Readonly<{
   select: S;
   [ViewKind]: true;
 }>;
 
 /** Definition of a view over an entity type, including the selection of fields. */
-export type View<
-  T extends Entity,
-  S extends Selection<T> = Selection<T>,
-> = Readonly<{
+export type View<T extends Entity, S extends Selection<T> = Selection<T>> = Readonly<{
   [viewTag: ViewTag]: ViewPayload<T, S>;
 }> &
   __ViewEntityAnchor<T> &
@@ -234,9 +221,7 @@ type ConnectionMask<T extends Entity, S> = S extends {
         node: unknown;
       }
         ? Array<
-            (CursorSelection extends true
-              ? { cursor: string }
-              : Record<string, never>) & {
+            (CursorSelection extends true ? { cursor: string } : Record<string, never>) & {
               node: ViewRef<T['__typename']>;
             }
           >
@@ -250,9 +235,7 @@ type ConnectionMask<T extends Entity, S> = S extends {
       : Record<string, never>)
   : Array<T>;
 
-type EntityName<T> = T extends { __typename: infer N extends string }
-  ? N
-  : never;
+type EntityName<T> = T extends { __typename: infer N extends string } ? N : never;
 
 /** Recursively applies a view selection to an entity to mask fields that aren't selected. */
 export type Mask<T, S> =
@@ -272,13 +255,8 @@ export type Mask<T, S> =
           : {
               [K in keyof S as K extends 'args' ? never : K]: S[K] extends true
                 ? NonNullable<T>[Extract<K, keyof T>]
-                : Mask<
-                    NonNullable<T>[Extract<K, keyof T>],
-                    Extract<S[K], object>
-                  >;
-            } & (T extends Entity
-              ? Pick<NonNullable<T>, '__typename'>
-              : Record<never, never>)
+                : Mask<NonNullable<T>[Extract<K, keyof T>], Extract<S[K], object>>;
+            } & (T extends Entity ? Pick<NonNullable<T>, '__typename'> : Record<never, never>)
         : T;
 
 /** Entity type captured from a view definition. */
@@ -346,24 +324,17 @@ export type MutationDefinition<T extends Entity, I, R> = Readonly<{
   __MutationInputAnchor<I> &
   __MutationResultAnchor<R>;
 
-export type MutationIdentifier<T extends Entity, I, R> = MutationDefinition<
-  T,
-  I,
-  R
-> &
+export type MutationIdentifier<T extends Entity, I, R> = MutationDefinition<T, I, R> &
   Readonly<{ key: string }>;
 
 /** Extracts the input type from a mutation definition or identifier. */
-export type MutationInput<M> =
-  M extends __MutationInputAnchor<infer I> ? I : never;
+export type MutationInput<M> = M extends __MutationInputAnchor<infer I> ? I : never;
 
 /** Extracts the result type from a mutation definition or identifier. */
-export type MutationResult<M> =
-  M extends __MutationResultAnchor<infer R> ? R : never;
+export type MutationResult<M> = M extends __MutationResultAnchor<infer R> ? R : never;
 
 /** Extracts the entity type from a mutation definition or identifier. */
-export type MutationEntity<M> =
-  M extends __MutationEntityAnchor<infer E> ? E : never;
+export type MutationEntity<M> = M extends __MutationEntityAnchor<infer E> ? E : never;
 
 /** Minimal mutation description used for transport typing. */
 export type MutationShape = { input: unknown; output: unknown };

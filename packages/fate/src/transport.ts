@@ -15,9 +15,7 @@ type EmptyTransportMutations = Record<never, MutationShape>;
  * responsible for fetching records by ID, fetching lists, and executing
  * mutations with the provided selections.
  */
-export interface Transport<
-  Mutations extends TransportMutations = EmptyTransportMutations,
-> {
+export interface Transport<Mutations extends TransportMutations = EmptyTransportMutations> {
   fetchById(
     type: string,
     ids: Array<string | number>,
@@ -79,14 +77,11 @@ export type TRPCMutationResolvers<AppRouter extends AnyRouter> = Record<
   MutationResolver<AppRouter>
 >;
 
-type MutationMapFromResolvers<R extends Record<string, MutationResolver<any>>> =
-  {
-    [K in keyof R]: R[K] extends (
-      client: any,
-    ) => (input: infer Input) => Promise<infer Output>
-      ? { input: Input; output: Output }
-      : never;
-  };
+type MutationMapFromResolvers<R extends Record<string, MutationResolver<any>>> = {
+  [K in keyof R]: R[K] extends (client: any) => (input: infer Input) => Promise<infer Output>
+    ? { input: Input; output: Output }
+    : never;
+};
 
 type EmptyMutationResolvers<AppRouter extends AnyRouter> = Record<
   never,
@@ -99,8 +94,7 @@ type EmptyMutationResolvers<AppRouter extends AnyRouter> = Record<
  */
 export function createTRPCTransport<
   AppRouter extends AnyRouter,
-  Mutations extends TRPCMutationResolvers<AppRouter> =
-    EmptyMutationResolvers<AppRouter>,
+  Mutations extends TRPCMutationResolvers<AppRouter> = EmptyMutationResolvers<AppRouter>,
 >({
   byId,
   client,
@@ -116,9 +110,7 @@ export function createTRPCTransport<
     async fetchById(type, ids, select, args) {
       const resolver = byId[type];
       if (!resolver) {
-        throw new Error(
-          `fate(trpc): No 'byId' resolver configured for entity type '${type}'.`,
-        );
+        throw new Error(`fate(trpc): No 'byId' resolver configured for entity type '${type}'.`);
       }
       return await resolver(client)({
         args,
@@ -128,15 +120,11 @@ export function createTRPCTransport<
     },
     async fetchList(procedure, select, args) {
       if (!lists) {
-        throw new Error(
-          `fate(trpc): No list resolvers configured; cannot call "${procedure}".`,
-        );
+        throw new Error(`fate(trpc): No list resolvers configured; cannot call "${procedure}".`);
       }
       const resolver = lists[procedure];
       if (!resolver) {
-        throw new Error(
-          `fate(trpc): Missing list resolver for procedure "${procedure}"`,
-        );
+        throw new Error(`fate(trpc): Missing list resolver for procedure "${procedure}"`);
       }
       return resolver(client)({
         args,
@@ -152,9 +140,7 @@ export function createTRPCTransport<
   ) => {
     const resolver = mutations?.[procedure];
     if (!resolver) {
-      throw new Error(
-        `fate(trpc): Missing mutation resolver for procedure '${procedure}'.`,
-      );
+      throw new Error(`fate(trpc): Missing mutation resolver for procedure '${procedure}'.`);
     }
     return await resolver(client)({
       ...(input as AnyRecord),

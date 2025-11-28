@@ -102,18 +102,15 @@ const categories = [
     name: 'Build Diaries',
   },
   {
-    description:
-      'Deep dives into the normalized store, coverage masks, and cache math.',
+    description: 'Deep dives into the normalized store, coverage masks, and cache math.',
     name: 'Cache Mechanics',
   },
   {
-    description:
-      'Guides for the React hooks, request planner, and transport adapters.',
+    description: 'Guides for the React hooks, request planner, and transport adapters.',
     name: 'API Surface',
   },
   {
-    description:
-      'Stories and feedback from early design partners running Fate in anger.',
+    description: 'Stories and feedback from early design partners running Fate in anger.',
     name: 'Community Dispatches',
   },
 ] as const;
@@ -329,8 +326,7 @@ const projects = [
     progress: 54,
     startDate: new Date('2024-03-11T00:00:00.000Z'),
     status: 'IN_PROGRESS',
-    summary:
-      'CLI to audit coverage masks, diffPaths output, and list snapshots across releases.',
+    summary: 'CLI to audit coverage masks, diffPaths output, and list snapshots across releases.',
     targetDate: new Date('2024-09-06T00:00:00.000Z'),
     updates: [
       {
@@ -343,8 +339,7 @@ const projects = [
       {
         authorEmail: 'jonas@nakazawa.dev',
         confidence: 3,
-        content:
-          'Working on pagination fixtures so the validator understands cursor mutations.',
+        content: 'Working on pagination fixtures so the validator understands cursor mutations.',
         mood: 'Heads-down',
       },
     ],
@@ -367,15 +362,13 @@ const projects = [
       {
         authorEmail: 'amina@nakazawa.dev',
         confidence: 5,
-        content:
-          'Hosted the first migration clinic and documented common TanStack Query exits.',
+        content: 'Hosted the first migration clinic and documented common TanStack Query exits.',
         mood: 'Upbeat',
       },
       {
         authorEmail: 'maya@nakazawa.dev',
         confidence: 4,
-        content:
-          'Published the onboarding checklist plus the new metrics dashboard template.',
+        content: 'Published the onboarding checklist plus the new metrics dashboard template.',
         mood: 'Proud',
       },
     ],
@@ -547,9 +540,7 @@ try {
     ),
   );
 
-  const categoriesByName = new Map(
-    createdCategories.map((category) => [category.name, category]),
-  );
+  const categoriesByName = new Map(createdCategories.map((category) => [category.name, category]));
   const tagsByName = new Map(createdTags.map((tag) => [tag.name, tag]));
 
   console.log(styleText('bold', `Seeding posts and comments`));

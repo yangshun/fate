@@ -6,12 +6,7 @@ import {
   scopeArgsPayload,
 } from './args.ts';
 import ViewDataCache from './cache.ts';
-import {
-  MutationAction,
-  MutationFunction,
-  MutationOptions,
-  wrapMutation,
-} from './mutation.ts';
+import { MutationAction, MutationFunction, MutationOptions, wrapMutation } from './mutation.ts';
 import { createNodeRef, getNodeRefId, isNodeRef } from './node-ref.ts';
 import createRef, { assignViewTag, parseEntityId, toEntityId } from './ref.ts';
 import { getSelectionPlan, type SelectionPlan } from './selection.ts';
@@ -59,28 +54,19 @@ export type RequestMode =
  */
 export type RequestOptions = Readonly<{ mode?: RequestMode }>;
 
-type MutationIdentifierFor<
-  K extends string,
-  Def extends MutationDefinition<any, any, any>,
-> =
+type MutationIdentifierFor<K extends string, Def extends MutationDefinition<any, any, any>> =
   Def extends MutationDefinition<infer T, infer I, infer R>
     ? MutationIdentifier<T, I, R> & Readonly<{ key: K }>
     : never;
 
-type MutationTransport<
-  Mutations extends Record<string, MutationDefinition<any, any, any>>,
-> = MutationMapFromDefinitions<Mutations>;
+type MutationTransport<Mutations extends Record<string, MutationDefinition<any, any, any>>> =
+  MutationMapFromDefinitions<Mutations>;
 
-type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
-  k: infer I,
-) => void
+type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (k: infer I) => void
   ? I
   : never;
 
-type NestedValue<
-  Path extends string,
-  Value,
-> = Path extends `${infer Head}.${infer Tail}`
+type NestedValue<Path extends string, Value> = Path extends `${infer Head}.${infer Tail}`
   ? { [K in Head]: NestedValue<Tail, Value> }
   : { [K in Path]: Value };
 
@@ -95,39 +81,30 @@ type MutationTreeFromRecord<
       }[keyof Mutations & string]
     >;
 
-type MutationFunctionsFor<
-  Mutations extends Record<string, MutationDefinition<any, any, any>>,
-> = MutationTreeFromRecord<
-  Mutations,
-  {
-    [K in keyof Mutations & string]: MutationFunction<
-      MutationIdentifierFor<K, Mutations[K]>
-    >;
-  }
->;
+type MutationFunctionsFor<Mutations extends Record<string, MutationDefinition<any, any, any>>> =
+  MutationTreeFromRecord<
+    Mutations,
+    {
+      [K in keyof Mutations & string]: MutationFunction<MutationIdentifierFor<K, Mutations[K]>>;
+    }
+  >;
 
-type MutationActionsFor<
-  Mutations extends Record<string, MutationDefinition<any, any, any>>,
-> = MutationTreeFromRecord<
-  Mutations,
-  {
-    [K in keyof Mutations & string]: MutationAction<
-      MutationIdentifierFor<K, Mutations[K]>
-    >;
-  }
->;
+type MutationActionsFor<Mutations extends Record<string, MutationDefinition<any, any, any>>> =
+  MutationTreeFromRecord<
+    Mutations,
+    {
+      [K in keyof Mutations & string]: MutationAction<MutationIdentifierFor<K, Mutations[K]>>;
+    }
+  >;
 
 type EmptyMutations = Record<never, MutationDefinition<any, any, any>>;
 
 type FateClientOptions<
-  Mutations extends Record<string, MutationDefinition<any, any, any>> =
-    EmptyMutations,
+  Mutations extends Record<string, MutationDefinition<any, any, any>> = EmptyMutations,
 > = {
   mutations?: Mutations;
   transport: Transport<MutationTransport<Mutations>>;
-  types: ReadonlyArray<
-    Omit<TypeConfig, 'getId'> & Partial<{ getId: TypeConfig['getId'] }>
-  >;
+  types: ReadonlyArray<Omit<TypeConfig, 'getId'> & Partial<{ getId: TypeConfig['getId'] }>>;
 };
 
 const getId: TypeConfig['getId'] = (record: unknown) => {
@@ -138,9 +115,7 @@ const getId: TypeConfig['getId'] = (record: unknown) => {
   const value = (record as { id: string | number }).id;
   const valueType = typeof value;
   if (valueType !== 'string' && valueType !== 'number') {
-    throw new Error(
-      `fate: Entity id must be a string or number, received '${valueType}'.`,
-    );
+    throw new Error(`fate: Entity id must be a string or number, received '${valueType}'.`);
   }
   return value;
 };
@@ -164,14 +139,12 @@ const setNestedValue = (target: AnyRecord, key: string, value: unknown) => {
       return;
     }
 
-    current[segment] =
-      (current[segment] as AnyRecord | undefined) ?? Object.create(null);
+    current[segment] = (current[segment] as AnyRecord | undefined) ?? Object.create(null);
     current = current[segment] as AnyRecord;
   }
 };
 
-const serializeId = (value: string | number): string =>
-  `${typeof value}:${String(value)}`;
+const serializeId = (value: string | number): string => `${typeof value}:${String(value)}`;
 
 const getViewSignature = (view: View<any, any>): string => {
   const viewNames = getViewNames(view);
@@ -204,9 +177,7 @@ const getRequestCacheKey = (request: Request): string => {
   return parts.join('$');
 };
 
-const groupSelectionByPrefix = (
-  select: Set<string>,
-): Map<string, Set<string>> => {
+const groupSelectionByPrefix = (select: Set<string>): Map<string, Set<string>> => {
   if (select.size === 0) {
     return new Map();
   }
@@ -239,22 +210,15 @@ const groupSelectionByPrefix = (
  * data fetching.
  */
 export class FateClient<
-  Mutations extends Record<string, MutationDefinition<any, any, any>> =
-    EmptyMutations,
+  Mutations extends Record<string, MutationDefinition<any, any, any>> = EmptyMutations,
 > {
   private readonly mutationMap: Record<string, MutationFunction<any>>;
   private readonly parentLists = new Map<
     string,
     Array<{ field: string; parentType: string; via?: string }>
   >();
-  private readonly pending = new Map<
-    string,
-    PromiseLike<ViewSnapshot<any, any>>
-  >();
-  private readonly requests = new Map<
-    string,
-    Map<RequestMode, Promise<RequestResult<Request>>>
-  >();
+  private readonly pending = new Map<string, PromiseLike<ViewSnapshot<any, any>>>();
+  private readonly requests = new Map<string, Map<RequestMode, Promise<RequestResult<Request>>>>();
   private readonly stalledRequests = new Set<string>();
   readonly store = new Store();
   private readonly types: Map<string, TypeConfig>;
@@ -267,9 +231,7 @@ export class FateClient<
 
   constructor(options: FateClientOptions<Mutations>) {
     this.transport = options.transport;
-    this.types = new Map(
-      options.types.map((entity) => [entity.type, { getId, ...entity }]),
-    );
+    this.types = new Map(options.types.map((entity) => [entity.type, { getId, ...entity }]));
     this.mutationMap = Object.create(null);
     this.mutations = Object.create(null) as MutationFunctionsFor<Mutations>;
     this.actions = Object.create(null) as MutationActionsFor<Mutations>;
@@ -302,11 +264,7 @@ export class FateClient<
       }
 
       for (const [field, descriptor] of Object.entries(config.fields)) {
-        if (
-          descriptor &&
-          typeof descriptor === 'object' &&
-          'listOf' in descriptor
-        ) {
+        if (descriptor && typeof descriptor === 'object' && 'listOf' in descriptor) {
           const childType = descriptor.listOf;
           const childConfig = this.types.get(childType);
           if (!childConfig) {
@@ -320,9 +278,7 @@ export class FateClient<
           }
 
           let via: string | undefined;
-          for (const [childField, childDescriptor] of Object.entries(
-            childConfig.fields,
-          )) {
+          for (const [childField, childDescriptor] of Object.entries(childConfig.fields)) {
             if (
               childDescriptor &&
               typeof childDescriptor === 'object' &&
@@ -368,8 +324,7 @@ export class FateClient<
       throw new Error(`fate: transport does not support mutations.`);
     }
 
-    const baseRecord =
-      input && typeof input === 'object' ? (input as AnyRecord) : undefined;
+    const baseRecord = input && typeof input === 'object' ? (input as AnyRecord) : undefined;
     const inputArgs =
       baseRecord && typeof baseRecord.args === 'object'
         ? (baseRecord.args as AnyRecord)
@@ -414,12 +369,7 @@ export class FateClient<
 
     this.viewDataCache.invalidate(entityId);
     this.store.deleteRecord(entityId);
-    this.store.removeReferencesTo(
-      entityId,
-      this.viewDataCache,
-      snapshots,
-      listSnapshots,
-    );
+    this.store.removeReferencesTo(entityId, this.viewDataCache, snapshots, listSnapshots);
   }
 
   restore(id: EntityId, snapshot: Snapshot) {
@@ -467,9 +417,7 @@ export class FateClient<
     const refViews = ref[ViewsTag];
 
     if (!refViews || ![...viewNames].every((name) => refViews.has(name))) {
-      const received = refViews
-        ? [...refViews].join(', ')
-        : JSON.stringify(ref);
+      const received = refViews ? [...refViews].join(', ') : JSON.stringify(ref);
 
       throw new Error(
         `fate: Invalid view reference. Expected the provided ref to include the view(s) '${[...viewNames].join("', '")}', received '${received}'. You can fix this issue by spreading the correct view into its parent so fate can create the correct view refs for you.`,
@@ -486,19 +434,12 @@ export class FateClient<
     const missing = this.store.missingForSelection(entityId, selectedPaths);
 
     const resolveSnapshot = () => {
-      const resolvedView = this.readViewSelection<T, S>(
-        view,
-        ref,
-        entityId,
-        plan,
-      );
+      const resolvedView = this.readViewSelection<T, S>(view, ref, entityId, plan);
 
       const thenable = {
         status: 'fulfilled' as const,
         then: <TResult1 = ViewSnapshot<T, S>, TResult2 = never>(
-          onfulfilled?: (
-            value: ViewSnapshot<T, S>,
-          ) => TResult1 | PromiseLike<TResult1>,
+          onfulfilled?: (value: ViewSnapshot<T, S>) => TResult1 | PromiseLike<TResult1>,
           onrejected?: (reason: unknown) => TResult2 | PromiseLike<TResult2>,
         ): PromiseLike<TResult1 | TResult2> =>
           Promise.resolve(resolvedView).then(onfulfilled, onrejected),
@@ -534,10 +475,7 @@ export class FateClient<
       const promise = this.fetchByIdAndNormalize(type, [id], missing, plan)
         .finally(() => this.pending.delete(key))
         .then(() => {
-          const remainingMissing = this.store.missingForSelection(
-            entityId,
-            selectedPaths,
-          );
+          const remainingMissing = this.store.missingForSelection(entityId, selectedPaths);
 
           if (remainingMissing.size > 0) {
             this.stalledRequests.add(key);
@@ -574,21 +512,15 @@ export class FateClient<
       if (!options.hasCursorArg) {
         const incomingSet = new Set(incomingIds);
         const remaining = existingIds.filter((id) => !incomingSet.has(id));
-        return isBackward
-          ? [...remaining, ...incomingIds]
-          : [...incomingIds, ...remaining];
+        return isBackward ? [...remaining, ...incomingIds] : [...incomingIds, ...remaining];
       }
 
       const newIds = incomingIds.filter((id) => !existingSet.has(id));
-      return isBackward
-        ? [...newIds, ...existingIds]
-        : [...existingIds, ...newIds];
+      return isBackward ? [...newIds, ...existingIds] : [...existingIds, ...newIds];
     };
 
     const ids = mergeIds();
-    const hasIncomingCursor = incomingCursors.some(
-      (cursor) => cursor !== undefined,
-    );
+    const hasIncomingCursor = incomingCursors.some((cursor) => cursor !== undefined);
 
     const cursorMap = new Map<EntityId, string | undefined>();
     if (previous?.cursors) {
@@ -604,9 +536,7 @@ export class FateClient<
 
     const shouldStoreCursors =
       hasIncomingCursor || Boolean(previous?.cursors) || options.hasCursorArg;
-    const cursors = shouldStoreCursors
-      ? ids.map((id) => cursorMap.get(id))
-      : undefined;
+    const cursors = shouldStoreCursors ? ids.map((id) => cursorMap.get(id)) : undefined;
 
     const previousPagination = previous?.pagination;
     const newPagination = incomingPagination;
@@ -615,14 +545,9 @@ export class FateClient<
       previousPagination || newPagination
         ? {
             hasNext: !!(newPagination?.hasNext ?? previousPagination?.hasNext),
-            hasPrevious: !!(
-              newPagination?.hasPrevious ?? previousPagination?.hasPrevious
-            ),
-            nextCursor:
-              newPagination?.nextCursor ?? previousPagination?.nextCursor,
-            previousCursor:
-              newPagination?.previousCursor ??
-              previousPagination?.previousCursor,
+            hasPrevious: !!(newPagination?.hasPrevious ?? previousPagination?.hasPrevious),
+            nextCursor: newPagination?.nextCursor ?? previousPagination?.nextCursor,
+            previousCursor: newPagination?.previousCursor ?? previousPagination?.previousCursor,
           }
         : undefined;
 
@@ -680,22 +605,14 @@ export class FateClient<
     const incomingIds: Array<EntityId> = [];
     const incomingCursors: Array<string | undefined> = [];
 
-    const fieldConfig = this.getTypeConfig(owner.type).fields?.[
-      connection.field
-    ];
+    const fieldConfig = this.getTypeConfig(owner.type).fields?.[connection.field];
     const nodeType =
       (fieldConfig &&
-        (fieldConfig === 'scalar'
-          ? null
-          : 'listOf' in fieldConfig
-            ? fieldConfig.listOf
-            : null)) ||
+        (fieldConfig === 'scalar' ? null : 'listOf' in fieldConfig ? fieldConfig.listOf : null)) ||
       null;
 
     if (!nodeType) {
-      throw new Error(
-        `fate: Could not find node type for '${owner.type}.${connection.field}'.`,
-      );
+      throw new Error(`fate: Could not find node type for '${owner.type}.${connection.field}'.`);
     }
 
     for (const entry of connectionPayload.items) {
@@ -725,22 +642,15 @@ export class FateClient<
       : [];
     const nodeRefs = newIds.map((id) => createNodeRef(id));
     const nextField =
-      direction === 'forward'
-        ? [...existingField, ...nodeRefs]
-        : [...nodeRefs, ...existingField];
+      direction === 'forward' ? [...existingField, ...nodeRefs] : [...nodeRefs, ...existingField];
 
     this.viewDataCache.invalidate(connection.owner);
-    this.store.merge(connection.owner, { [connection.field]: nextField }, [
-      connection.field,
-    ]);
+    this.store.merge(connection.owner, { [connection.field]: nextField }, [connection.field]);
 
     return this.store.getListState(connection.key);
   }
 
-  request<R extends Request>(
-    request: R,
-    options?: RequestOptions,
-  ): Promise<RequestResult<R>> {
+  request<R extends Request>(request: R, options?: RequestOptions): Promise<RequestResult<R>> {
     const mode = options?.mode ?? 'cache-or-network';
     const requestKey = getRequestCacheKey(request);
     const existingRequest = this.requests.get(requestKey)?.get(mode);
@@ -802,10 +712,7 @@ export class FateClient<
     return result;
   }
 
-  private async executeRequest(
-    request: Request,
-    options: { fetchAll?: boolean } = {},
-  ) {
+  private async executeRequest(request: Request, options: { fetchAll?: boolean } = {}) {
     const fetchAll = options.fetchAll ?? false;
     type GroupKey = string;
     const groups = new Map<
@@ -851,12 +758,7 @@ export class FateClient<
       ...promises,
       ...Array.from(groups.values()).map((group) =>
         group.ids.length
-          ? this.fetchByIdAndNormalize(
-              group.type,
-              group.ids,
-              group.fields,
-              group.plan,
-            )
+          ? this.fetchByIdAndNormalize(group.type, group.ids, group.fields, group.plan)
           : Promise.resolve(),
       ),
     ]);
@@ -889,9 +791,7 @@ export class FateClient<
     for (const [name, item] of Object.entries(request)) {
       result[name] = isNodeItem(item)
         ? item.ids.map((id) => this.ref(item.type, id, item.root))
-        : (this.store.getList(name) ?? []).map((id: string) =>
-            this.rootListRef(id, item.root),
-          );
+        : (this.store.getList(name) ?? []).map((id: string) => this.rootListRef(id, item.root));
     }
     return result as RequestResult<R>;
   }
@@ -904,21 +804,9 @@ export class FateClient<
     prefix: string | null = null,
   ) {
     const resolvedArgs = resolvedArgsFromPlan(plan);
-    const records = await this.transport.fetchById(
-      type,
-      ids,
-      select,
-      resolvedArgs,
-    );
+    const records = await this.transport.fetchById(type, ids, select, resolvedArgs);
     for (const record of records) {
-      this.writeEntity(
-        type,
-        record as AnyRecord,
-        select,
-        undefined,
-        plan,
-        prefix,
-      );
+      this.writeEntity(type, record as AnyRecord, select, undefined, plan, prefix);
     }
   }
 
@@ -932,25 +820,12 @@ export class FateClient<
       );
     }
 
-    const { argsPayload, plan } = this.resolveListSelection(
-      item.root,
-      item.args,
-    );
-    const { items, pagination } = await this.transport.fetchList(
-      name,
-      plan.paths,
-      argsPayload,
-    );
+    const { argsPayload, plan } = this.resolveListSelection(item.root, item.args);
+    const { items, pagination } = await this.transport.fetchList(name, plan.paths, argsPayload);
     const ids: Array<EntityId> = [];
     const cursors: Array<string | undefined> = [];
     for (const entry of items) {
-      const id = this.writeEntity(
-        item.type,
-        entry.node as AnyRecord,
-        plan.paths,
-        undefined,
-        plan,
-      );
+      const id = this.writeEntity(item.type, entry.node as AnyRecord, plan.paths, undefined, plan);
       ids.push(id);
       cursors.push(entry.cursor);
     }
@@ -961,10 +836,7 @@ export class FateClient<
     });
   }
 
-  private resolveListSelection(
-    view: View<any, any>,
-    args: AnyRecord | undefined,
-  ) {
+  private resolveListSelection(view: View<any, any>, args: AnyRecord | undefined) {
     const plan = getSelectionPlan(view, null);
     const argsPayload = combineArgsPayload(resolvedArgsFromPlan(plan), args);
     applyArgsPayloadToPlan(plan, argsPayload);
@@ -981,9 +853,7 @@ export class FateClient<
   ): EntityId {
     const config = this.types.get(type);
     if (!config) {
-      throw new Error(
-        `fate: Found unknown entity type '${type}' in normalization.`,
-      );
+      throw new Error(`fate: Found unknown entity type '${type}' in normalization.`);
     }
 
     const id = config.getId(record);
@@ -1015,14 +885,7 @@ export class FateClient<
             const childId = toEntityId(childType, childConfig.getId(value));
             result[key] = createNodeRef(childId);
 
-            this.writeEntity(
-              childType,
-              value as AnyRecord,
-              childPaths,
-              snapshots,
-              plan,
-              fieldPath,
-            );
+            this.writeEntity(childType, value as AnyRecord, childPaths, snapshots, plan, fieldPath);
           }
         } else if (
           relationDescriptor &&
@@ -1033,9 +896,7 @@ export class FateClient<
           const childType = relationDescriptor.listOf;
           const childConfig = this.types.get(childType);
           if (!childConfig) {
-            throw new Error(
-              `fate: Unknown related type '${childType}' (field '${type}.${key}').`,
-            );
+            throw new Error(`fate: Unknown related type '${childType}' (field '${type}.${key}').`);
           }
 
           const connection = (() => {
@@ -1072,8 +933,7 @@ export class FateClient<
             const ids: Array<EntityId> = [];
             const cursors: Array<string | undefined> = [];
 
-            const nodeSelection =
-              childPaths.size > 0 ? new Set<string>() : childPaths;
+            const nodeSelection = childPaths.size > 0 ? new Set<string>() : childPaths;
 
             if (childPaths.size > 0) {
               for (const path of childPaths) {
@@ -1097,8 +957,7 @@ export class FateClient<
 
             for (const entry of connection.items) {
               const node = entry.node;
-              const cursor =
-                'cursor' in entry ? (entry.cursor as string) : undefined;
+              const cursor = 'cursor' in entry ? (entry.cursor as string) : undefined;
               cursors.push(cursor);
               if (isNodeRef(node)) {
                 ids.push(getNodeRefId(node));
@@ -1106,10 +965,7 @@ export class FateClient<
               }
 
               if (node && typeof node === 'object') {
-                const childId = toEntityId(
-                  childType,
-                  childConfig.getId(node as AnyRecord),
-                );
+                const childId = toEntityId(childType, childConfig.getId(node as AnyRecord));
 
                 this.writeEntity(
                   childType,
@@ -1131,14 +987,10 @@ export class FateClient<
             const previousList = this.store.getListState(listKey);
             const argsValue = fieldArgs?.value as AnyRecord | undefined;
             const hasCursorArg = Boolean(
-              argsValue &&
-              ('after' in argsValue ||
-                'before' in argsValue ||
-                'cursor' in argsValue),
+              argsValue && ('after' in argsValue || 'before' in argsValue || 'cursor' in argsValue),
             );
             const isBackward = Boolean(
-              argsValue &&
-              (argsValue.before !== undefined || argsValue.last !== undefined),
+              argsValue && (argsValue.before !== undefined || argsValue.last !== undefined),
             );
 
             const nextListState = this.mergeListState(
@@ -1205,11 +1057,7 @@ export class FateClient<
         ? (existing[parent.field] as Array<unknown>)
         : [];
 
-      if (
-        current.some(
-          (item) => isNodeRef(item) && getNodeRefId(item) === entityId,
-        )
-      ) {
+      if (current.some((item) => isNodeRef(item) && getNodeRefId(item) === entityId)) {
         continue;
       }
 
@@ -1228,13 +1076,12 @@ export class FateClient<
       const defaultListKey = getListKey(parentId, parent.field);
       const defaultListState = this.store.getListState(defaultListKey);
       const nextDefaultCursors =
-        defaultListState?.cursors &&
-        ids.length > defaultListState.cursors.length
+        defaultListState?.cursors && ids.length > defaultListState.cursors.length
           ? [
               ...defaultListState.cursors,
-              ...new Array<string | undefined>(
-                ids.length - defaultListState.cursors.length,
-              ).fill(undefined),
+              ...new Array<string | undefined>(ids.length - defaultListState.cursors.length).fill(
+                undefined,
+              ),
             ]
           : defaultListState?.cursors;
 
@@ -1254,9 +1101,7 @@ export class FateClient<
         }
 
         const listIds = [...listState.ids, entityId];
-        const listCursors = listState.cursors
-          ? [...listState.cursors, undefined]
-          : undefined;
+        const listCursors = listState.cursors ? [...listState.cursors, undefined] : undefined;
 
         this.store.setList(listKey, {
           cursors: listCursors,
@@ -1299,10 +1144,7 @@ export class FateClient<
           continue;
         }
 
-        coverageById.set(
-          parentId,
-          (coverageById.get(parentId) ?? new Set()).add(key),
-        );
+        coverageById.set(parentId, (coverageById.get(parentId) ?? new Set()).add(key));
 
         const fieldPath = prefix ? `${prefix}.${key}` : key;
         const selectionType = typeof selectionKind;
@@ -1310,8 +1152,7 @@ export class FateClient<
           target[key] = record[key];
         } else if (selectionKind && selectionType === 'object') {
           const selectionValue = selectionKind as AnyRecord;
-          const { args: selectionArgs, ...selectionWithoutArgs } =
-            selectionValue;
+          const { args: selectionArgs, ...selectionWithoutArgs } = selectionValue;
           const hasArgsOnly =
             Boolean(selectionArgs) &&
             typeof selectionArgs === 'object' &&
@@ -1332,10 +1173,7 @@ export class FateClient<
 
           const value = record[key];
           if (Array.isArray(value)) {
-            if (
-              nextSelection.items &&
-              typeof nextSelection.items === 'object'
-            ) {
+            if (nextSelection.items && typeof nextSelection.items === 'object') {
               const selection = nextSelection.items as AnyRecord;
               const fieldArgs = plan.args.get(fieldPath);
               const listKey = getListKey(parentId, key, fieldArgs?.hash);
@@ -1357,13 +1195,7 @@ export class FateClient<
                 const node = { __typename: type, id };
 
                 if (record) {
-                  walk(
-                    selection.node as AnyRecord,
-                    record,
-                    node,
-                    entityId,
-                    fieldPath,
-                  );
+                  walk(selection.node as AnyRecord, record, node, entityId, fieldPath);
                 }
 
                 const entry: AnyRecord = {
@@ -1377,8 +1209,7 @@ export class FateClient<
               });
               const connection: AnyRecord = { items };
               if ('pagination' in nextSelection && nextSelection.pagination) {
-                const paginationSelection =
-                  nextSelection.pagination as AnyRecord;
+                const paginationSelection = nextSelection.pagination as AnyRecord;
                 const storedPagination = listState?.pagination;
                 if (storedPagination) {
                   const pagination: AnyRecord = {};
@@ -1389,8 +1220,7 @@ export class FateClient<
                   }
                   if (paginationSelection.previousCursor === true) {
                     if (storedPagination.previousCursor !== undefined) {
-                      pagination.previousCursor =
-                        storedPagination.previousCursor;
+                      pagination.previousCursor = storedPagination.previousCursor;
                     }
                   }
                   if (paginationSelection.hasNext === true) {
@@ -1406,16 +1236,13 @@ export class FateClient<
                   connection.pagination = undefined;
                 }
               }
-              const { id: ownerRawId, type: parentType } =
-                parseEntityId(parentId);
+              const { id: ownerRawId, type: parentType } = parseEntityId(parentId);
               if (parentType) {
                 const metadataArgs = (() => {
                   if (!fieldArgs?.value && ownerRawId === undefined) {
                     return undefined;
                   }
-                  const value = fieldArgs?.value
-                    ? { ...fieldArgs.value }
-                    : ({} as AnyRecord);
+                  const value = fieldArgs?.value ? { ...fieldArgs.value } : ({} as AnyRecord);
                   if (ownerRawId !== undefined) {
                     value.id = ownerRawId;
                   }
@@ -1469,22 +1296,10 @@ export class FateClient<
             targetRecord.__typename = type;
 
             if (relatedRecord) {
-              walk(
-                nextSelection,
-                relatedRecord,
-                targetRecord as ViewResult,
-                entityId,
-                fieldPath,
-              );
+              walk(nextSelection, relatedRecord, targetRecord as ViewResult, entityId, fieldPath);
             }
           } else {
-            walk(
-              nextSelection,
-              record,
-              target[key] as ViewResult,
-              entityId,
-              fieldPath,
-            );
+            walk(nextSelection, record, target[key] as ViewResult, entityId, fieldPath);
           }
         }
       }
@@ -1519,15 +1334,12 @@ export class FateClient<
   }
 
   private pendingKey(entityId: string, missingFields: Set<string>) {
-    return `${this.pendingPrefix(entityId)}${[...missingFields]
-      .sort()
-      .join(',')}`;
+    return `${this.pendingPrefix(entityId)}${[...missingFields].sort().join(',')}`;
   }
 }
 
 export function createClient<
-  Mutations extends Record<string, MutationDefinition<any, any, any>> =
-    EmptyMutations,
+  Mutations extends Record<string, MutationDefinition<any, any, any>> = EmptyMutations,
 >(options: FateClientOptions<Mutations>) {
   return new FateClient<Mutations>(options);
 }
