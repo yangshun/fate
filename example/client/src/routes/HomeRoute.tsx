@@ -1,5 +1,6 @@
-import { useRequest, ViewRef } from 'react-fate';
+import { ConnectionRef, useListView, useRequest, ViewRef } from 'react-fate';
 import Stack, { VStack } from '@nkzw/stack';
+import { Button } from '../ui/Button.tsx';
 import CategoryCard, { CategoryView } from '../ui/CategoryCard.tsx';
 import EventCard, { EventView } from '../ui/EventCard.tsx';
 import H3 from '../ui/H3.tsx';
@@ -27,15 +28,23 @@ const CategoryFeed = ({ categories }: { categories: Array<ViewRef<'Category'>> }
     </VStack>
   ) : null;
 
-const ProjectFeed = ({ projects }: { projects: Array<ViewRef<'Project'>> }) =>
-  projects.length ? (
+const ProjectFeed = ({ projects: projectsRef }: { projects: ConnectionRef<'Project'> }) => {
+  const [projects, loadNext] = useListView(ProjectConnectionView, projectsRef);
+
+  return projects.length ? (
     <VStack gap={16}>
       <H3>Project spotlight</H3>
-      {projects.map((project) => (
-        <ProjectCard key={project.id} project={project} />
-      ))}
+      {projects
+        .map(({ node }) => (node ? <ProjectCard key={node.id} project={node} /> : null))
+        .filter(Boolean)}
+      {loadNext ? (
+        <Button onClick={loadNext} variant="ghost">
+          Load more projects
+        </Button>
+      ) : null}
     </VStack>
   ) : null;
+};
 
 const EventFeed = ({ events }: { events: Array<ViewRef<'Event'>> }) =>
   events.length ? (
@@ -47,25 +56,31 @@ const EventFeed = ({ events }: { events: Array<ViewRef<'Event'>> }) =>
     </VStack>
   ) : null;
 
+const ProjectConnectionView = {
+  args: { first: 1 },
+  items: {
+    node: ProjectView,
+  },
+  pagination: {
+    hasNext: true,
+  },
+} as const;
+
 const request = {
   categories: {
-    args: { first: 4 },
     root: CategoryView,
     type: 'Category',
   },
   events: {
-    args: { first: 3 },
     root: EventView,
     type: 'Event',
   },
   posts: {
-    args: { first: 20 },
     root: PostView,
     type: 'Post',
   },
   projects: {
-    args: { first: 3 },
-    root: ProjectView,
+    root: ProjectConnectionView,
     type: 'Project',
   },
 } as const;

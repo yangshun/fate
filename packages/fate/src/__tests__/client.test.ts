@@ -6,7 +6,9 @@ import { toEntityId } from '../ref.ts';
 import { getSelectionPlan } from '../selection.ts';
 import { getListKey, List } from '../store.ts';
 import {
+  AnyRecord,
   ConnectionMetadata,
+  ConnectionTag,
   FateThenable,
   SelectionOf,
   Snapshot,
@@ -1327,6 +1329,69 @@ test(`'request' forwards nested selection args to list transports`, async () => 
   });
 });
 
+test(`'request' returns connection metadata for root lists and paginates via 'loadConnection'`, async () => {
+  type Post = { __typename: 'Post'; id: string; title: string };
+
+  const fetchList = vi
+    .fn()
+    .mockResolvedValueOnce({
+      items: [{ cursor: 'cursor-1', node: { __typename: 'Post', id: 'post-1', title: 'Hello' } }],
+      pagination: { hasNext: true, hasPrevious: false, nextCursor: 'cursor-1' },
+    })
+    .mockResolvedValueOnce({
+      items: [{ cursor: 'cursor-2', node: { __typename: 'Post', id: 'post-2', title: 'World' } }],
+      pagination: { hasNext: false, hasPrevious: false },
+    });
+
+  const client = createClient({
+    transport: {
+      async fetchById() {
+        return [];
+      },
+      fetchList,
+    },
+    types: [{ fields: { title: 'scalar' }, type: 'Post' }],
+  });
+
+  const PostView = view<Post>()({ id: true, title: true });
+  const PostConnectionView = {
+    args: { first: 1 },
+    items: {
+      cursor: true,
+      node: PostView,
+    },
+    pagination: { hasNext: true, nextCursor: true },
+  } as const;
+
+  const request = {
+    posts: {
+      args: { first: 2 },
+      root: PostConnectionView,
+      type: 'Post',
+    },
+  } as const;
+
+  const { posts } = await client.request(request);
+  const metadata = (posts as AnyRecord)[ConnectionTag as any] as ConnectionMetadata | undefined;
+
+  expect(fetchList).toHaveBeenCalledWith('posts', new Set(['id', 'title']), { first: 1 });
+  expect(metadata?.root).toBe(true);
+  expect(metadata?.key).toBe('posts');
+  expect(metadata?.args).toEqual({ first: 1 });
+  expect(posts.items.map(({ node }) => node?.id)).toEqual(['post-1']);
+  expect(posts.pagination?.hasNext).toBe(true);
+
+  await client.loadConnection(PostConnectionView, metadata!, { after: 'cursor-1' });
+
+  expect(fetchList).toHaveBeenLastCalledWith('posts', new Set(['id', 'title']), {
+    after: 'cursor-1',
+    first: 1,
+  });
+
+  const updated = client.getRequestResult(request).posts;
+  expect(updated.items.map(({ node }) => node?.id)).toEqual(['post-1', 'post-2']);
+});
+
 test(`'request' refetches cached data when using 'store-and-network' mode`, async () => {
   type Post = { __typename: 'Post'; content: string; id: string };
 
@@ -1654,14 +1719,15 @@ test(`'loadConnection' scopes args to the connection field`, async () => {
     new Set(['__typename', 'comments', 'id']),
   );
 
-  const metadata: ConnectionMetadata = {
+  const metadata = {
     args: { first: 2 },
     field: 'comments',
     hash: 'hash',
     key: getListKey(postId, 'comments', 'hash'),
     owner: postId,
     procedure: 'Post.comments',
-  };
+    type: 'Comment',
+  } satisfies ConnectionMetadata;
 
   await client.loadConnection(CommentView, metadata, { after: 'cursor-1' });
 

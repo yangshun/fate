@@ -1,6 +1,7 @@
 export type {
   AnyRecord as FateRecord,
   ConnectionMetadata,
+  ConnectionRef,
   ViewEntity,
   ViewEntityName,
   ViewSelection,

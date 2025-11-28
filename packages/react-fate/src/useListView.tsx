@@ -61,11 +61,22 @@ export function useListView<
   }, [client, metadata]);
 
   const listState = useDeferredValue(useSyncExternalStore(subscribe, getSnapshot, getSnapshot));
-  const pagination = connection?.pagination ?? listState?.pagination;
+  const pagination = listState?.pagination ?? connection?.pagination;
   const hasNext = Boolean(pagination?.hasNext);
   const hasPrevious = Boolean(pagination?.hasPrevious);
   const nextCursor = pagination?.nextCursor;
   const previousCursor = pagination?.previousCursor;
+
+  const items = useMemo(() => {
+    if (metadata?.root && listState) {
+      return listState.ids.map((id, index) => ({
+        cursor: listState.cursors?.[index],
+        node: client.rootListRef(id, nodeView),
+      }));
+    }
+
+    return connection?.items as unknown as ConnectionItems<NonNullable<C>>;
+  }, [client, connection?.items, listState, metadata?.root, nodeView]);
 
   const loadNext = useMemo(() => {
     if (!metadata || !hasNext || !nextCursor) {
@@ -109,5 +120,5 @@ export function useListView<
     };
   }, [client, hasPrevious, nodeView, metadata, previousCursor]);
 
-  return [connection?.items as unknown as ConnectionItems<NonNullable<C>>, loadNext, loadPrevious];
+  return [items as ConnectionItems<NonNullable<C>>, loadNext, loadPrevious];
 }

@@ -68,6 +68,8 @@ export type ConnectionMetadata = Readonly<{
   key: string;
   owner: EntityId;
   procedure: string;
+  root?: boolean;
+  type: string;
 }>;
 
 /** A fully resolved view payload augmented with the set of view tags applied to it. */
@@ -105,6 +107,15 @@ export type Pagination = {
   nextCursor?: string;
   previousCursor?: string;
 };
+
+/** Ref for a connection, including pagination metadata. */
+export type ConnectionRef<TName extends string> = Readonly<{
+  items: ReadonlyArray<{
+    cursor?: string;
+    node: ViewRef<TName> | null;
+  }>;
+  pagination?: Pagination;
+}>;
 
 /** Base shape shared by all entities fetched by fate. */
 export type Entity = { __typename: string };
@@ -301,11 +312,25 @@ type AnyRequest = Record<string, AnyRequestItem>;
  * Typed result returned by `useRequest` and `FateClient.request`, mapping each
  * request key to an array of view refs for the requested type.
  */
-export type RequestResult<Q extends AnyRequest> = {
-  [K in keyof Q]: Q[K] extends { type: infer NodeType extends string }
-    ? Array<ViewRef<NodeType>>
+type ConnectionNodeType<Root> = Root extends { items?: { node?: infer Node } }
+  ? ViewEntityName<Node & View<any, any>>
+  : never;
+
+type ListResult<Item extends AnyRequestItem> = Item extends AnyNodeItem
+  ? Array<ViewRef<Item['type']>>
+  : Item extends AnyListItem
+    ? Item['root'] extends { items?: { node?: View<any, any> } }
+      ? Readonly<{
+          items: ReadonlyArray<{
+            cursor?: string | undefined;
+            node: ViewRef<ConnectionNodeType<Item['root']>> | null;
+          }>;
+          pagination?: Pagination;
+        }>
+      : Array<ViewRef<Item['type']>>
     : never;
-};
+
+export type RequestResult<Q extends AnyRequest> = { [K in keyof Q]: ListResult<Q[K]> };
 
 /** Indicates whether a request item represents explicit node IDs. */
 export function isNodeItem(item: AnyRequestItem): item is AnyNodeItem {

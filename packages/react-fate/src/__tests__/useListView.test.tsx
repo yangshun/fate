@@ -8,6 +8,7 @@ import { expect, test, vi } from 'vitest';
 import { createClient, getSelectionPlan, view } from '@nkzw/fate';
 import { FateClient } from '../context.tsx';
 import { useListView } from '../useListView.tsx';
+import { useRequest } from '../useRequest.tsx';
 import { useView } from '../useView.tsx';
 
 // @ts-expect-error React global
@@ -308,6 +309,96 @@ test('uses pagination from list state when not selected', async () => {
 
   expect(loadNextRef).toBeNull();
   expect(renders.at(-1)).toEqual(['comment-1', 'comment-2']);
+});
+
+test('updates root list items after loading the next page', async () => {
+  type Project = { __typename: 'Project'; id: string; name: string };
+
+  const fetchList = vi
+    .fn()
+    .mockResolvedValueOnce({
+      items: [
+        { cursor: 'cursor-1', node: { __typename: 'Project', id: 'project-1', name: 'Alpha' } },
+      ],
+      pagination: { hasNext: true, nextCursor: 'cursor-1' },
+    })
+    .mockResolvedValueOnce({
+      items: [
+        { cursor: 'cursor-2', node: { __typename: 'Project', id: 'project-2', name: 'Beta' } },
+      ],
+      pagination: { hasNext: false },
+    });
+
+  const client = createClient({
+    transport: {
+      async fetchById() {
+        return [];
+      },
+      fetchList,
+    },
+    types: [{ fields: { name: 'scalar' }, type: 'Project' }],
+  });
+
+  const ProjectView = view<Project>()({ id: true, name: true });
+  const ProjectConnectionView = {
+    args: { first: 3 },
+    items: {
+      cursor: true,
+      node: ProjectView,
+    },
+    pagination: { hasNext: true, nextCursor: true },
+  } as const;
+
+  const request = {
+    projects: {
+      args: { first: 1 },
+      root: ProjectConnectionView,
+      type: 'Project',
+    },
+  } as const;
+
+  const renders: Array<Array<string | null>> = [];
+  let loadNextRef: (() => Promise<void>) | null = null;
+
+  const Component = () => {
+    const { projects } = useRequest(request);
+    const [projectList, loadNext] = useListView(ProjectConnectionView, projects);
+
+    renders.push(projectList.map(({ node }) => (node ? String(node.id) : null)));
+
+    useEffect(() => {
+      loadNextRef = loadNext;
+    }, [loadNext]);
+
+    return null;
+  };
+
+  const container = document.createElement('div');
+  const root = createRoot(container);
+
+  await act(async () => {
+    root.render(
+      <FateClient client={client}>
+        <Suspense fallback={null}>
+          <Component />
+        </Suspense>
+      </FateClient>,
+    );
+  });
+
+  expect(loadNextRef).not.toBeNull();
+  expect(renders.at(-1)).toEqual(['project-1']);
+
+  await act(async () => {
+    await loadNextRef?.();
+  });
+
+  expect(fetchList).toHaveBeenLastCalledWith('projects', new Set(['id', 'name']), {
+    after: 'cursor-1',
+    first: 3,
+  });
+
+  expect(renders.at(-1)).toEqual(['project-1', 'project-2']);
 });
 
 test('loads previous items when loadPrevious is invoked', async () => {

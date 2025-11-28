@@ -178,3 +178,27 @@ test('omits connection cursor selections from paths', () => {
   expect(selection.paths).not.toContain('comments.cursor');
   expect(selection.paths).toContain('comments.id');
 });
+
+test('collects selections for root connections', () => {
+  type Project = { __typename: 'Project'; id: string; name: string };
+
+  const ProjectView = view<Project>()({
+    id: true,
+    name: true,
+  });
+
+  const ProjectConnection = {
+    args: { first: 1 },
+    items: { node: ProjectView },
+    pagination: { hasNext: true },
+  } as const;
+
+  const selection = getSelectionPlan(ProjectConnection, null);
+
+  expect(selection.args.get('')).toEqual({
+    hash: 'object:{"first":number:1}',
+    ignoreKeys: new Set(['after', 'before', 'cursor']),
+    value: { first: 1 },
+  });
+  expect(selection.paths).toEqual(new Set(['id', 'name']));
+});

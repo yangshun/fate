@@ -321,7 +321,9 @@ export class FateClient<
     options: { args?: AnyRecord; plan?: SelectionPlan } = {},
   ): Promise<unknown> {
     if (!this.transport.mutate) {
-      throw new Error(`fate: transport does not support mutations.`);
+      throw new Error(
+        `fate: transport does not support mutations. Please provide a 'mutate' implementation in your transport.`,
+      );
     }
 
     const baseRecord = input && typeof input === 'object' ? (input as AnyRecord) : undefined;
@@ -401,8 +403,10 @@ export class FateClient<
     const id = ref.id;
     const type = ref.__typename;
     if (id == null) {
+      const received = Object.keys(ref).length > 0 ? `'${JSON.stringify(ref)}'` : 'an empty object';
+
       throw new Error(
-        `fate: Invalid view reference. Expected 'id' to be provided as part of the reference, received '${JSON.stringify(ref)}'.`,
+        `fate: Invalid view reference. Expected 'id' to be provided as part of the reference, received ${received}. Did you forget to spread the correct view into its parent or pass the wrong ref to 'useView'?`,
       );
     }
 
@@ -561,6 +565,62 @@ export class FateClient<
     options: { direction?: 'forward' | 'backward' } = {},
   ) {
     const direction = options.direction ?? 'forward';
+    if (connection.root) {
+      if (!this.transport.fetchList) {
+        throw new Error(
+          `fate: transport does not support list fetching. Please add support for 'fetchList' in your transport.`,
+        );
+      }
+
+      const requestArgs = { ...connection.args, ...args };
+      const { argsPayload, plan } = this.resolveListSelection(view, requestArgs);
+      const { items, pagination } = await this.transport.fetchList(
+        connection.field,
+        plan.paths,
+        argsPayload,
+      );
+
+      if (!items) {
+        return this.store.getListState(connection.key);
+      }
+
+      const incomingIds: Array<EntityId> = [];
+      const incomingCursors: Array<string | undefined> = [];
+
+      for (const entry of items) {
+        const id = this.write(
+          connection.type,
+          entry.node as AnyRecord,
+          plan.paths,
+          undefined,
+          plan,
+        );
+        incomingIds.push(id);
+        incomingCursors.push(entry.cursor);
+      }
+
+      const previous = this.store.getListState(connection.key);
+      const argsValue = args as AnyRecord | undefined;
+      const hasCursorArg = Boolean(
+        argsValue && ('after' in argsValue || 'before' in argsValue || 'cursor' in argsValue),
+      );
+      const isBackward = Boolean(
+        argsValue && (argsValue.before !== undefined || argsValue.last !== undefined),
+      );
+
+      const nextListState = this.mergeListState(
+        previous,
+        incomingIds,
+        incomingCursors,
+        pagination,
+        { direction: isBackward ? 'backward' : 'forward', hasCursorArg },
+      );
+
+      this.store.setList(connection.key, nextListState);
+
+      return nextListState;
+    }
+
     const owner = parseEntityId(connection.owner);
     const requestArgs = { ...connection.args, ...args };
     if (requestArgs.id === undefined && owner.id) {
@@ -789,9 +849,50 @@ export class FateClient<
   getRequestResult<R extends Request>(request: R): RequestResult<R> {
     const result: AnyRecord = {};
     for (const [name, item] of Object.entries(request)) {
-      result[name] = isNodeItem(item)
-        ? item.ids.map((id) => this.ref(item.type, id, item.root))
-        : (this.store.getList(name) ?? []).map((id: string) => this.rootListRef(id, item.root));
+      if (isNodeItem(item)) {
+        result[name] = item.ids.map((id) => this.ref(item.type, id, item.root));
+        continue;
+      }
+
+      const listState = this.store.getListState(name);
+      const nodeView = (
+        item.root && typeof item.root === 'object' && 'items' in item.root && item.root.items
+          ? ((item.root.items as AnyRecord).node ?? item.root)
+          : item.root
+      ) as View<any, any>;
+
+      const nodes = (listState?.ids ?? []).map((id: string) => this.rootListRef(id, nodeView));
+
+      if (item.root && typeof item.root === 'object' && 'items' in item.root) {
+        const connection: AnyRecord = {
+          items: nodes.map((node, index) => ({ cursor: listState?.cursors?.[index], node })),
+          pagination: listState?.pagination,
+        };
+
+        const { argsPayload } = this.resolveListSelection(item.root, item.args);
+
+        const metadata: ConnectionMetadata = {
+          args: argsPayload,
+          field: name,
+          key: name,
+          owner: name,
+          procedure: `request.${name}`,
+          root: true,
+          type: item.type,
+        };
+
+        Object.defineProperty(connection, ConnectionTag, {
+          configurable: false,
+          enumerable: false,
+          value: metadata,
+          writable: false,
+        });
+
+        result[name] = connection;
+        continue;
+      }
+
+      result[name] = nodes;
     }
     return result as RequestResult<R>;
   }
@@ -838,7 +939,7 @@ export class FateClient<
 
   private resolveListSelection(view: View<any, any>, args: AnyRecord | undefined) {
     const plan = getSelectionPlan(view, null);
-    const argsPayload = combineArgsPayload(resolvedArgsFromPlan(plan), args);
+    const argsPayload = combineArgsPayload(args, resolvedArgsFromPlan(plan));
     applyArgsPayloadToPlan(plan, argsPayload);
     return { argsPayload, plan };
   }
@@ -1237,6 +1338,14 @@ export class FateClient<
                 }
               }
               const { id: ownerRawId, type: parentType } = parseEntityId(parentId);
+              const childType = (() => {
+                for (const item of value) {
+                  if (isNodeRef(item)) {
+                    return parseEntityId(getNodeRefId(item)).type;
+                  }
+                }
+                return '';
+              })();
               if (parentType) {
                 const metadataArgs = (() => {
                   if (!fieldArgs?.value && ownerRawId === undefined) {
@@ -1255,6 +1364,8 @@ export class FateClient<
                   key: listKey,
                   owner: parentId,
                   procedure: `${parentType}.${key}`,
+                  root: false,
+                  type: childType,
                 };
                 Object.defineProperty(connection, ConnectionTag, {
                   configurable: false,

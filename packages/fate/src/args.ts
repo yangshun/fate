@@ -106,6 +106,11 @@ export const resolvedArgsFromPlan = (plan?: SelectionPlan): ResolvedArgsPayload 
   const result: AnyRecord = {};
 
   for (const [path, entry] of plan.args.entries()) {
+    if (path === '') {
+      mergeArgs(result, entry.value);
+      continue;
+    }
+
     const segments = path.split('.');
     let current = result;
 
@@ -165,6 +170,10 @@ export const getArgsAtPath = (
     return undefined;
   }
 
+  if (path === '') {
+    return payload;
+  }
+
   const segments = path.split('.');
   let current: unknown = payload;
 
@@ -190,7 +199,7 @@ export const applyArgsPayloadToPlan = (
   }
 
   for (const [path, entry] of plan.args.entries()) {
-    const actual = getArgsAtPath(payload, path);
+    const actual = path === '' ? payload : getArgsAtPath(payload, path);
     if (!actual) {
       continue;
     }

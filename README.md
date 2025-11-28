@@ -1,4 +1,10 @@
-# fate
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./example/client/public/fate-logo-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="./example/client/public/fate-logo.svg">
+    <img alt="Logo" src="./example/client/public/fate-logo.svg" width="50%">
+  </picture>
+</p>
 
 **fate** is a modern data client for tRPC and React inspired by [Relay](https://relay.dev/) and [GraphQL](https://graphql.org/). It combines view composition, normalized caching, data masking, Async React features, and tRPC’s type safety.
 
@@ -543,20 +549,21 @@ See the [Server Integration](#server-integration) section for more details on ho
 
 fate Actions & Mutations separate error handling into two scopes: "call site" and "boundary". Call site errors are errors that are expected to be handled at the location where the action or mutation is called. Boundary errors are unexpected errors that should be handled by a higher-level error boundary.
 
-If your server returns a `NOT_FOUND` with code `404`, the result of an Action or Mutation will contain an error object that you can handle at the call site:
+If your server returns a `NOT_FOUND` error with code `404`, the result of an Action or Mutation will contain an error object that you can handle at the call site:
 
 ```tsx
 const [result] = useActionState(fate.actions.post.delete, null);
+
 if (result?.error) {
   if (result.error.code === 'NOT_FOUND') {
-    // Handle not found error at call site
+    // Handle not found error at call site.
   } else {
-    // Handle other expected errors
+    // Handle other *expected* errors.
   }
 }
 ```
 
-However, if an `INTERNAL_SERVER_ERROR` with code `500` occurs, the error will be thrown and can be caught by the nearest React error boundary:
+However, if an `INTERNAL_SERVER_ERROR` error with code `500` occurs, it will be thrown and can be caught by the nearest React error boundary:
 
 ```tsx
 <ErrorBoundary FallbackComponent={ErrorComponent}>

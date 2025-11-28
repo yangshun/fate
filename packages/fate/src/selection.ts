@@ -47,6 +47,19 @@ export const getSelectionPlan = <T extends Entity, S extends Selection<T>, V ext
   };
 
   const walk = (selection: AnyRecord, prefix: string | null, context: WalkContext = 'default') => {
+    if (prefix === null && context !== 'connection' && isConnectionSelection(selection)) {
+      if (selection.args && isRecord(selection.args)) {
+        const clonedArgs = cloneArgs(selection.args, 'args');
+        const ignoreKeys =
+          isRecord(selection.items) && isRecord(selection.items.node) ? paginationKeys : undefined;
+        assignArgs('', clonedArgs, ignoreKeys);
+      }
+
+      const { args, ...withoutArgs } = selection;
+      walk(withoutArgs, prefix, 'connection');
+      return;
+    }
+
     for (const [key, value] of Object.entries(selection)) {
       const valueType = typeof value;
       const path = prefix ? `${prefix}.${key}` : key;
@@ -129,8 +142,13 @@ export const getSelectionPlan = <T extends Entity, S extends Selection<T>, V ext
     }
   };
 
-  for (const payload of getViewPayloads(viewComposition, ref)) {
-    walk(payload.select, null);
+  const payloads = getViewPayloads(viewComposition, ref);
+  if (payloads.length === 0 && isRecord(viewComposition)) {
+    walk(viewComposition, null);
+  } else {
+    for (const payload of payloads) {
+      walk(payload.select, null);
+    }
   }
 
   return { args, paths };
