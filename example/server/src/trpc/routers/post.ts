@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import {
   arrayToConnection,
   connectionArgs,
@@ -5,7 +6,6 @@ import {
   getScopedArgs,
 } from '@nkzw/fate/server';
 import { TRPCError } from '@trpc/server';
-import { z } from 'zod';
 import type { PostFindManyArgs } from '../../prisma/prisma-client/models.ts';
 import { createConnectionProcedure } from '../connection.ts';
 import { procedure, router } from '../init.ts';

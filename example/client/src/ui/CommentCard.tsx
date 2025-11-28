@@ -1,8 +1,8 @@
-import type { Comment } from '@nkzw/fate-server/src/trpc/views.ts';
-import Stack from '@nkzw/stack';
 import { X } from 'lucide-react';
 import { useView, view, ViewRef } from 'react-fate';
 import { Link } from 'react-router';
+import type { Comment } from '@nkzw/fate-server/src/trpc/views.ts';
+import Stack from '@nkzw/stack';
 import { fate } from '../lib/fate.tsx';
 import { Button } from './Button.tsx';
 

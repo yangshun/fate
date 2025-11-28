@@ -1,5 +1,5 @@
-import Stack, { VStack } from '@nkzw/stack';
 import { useRequest, ViewRef } from 'react-fate';
+import Stack, { VStack } from '@nkzw/stack';
 import CategoryCard, { CategoryView } from '../ui/CategoryCard.tsx';
 import EventCard, { EventView } from '../ui/EventCard.tsx';
 import H3 from '../ui/H3.tsx';

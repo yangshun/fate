@@ -1,9 +1,3 @@
-import type {
-  Category,
-  Comment as InlineComment,
-  Post,
-} from '@nkzw/fate-server/src/trpc/router.ts';
-import Stack, { VStack } from '@nkzw/stack';
 import { cx } from 'class-variance-authority';
 import {
   KeyboardEvent,
@@ -16,6 +10,12 @@ import {
 import { ErrorBoundary } from 'react-error-boundary';
 import { useListView, useView, view, ViewRef } from 'react-fate';
 import { Link } from 'react-router';
+import type {
+  Category,
+  Comment as InlineComment,
+  Post,
+} from '@nkzw/fate-server/src/trpc/router.ts';
+import Stack, { VStack } from '@nkzw/stack';
 import { fate } from '../lib/fate.tsx';
 import { Button } from '../ui/Button.tsx';
 import Card from '../ui/Card.tsx';

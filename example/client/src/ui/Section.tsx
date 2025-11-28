@@ -1,5 +1,5 @@
-import { VStack } from '@nkzw/stack';
 import { ReactNode } from 'react';
+import { VStack } from '@nkzw/stack';
 import cx from '../lib/cx.tsx';
 
 export default function Section({

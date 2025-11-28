@@ -1,5 +1,5 @@
-import { Root } from '@radix-ui/react-separator';
 import { ComponentPropsWithoutRef, ComponentRef, forwardRef } from 'react';
+import { Root } from '@radix-ui/react-separator';
 import cx from '../lib/cx.tsx';
 
 const Separator = forwardRef<ComponentRef<typeof Root>, ComponentPropsWithoutRef<typeof Root>>(

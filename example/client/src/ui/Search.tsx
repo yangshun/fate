@@ -1,8 +1,8 @@
-import type { Comment, Post } from '@nkzw/fate-server/src/trpc/views.ts';
-import Stack, { VStack } from '@nkzw/stack';
 import { Suspense, useDeferredValue, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { useRequest, useView, view, ViewRef } from 'react-fate';
+import type { Comment, Post } from '@nkzw/fate-server/src/trpc/views.ts';
+import Stack, { VStack } from '@nkzw/stack';
 import cx from '../lib/cx.tsx';
 import Card from './Card.tsx';
 import CommentCard, { CommentView } from './CommentCard.tsx';

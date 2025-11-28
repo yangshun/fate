@@ -1,3 +1,4 @@
+import type { AnyRecord, EntityId, Pagination, Snapshot } from './types.ts';
 import ViewDataCache from './cache.ts';
 import {
   cloneMask,
@@ -9,7 +10,6 @@ import {
   union,
 } from './mask.ts';
 import { getNodeRefId, isNodeRef } from './node-ref.ts';
-import type { AnyRecord, EntityId, Pagination, Snapshot } from './types.ts';
 
 export type List = Readonly<{
   cursors?: ReadonlyArray<string | undefined>;

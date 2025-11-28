@@ -1,3 +1,4 @@
+import { use, useCallback, useDeferredValue, useRef, useSyncExternalStore } from 'react';
 import {
   EntityId,
   View,
@@ -9,7 +10,6 @@ import {
   ViewSnapshot,
   ViewTag,
 } from '@nkzw/fate';
-import { use, useCallback, useDeferredValue, useRef, useSyncExternalStore } from 'react';
 import { useFateClient } from './context.tsx';
 
 type ViewEntityWithTypename<V extends View<any, any>> = ViewEntity<V> & {

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
-import { cloneArgs, hashArgs } from '../args.ts';
 import type { AnyRecord } from '../types.ts';
+import { cloneArgs, hashArgs } from '../args.ts';
 
 describe('cloneArgs', () => {
   test('clones nested arrays and objects', () => {

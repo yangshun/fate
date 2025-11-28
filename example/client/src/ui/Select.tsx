@@ -1,5 +1,7 @@
 'use client';
 
+import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from 'lucide-react';
+import { ComponentProps } from 'react';
 import {
   Content,
   Group,
@@ -17,8 +19,6 @@ import {
   Value,
   Viewport,
 } from '@radix-ui/react-select';
-import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from 'lucide-react';
-import { ComponentProps } from 'react';
 import cx from '../lib/cx.tsx';
 
 function Select({ ...props }: ComponentProps<typeof Root>) {

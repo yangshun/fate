@@ -1,6 +1,6 @@
-import { initTRPC } from '@trpc/server';
 import { expect, test, vi } from 'vitest';
 import { z } from 'zod';
+import { initTRPC } from '@trpc/server';
 import { arrayToConnection, withConnection } from '../connection.ts';
 
 const t = initTRPC.create();

@@ -1,5 +1,5 @@
-import type { TRPCProcedureBuilder } from '@trpc/server';
 import { z } from 'zod';
+import type { TRPCProcedureBuilder } from '@trpc/server';
 
 type ConnectionInput = z.infer<typeof connectionInput>;
 

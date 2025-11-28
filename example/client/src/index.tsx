@@ -1,10 +1,10 @@
 import './App.css';
-import Stack from '@nkzw/stack';
 import { StrictMode, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ErrorBoundary } from 'react-error-boundary';
 import { FateClient } from 'react-fate';
 import { BrowserRouter, Route, Routes } from 'react-router';
+import Stack from '@nkzw/stack';
 import { fate } from './lib/fate.tsx';
 import CategoryRoute from './routes/CategoryRoute.tsx';
 import HomeRoute from './routes/HomeRoute.tsx';

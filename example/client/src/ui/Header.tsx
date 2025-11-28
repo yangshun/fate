@@ -1,6 +1,6 @@
-import Stack from '@nkzw/stack';
 import { ChevronLeft, CircuitBoard, LogIn, LogOut, Search } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router';
+import Stack from '@nkzw/stack';
 import AuthClient from '../user/AuthClient.tsx';
 import { Button } from './Button.tsx';
 import Link from './Link.tsx';

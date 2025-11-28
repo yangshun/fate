@@ -1,7 +1,7 @@
-import type { Event, EventAttendee } from '@nkzw/fate-server/src/trpc/views.ts';
-import Stack, { VStack } from '@nkzw/stack';
 import { ArrowUpRight, CalendarDays, MapPin, Users } from 'lucide-react';
 import { useView, view, ViewRef } from 'react-fate';
+import type { Event, EventAttendee } from '@nkzw/fate-server/src/trpc/views.ts';
+import Stack, { VStack } from '@nkzw/stack';
 import formatLabel from '../lib/formatLabel.tsx';
 import { Badge } from '../ui/Badge.tsx';
 import Card from '../ui/Card.tsx';

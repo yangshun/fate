@@ -1,7 +1,7 @@
-import type { Project, ProjectUpdate } from '@nkzw/fate-server/src/trpc/views.ts';
-import Stack, { VStack } from '@nkzw/stack';
 import { CalendarDays, Target } from 'lucide-react';
 import { useView, view, ViewRef } from 'react-fate';
+import type { Project, ProjectUpdate } from '@nkzw/fate-server/src/trpc/views.ts';
+import Stack, { VStack } from '@nkzw/stack';
 import formatLabel from '../lib/formatLabel.tsx';
 import { Badge } from './Badge.tsx';
 import Card from './Card.tsx';

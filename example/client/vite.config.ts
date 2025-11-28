@@ -1,8 +1,8 @@
-import { join } from 'node:path';
-import react from '@vitejs/plugin-react';
 import reactCompiler from 'babel-plugin-react-compiler';
 import dotenv from 'dotenv';
+import { join } from 'node:path';
 import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 
 const root = process.cwd();
 const isDevelopment = process.env.NODE_ENV === 'development' || process.env.DEV;
