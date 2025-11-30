@@ -24,7 +24,7 @@ export default function Header() {
           }
           to="/"
         >
-          <Stack alignCenter gap={4}>
+          <Stack alignCenter>
             <div className="relative">
               {pathname === '/' ? (
                 <svg
@@ -45,7 +45,7 @@ export default function Header() {
               )}
             </div>
             <span className="bg-linear-to-r from-gray-500 to-gray-900 bg-clip-text text-2xl text-transparent dark:to-gray-200">
-              fate demo
+              <span className="italic">fate</span> demo
             </span>
           </Stack>
         </Link>

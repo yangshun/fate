@@ -193,13 +193,11 @@ export type Post = Omit<
   __typename: 'Post';
   author: User;
   category: Category | null;
-  commentCount: number;
   comments: Array<Comment>;
   tags: Array<Tag>;
 };
 export type Category = Omit<DataViewResult<typeof categoryDataView>, 'posts'> & {
   __typename: 'Category';
-  postCount: number;
   posts: Array<Post>;
 };
 export type Project = Omit<DataViewResult<typeof projectDataView>, 'owner' | 'updates'> & {
@@ -210,7 +208,6 @@ export type Project = Omit<DataViewResult<typeof projectDataView>, 'owner' | 'up
 export type Event = Omit<DataViewResult<typeof eventDataView>, 'attendees' | 'host'> & {
   __typename: 'Event';
   attendees: Array<EventAttendee>;
-  attendingCount: number;
   host: User;
 };
 

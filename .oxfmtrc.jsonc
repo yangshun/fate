@@ -5,6 +5,8 @@
     "newlinesBetween": false
   },
   "ignorePatterns": [
+    ".vitepress/cache",
+    ".vitepress/dist",
     "coverage/",
     "dist/",
     "example/client/dist/",

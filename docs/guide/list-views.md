@@ -1,0 +1,60 @@
+# List Views
+
+## Pagination with `useListView`
+
+You can wrap a list of references using `useListView` to enable connection-style lists with pagination support.
+
+For example, you can define a `CommentView` and reuse it inside of a `CommentConnectionView`:
+
+```tsx
+import { useListView, ViewRef } from 'react-fate';
+
+const CommentView = view<Comment>()({
+  content: true,
+  id: true,
+});
+
+const CommentConnectionView = {
+  args: { first: 10 },
+  items: {
+    node: CommentView,
+  },
+} as const;
+
+const PostView = view<Post>()({
+  comments: CommentConnectionView,
+});
+```
+
+Now you can apply the `useListView` hook inside of your `PostCard` component to read the list of comments and load more comments when needed:
+
+```tsx
+export function PostCard({
+  detail,
+  post: postRef,
+}: {
+  detail?: boolean;
+  post: ViewRef<'Post'>;
+}) {
+  const post = useView(PostView, postRef);
+  const [comments, loadNext] = useListView(
+    CommentConnectionView,
+    post.comments,
+  );
+
+  return (
+    <div>
+      {comments.map(({ node }) => (
+        <CommentCard comment={node} key={node.id} post={post} />
+      ))}
+      {loadNext ? (
+        <Button onClick={loadNext} variant="ghost">
+          Load more comments
+        </Button>
+      ) : null}
+    </div>
+  );
+}
+```
+
+If `loadNext` is undefined, it means there are no more comments to load. If you want to instead load previous comments, you can use the third argument returned by `useListView`, which is `loadPrevious`. Similarly, if there are no previous comments to load, `loadPrevious` will be undefined.

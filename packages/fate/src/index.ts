@@ -1,3 +1,12 @@
+/**
+ * The fate core library.
+ *
+ * @example
+ * import { view } from '@nkzw/fate';
+ *
+ * @module @nkzw/fate
+ */
+
 export type {
   AnyRecord as FateRecord,
   ConnectionMetadata,

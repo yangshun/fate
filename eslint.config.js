@@ -6,8 +6,10 @@ export default [
   ...nkzw,
   {
     ignores: [
-      'dist',
+      '.vitepress/cache',
+      '.vitepress/dist',
       'coverage',
+      'dist',
       'example/server/src/prisma/pothos-types.ts',
       'example/server/src/prisma/prisma-client/*',
       'packages/**/lib',
@@ -19,6 +21,7 @@ export default [
       './example/server/src/index.tsx',
       './example/server/src/prisma/seed.tsx',
       './packages/fate/src/cli.ts',
+      './scripts/**',
       '**/__tests__/**',
     ],
     rules: {
@@ -40,6 +43,7 @@ export default [
         2,
         {
           devDependencies: [
+            './.vitepress/**',
             './eslint.config.js',
             './example/client/vite.config.ts',
             './example/server/prisma.config.ts',

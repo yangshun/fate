@@ -1,3 +1,12 @@
+/**
+ * The react fate library.
+ *
+ * @example
+ * import { useView, view } from 'react-fate';
+ *
+ * @module react-fate
+ */
+
 export {
   createClient,
   createTRPCTransport,

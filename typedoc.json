@@ -1,0 +1,24 @@
+{
+  "entryPoints": [
+    "packages/fate/src/index.ts",
+    "packages/fate/src/server.ts",
+    "packages/react-fate/src/index.tsx"
+  ],
+  "excludeExternals": true,
+  "excludeInternal": true,
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "hideBreadcrumbs": true,
+  "navigation": {
+    "includeFolders": false
+  },
+  "out": "docs/api",
+  "packageOptions": {
+    "basePath": "./src"
+  },
+  "plugin": ["typedoc-plugin-markdown", "typedoc-vitepress-theme"],
+  "readme": "none",
+  "sidebar": {
+    "pretty": true
+  }
+}

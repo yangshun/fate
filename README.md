@@ -1,26 +1,30 @@
+<!-- auto-generated from docs/guide/*.md. Do not edit directly. -->
+
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="./example/client/public/fate-logo-dark.svg">
-    <source media="(prefers-color-scheme: light)" srcset="./example/client/public/fate-logo.svg">
-    <img alt="Logo" src="./example/client/public/fate-logo.svg" width="50%">
+    <source media="(prefers-color-scheme: dark)" srcset="/public/fate-logo-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="/public/fate-logo.svg">
+    <img alt="Logo" src="/public/fate-logo.svg" width="50%">
   </picture>
 </p>
 
-**fate** is a modern data client for tRPC and React inspired by [Relay](https://relay.dev/) and [GraphQL](https://graphql.org/). It combines view composition, normalized caching, data masking, Async React features, and tRPC's type safety.
+**_fate_** is a modern data client for React and tRPC inspired by [Relay](https://relay.dev/) and [GraphQL](https://graphql.org/). It combines view composition, normalized caching, data masking, Async React features, and tRPC's type safety.
 
-**fate** is designed to make data fetching and state management in React applications more composable, declarative, and predictable. The framework has a minimal API, no DSL, and no magic—_it's just JavaScript_.
+**_fate_** is designed to make data fetching and state management in React applications more composable, declarative, and predictable. The framework has a minimal API, no DSL, and no magic—_it's just JavaScript_.
 
 ### Features
 
 - **View Composition:** Components declare their data requirements using co-located "views". Views are composed into a single request per screen, minimizing network requests and eliminating waterfalls.
-- **Normalized Cache:** fate maintains a normalized cache for all fetched data. This enables efficient data updates through actions or mutations and avoids stale or duplicated data.
+- **Normalized Cache:** fate maintains a normalized cache for all fetched data. This enables efficient data updates through actions and mutations and avoids stale or duplicated data.
 - **Data Masking & Strict Selection:** fate enforces strict data selection for each view, and masks (hides) data that components did not request. This prevents accidental coupling between components and reduces overfetching.
 - **Async React:** fate uses modern Async React features like Actions, Suspense, and `use` to support concurrent rendering and enable a seamless user experience.
 - **Lists & Pagination:** fate provides built-in support for connection-style lists with cursor-based pagination, making it easy to implement infinite scrolling and "load-more" functionality.
 - **Optimistic Updates:** fate supports declarative optimistic updates for mutations, allowing the UI to update immediately while the server request is in-flight. If the request fails, the cache and its associated views are rolled back to their previous state.
-- **AI-Ready:** fate's minimal, predictable API and explicit data selection allow for clear local reasoning, enabling AI tools to generate stable, type-safe data-fetching code.
+- **AI-Ready:** fate's minimal, predictable API and explicit data selection enable local reasoning, allowing AI tools to generate stable, type-safe data-fetching code.
 
-### Why fate?
+### A modern data client for React & tRPC
+
+**_fate_** is designed to make data fetching and state management in React applications more composable, declarative, and predictable. The framework has a minimal API, no DSL, and no magic—_it's just JavaScript_.
 
 GraphQL and Relay introduced several novel ideas: fragments co‑located with components, a normalized cache keyed by global identifiers, and a compiler that hoists fragments into a single network request. These innovations made it possible to build large applications where data requirements are modular and self‑contained.
 
@@ -30,9 +34,13 @@ However, GraphQL comes with its own type system and query language. If you are a
 
 fate takes the great ideas from Relay and puts them on top of tRPC. You get the best of both worlds: type safety between the client and server, and GraphQL-like ergonomics for data fetching.
 
-## Installation
+_[Learn more](/docs/guide/getting-started.md) about fate's core concepts and features._
 
-**fate** requires React 19.2+.
+## Getting Started
+
+### Installation
+
+**_fate_** requires React 19.2+.
 
 ```bash
 pnpm add react-fate @nkzw/fate
@@ -40,35 +48,40 @@ pnpm add react-fate @nkzw/fate
 
 _Note: **fate** is currently in alpha and not production ready. If something doesn't work for you, please open a Pull Request._
 
-## Core Concepts
+### Core Concepts
 
-**fate** has a minimal API surface and is aimed at reducing data fetching complexity.
+**_fate_** has a minimal API surface and is aimed at reducing data fetching complexity.
 
-### Thinking in Views
+#### Thinking in Views
 
 In fate, each component declares the data it needs using views. Views are composed upward through the component tree until they reach a root, where the actual request is made. fate fetches all required data in a single request. React Suspense manages loading states, and any data-fetching errors naturally bubble up to React error boundaries. This eliminates the need for imperative loading logic or manual error handling.
 
 Traditionally, React apps are built with components and hooks. Fate introduces a third primitive: views – a declarative way for components to express their data requirements. An app built with fate looks more like this:
 
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="./example/client/public/fate-tree-dark.svg">
-    <source media="(prefers-color-scheme: light)" srcset="./example/client/public/fate-tree.svg">
-    <img alt="Tree" src="./example/client/public/fate-tree.svg" width="90%">
+  <picture class="fate-tree">
+    <source media="(prefers-color-scheme: dark)" srcset="/public/fate-tree-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="/public/fate-tree.svg">
+    <img alt="Tree" src="/public/fate-tree.svg" width="90%">
   </picture>
 </p>
 
 With fate, you no longer worry about _when_ to fetch data, how to coordinate loading states, or how to handle errors imperatively. You avoid overfetching, stop passing unnecessary data down the tree, and eliminate boilerplate types created solely for passing server data to child components.
 
-### Views
+## Views
 
-#### Defining Views
+### Defining Views
 
 Let's start by defining a simple view for a blog's `Post` component. fate requires you to explicitly "select" each field that you plan to use in your components. Here is how you can define a view for a `Post` entity that has `title` and `content` fields:
 
 ```tsx
-import type { Post } from '@your-org/server/trpc/views.ts';
 import { view } from 'react-fate';
+
+type Post = {
+  id: string;
+  title: string;
+  content: string;
+};
 
 export const PostView = view<Post>()({
   title: true,
@@ -76,7 +89,9 @@ export const PostView = view<Post>()({
 });
 ```
 
-#### Resolving a View with `useView`
+_Note: The `Post` type above is an example. In a real application, this type is defined on the server and imported into your client code._
+
+### Resolving a View with `useView`
 
 Now we can use the view that we defined in a `PostCard` React component to resolve the data against a reference of an individual `Post`:
 
@@ -99,7 +114,7 @@ A `ViewRef` is a reference to an object of a specific type, in this case a `Post
 
 Components using `useView` listen to changes for all selected fields. When data changes, fate re-renders all of the fields that depend on that data. For example, if the `title` of the `Post` changes, the `PostCard` component re-renders with new data. However, if a different field such as `likes` that isn't selected in `PostView` changes, the `PostCard` component will not re-render.
 
-#### Fetching Data with `useRequest`
+### Fetching Data with `useRequest`
 
 Now that we defined our view and component, we fetch the data from the server using the `useRequest` hook from fate. This hook allows us to declare what data we need for a specific screen or component tree. At the root of our `HomePage` component, we can request a list of posts like this:
 
@@ -126,7 +141,7 @@ This component suspends or throws errors, which bubble up to the nearest error b
 </ErrorBoundary>
 ```
 
-#### Composing Views
+### Composing Views
 
 In the above example we are defining a single view for a `Post`. One of fate's core strengths is view composition. Let's say we want to show the author's name along with the post. A simple way to do this is by adding an `author` field to the `PostView` with a concrete selection:
 
@@ -186,17 +201,13 @@ Now we can create a separate `UserCard` component that uses our `UserView`:
 ```tsx
 import { useView, ViewRef } from 'react-fate';
 
-export const UserCard = ({
-  author: authorRef,
-}: {
-  author: ViewRef<'User'>;
-}) => {
-  const author = useView(UserView, authorRef);
+export const UserCard = ({ user: userRef }: { user: ViewRef<'User'> }) => {
+  const user = useView(UserView, userRef);
 
   return (
     <div>
-      <img src={author.profilePicture} alt={author.name} />
-      <p>{author.name}</p>
+      <img src={user.profilePicture} alt={user.name} />
+      <p>{user.name}</p>
     </div>
   );
 };
@@ -213,18 +224,18 @@ export const PostCard = ({ post: postRef }: { post: ViewRef<'Post'> }) => {
   return (
     <Card>
       <h2>{post.title}</h2>
-      <UserCard author={post.author} />
+      <UserCard user={post.author} />
       <p>{post.content}</p>
     </Card>
   );
 };
 ```
 
-#### View Spreads
+### View Spreads
 
 When building complex UIs, you will often build multiple components that share the same data requirements. In fate, you can use view spreads to compose such views together. This is similar to GraphQL fragment spreads, but works with plain JavaScript objects.
 
-Let's assume we want to fetch and display additional information about the author in the `PostCard`, such as their bio. We can simply select the `bio` field for use in our `PostCard` component:
+Let's assume we want to fetch and display additional information about the author in the `PostCard`, such as their bio. Instead of directly assigning our `UserView` to the `author` field, we can instead spread it and add the `bio` field:
 
 ```tsx
 export const PostView = view<Post>()({
@@ -276,7 +287,107 @@ export const PostView = view<Post>()({
 });
 ```
 
-#### useListView
+Views are opaque objects. Even if you select the same field multiple times through different views, the composed object won't have conflicting fiels or result in TypeScript errors. fate automatically deduplicates fields during runtime and ensures that each field is only fetched once.
+
+### `useView` and Suspense
+
+We learned that `useRequest` is responsible for fetching data from the server and `useView` is used for reading data from the cache. In some situations data may not be available in the cache and `useView` might need to suspend the component to fetch only the missing data. Once that data is fetched and written to the cache, the component resumes rendering.
+
+_Tip: You can test this behavior in development mode with Fast Refresh (HMR) enabled in your bundler. When you edit the selection of a view, components using that view will suspend, fetch the missing data, and then resume rendering._
+
+### Type Safety and Data Masking
+
+fate provides guarantees through TypeScript and during runtime that prevent you from accessing data that wasn't selected in a component. This ensures that you declare all the data dependencies at the right level in your component tree, and prevents accidental coupling between components.
+
+In the below example, we forgot to select the `content` of a `Post`. As a result, type-checks fail and the `content` field is undefined during runtime:
+
+```tsx
+const PostView = view<Post>()({
+  id: true,
+  title: true,
+  // `content: true` is omitted.
+});
+
+const PostCard = ({ post: postRef }: { post: ViewRef<'Post'> }) => {
+  const post = useView(PostView, postRef);
+
+  return (
+    <Card>
+      <h2>{post.title}</h2>
+      {/* TypeScript errors here, and `post.content` is undefined during runtime */}
+      <p>{post.content}</p>
+    </Card>
+  );
+};
+```
+
+Views can only be resolved against refs that include that view directly or via view spreads. If a component tries to resolve a view against a ref that isn't linked, it will throw an error during runtime:
+
+```tsx
+const PostDetailView = view<Post>()({
+  content: true,
+});
+
+const AnotherPostView = view<Post>()({
+  content: true,
+});
+
+const PostView = view<Post>()({
+  id: true,
+  title: true,
+  ...AnotherPostView,
+});
+
+const PostCard = ({ post: postRef }: { post: ViewRef<'Post'> }) => {
+  const post = useView(PostView, postRef);
+  return <PostDetail post={post} />;
+};
+
+const PostDetail = ({ post: postRef }: { post: ViewRef<'Post'> }) => {
+  // This throws because the post reference passed into this component
+  // is of type `AnotherPostView`, not `PostDetailView`.
+  const post = useView(PostDetailView, postRef);
+};
+```
+
+ViewRefs carry a set of view names they can resolve. `useView` throws if a ref does not include the required view.
+
+### Request Modes
+
+`useRequest` supports different request modes to control caching and data freshness. The available modes are:
+
+- `cache-first` (_default_): Returns data from the cache if available, otherwise fetches from the network.
+- `stale-while-revalidate`: Returns data from the cache and simultaneously fetches fresh data from the network.
+- `network-only`: Always fetches data from the network, bypassing the cache.
+
+You can pass the request mode as an option to `useRequest`:
+
+```tsx
+const { posts } = useRequest(
+  {
+    posts: { root: PostView, type: 'Post' },
+  },
+  { mode: 'stale-while-revalidate' },
+);
+```
+
+### Request Arguments
+
+You can pass arguments to `useRequest` calls. This is useful for pagination, filtering, or sorting. For example, to fetch the first 10 posts, you can do the following:
+
+```tsx
+const { posts } = useRequest({
+  posts: {
+    args: { first: 10 },
+    root: PostView,
+    type: 'Post',
+  },
+});
+```
+
+## List Views
+
+### Pagination with `useListView`
 
 You can wrap a list of references using `useListView` to enable connection-style lists with pagination support.
 
@@ -335,68 +446,7 @@ export function PostCard({
 
 If `loadNext` is undefined, it means there are no more comments to load. If you want to instead load previous comments, you can use the third argument returned by `useListView`, which is `loadPrevious`. Similarly, if there are no previous comments to load, `loadPrevious` will be undefined.
 
-#### Suspending through `useView`
-
-While `useRequest` is responsible for fetching data from the server and `useView` is used for reading data from the cache based on a selection, there are cases where `useView` might need to fetch additional data that is not yet available in the cache. In such cases, `useView` will suspend the component and fetch only the missing data.
-
-#### Type Safety and Data Masking
-
-fate provides guarantees through TypeScript and during runtime that prevent you from accessing data that wasn't selected in a component. This ensures that you declare all the data dependencies at the right level in your component tree, and prevents accidental coupling between components.
-
-In the below example, we forgot to select the `content` of a `Post`. As a result, type-checks fail and the `content` field is undefined during runtime:
-
-```tsx
-const PostView = view<Post>()({
-  id: true,
-  title: true,
-  // `content: true` is omitted.
-});
-
-const PostCard = ({ post: postRef }: { post: ViewRef<'Post'> }) => {
-  const post = useView(PostView, postRef);
-
-  return (
-    <Card>
-      <h2>{post.title}</h2>
-      {/* TypeScript errors here, and `post.content` is undefined during runtime */}
-      <p>{post.content}</p>
-    </Card>
-  );
-};
-```
-
-Views can only be resolved against refs that include that view directly or via view spreads. If a component tries to resolve a view against a ref that isn't linked, it will throw an error during runtime:
-
-```tsx
-const PostDetailView = view<Post>()({
-  content: true,
-});
-
-const AnotherPostView = view<Post>()({
-  content: true,
-});
-
-const PostView = view<Post>()({
-  id: true,
-  title: true,
-  ...AnotherPostView,
-});
-
-const PostCard = ({ post: postRef }: { post: ViewRef<'Post'> }) => {
-  const post = useView(PostView, postRef);
-  return <PostDetail post={post} />;
-};
-
-const PostDetail = ({ post: postRef }: { post: ViewRef<'Post'> }) => {
-  // This throws because the post reference passed into this component
-  // is of type `AnotherPostView`, not `PostDetailView`.
-  const post = useView(PostDetailView, postRef);
-};
-```
-
-ViewRefs carry a set of view names they can resolve. `useView` throws if a ref does not include the required view.
-
-### Actions
+## Actions
 
 fate does not provide hooks for mutations like traditional data fetching libraries do. Instead, mutations are exposed in two ways:
 
@@ -448,7 +498,7 @@ const LikeButton = ({ post }: { post: { id: string; likes: number } }) => {
 
 By using `useActionState`, fate Actions integrate with Suspense and concurrent rendering.
 
-#### Optimistic Updates
+### Optimistic Updates
 
 fate Actions support optimistic updates out of the box. For example, to update the post's like count optimistically, you can pass an `optimistic` object to the action call. This will immediately update the cache with the new like count and re-render all views that select the `likes` field:
 
@@ -463,7 +513,7 @@ When data changes through optimistic updates or otherwise, fate only re-renders 
 
 If a mutation fails, the cache will be rolled back to its previous state and any views depending on the mutated data will be updated.
 
-#### Inserting New Objects
+### Inserting New Objects
 
 When a mutation inserts a new object, you can provide an optimistic object with a temporary ID to represent the new object in the cache until the server responds with the actual ID. For example, to add a new comment to a post optimistically, you can do the following:
 
@@ -480,7 +530,7 @@ addComment({
 });
 ```
 
-#### Selecting a View with Actions
+### Selecting a View with Actions
 
 Mutations may change data that is not directly specified in the mutation result. For example, adding a comment increases the post's comment count. For such cases, you can provide a `view` to an action that specifies which fields to fetch as part of the mutation:
 
@@ -506,7 +556,7 @@ if (newComment) {
 }
 ```
 
-#### Mutations
+### Mutations
 
 fate Actions are the recommended way to execute server mutations in React components. However, there are cases where you might want to call mutations imperatively, outside of React components, or without waiting for previous actions to finish like `useActionState` does. For such cases, you can use `fate.mutations` to call mutations imperatively:
 
@@ -518,7 +568,7 @@ const result = await fate.mutations.comment.add({
 
 You can call mutations from anywhere, and without waiting for previous mutations to finish. The mutation API matches the API of fate Actions, including optimistic updates and view selection. With mutations, you'll need to handle loading states and errors manually, and the result is returned as a promise.
 
-#### Mutation Server Implementation
+### Mutation Server Implementation
 
 fate Actions & Mutations are backed by regular tRPC mutations on the server. Here is an example implementation of the `like` mutation in the `postRouter`.
 
@@ -560,7 +610,7 @@ export const postRouter = router({
 
 See the [Server Integration](#server-integration) section for more details on how to integrate tRPC routers with fate.
 
-#### Action & Mutation Error Handling
+### Action & Mutation Error Handling
 
 fate Actions & Mutations separate error handling into two scopes: "call site" and "boundary". Call site errors are expected to be handled at the location where the action or mutation is called. Boundary errors are unexpected errors that should be handled by a higher-level error boundary.
 
@@ -589,6 +639,38 @@ However, if an `INTERNAL_SERVER_ERROR` error with code `500` occurs, it will be 
 ```
 
 You can find the error classification behavior in [`mutation.ts`](https://github.com/nkzw-tech/fate/blob/main/packages/fate/src/mutation.ts#L227-L254).
+
+### Deleting Records
+
+When you want to delete a record using fate Actions, you can pass a `delete: true` flag to the action call. This flag removes the object from the cache and re-renders all views that depend on the deleted data:
+
+```tsx
+const [result, deleteAction] = useActionState(fate.actions.post.delete, null);
+
+deleteAction({
+  input: { id: post.id },
+  delete: true,
+});
+```
+
+### Resetting Action State
+
+When using `useActionState`, the result of the action is cached until the component using the action is unmounted. When a mutation fails with an error, you might want to clear the error state without invoking the action again. fate Actions take a `'reset'` token to reset the action state:
+
+```tsx
+const [result, like] = useActionState(fate.actions.post.like, null);
+
+useEffect(() => {
+  if (result?.error) {
+    // Reset the action state after 3 seconds.
+    const timeout = setTimeout(
+      () => startTransition(() => like('reset')),
+      3000,
+    );
+    return () => clearTimeout(timeout);
+  }
+}, [like, result]);
+```
 
 ## Server Integration
 
@@ -752,6 +834,20 @@ export const Lists = {
 
 This makes it possible to fetch a list of posts from the client using `useRequest`.
 
+#### Custom Root Lists
+
+You might want to define custom root lists that don't directly map to a single data view. For example, a search endpoint that returns a list of posts based on a search query:
+
+```tsx
+export const Lists = {
+  // …
+  postSearch: { procedure: 'search', view: postDataView },
+  // …
+};
+```
+
+This maps the `postSearch` list to a `search` procedure on your post router.
+
 ### Data View Resolvers
 
 fate data views support resolvers for computed fields. If we want to add a `commentCount` field to our `Post` data view, we can use the `resolver` helper that defines a Prisma selection for the database query together with a `resolve` function:
@@ -837,99 +933,13 @@ export function App() {
 
 _And you are all set. Happy building!_
 
-## Advanced Features
-
-### Request Arguments
-
-You can pass arguments to your `useRequest` calls. This is useful for pagination, filtering, or sorting. For example, to fetch the first 10 posts, you can do the following:
-
-```tsx
-const { posts } = useRequest({
-  posts: {
-    args: { first: 10 },
-    root: PostView,
-    type: 'Post',
-  },
-});
-```
-
-### Request Modes
-
-`useRequest` supports different request modes to control caching and data freshness. The available modes are:
-
-- `cache-first` (_default_): Returns data from the cache if available, otherwise fetches from the network.
-- `stale-while-revalidate`: Returns data from the cache and simultaneously fetches fresh data from the network.
-- `network-only`: Always fetches data from the network, bypassing the cache.
-
-You can pass the request mode as an option to `useRequest`:
-
-```tsx
-const { posts } = useRequest(
-  {
-    posts: { root: PostView, type: 'Post' },
-  },
-  { mode: 'stale-while-revalidate' },
-);
-```
-
-### Custom Root Lists
-
-You can define root lists by exporting a `Lists` object from your `views.ts` file. However, sometimes you might want to define custom root lists that don't directly map to a single data view. For example, you might want to expose a search endpoint that returns a list of posts based on a search query:
-
-```tsx
-export const Lists = {
-  // …
-  postSearch: { procedure: 'search', view: postDataView },
-  // …
-};
-```
-
-This maps the `postSearch` list to a `search` procedure on your post router.
-
-### Deleting Records through Actions
-
-When you want to delete a record using fate Actions, you can pass a `delete: true` flag to the action call. This flag removes the object from the cache and re-renders all views that depend on the deleted data:
-
-```tsx
-const [result, deleteAction] = useActionState(fate.actions.post.delete, null);
-
-deleteAction({
-  input: { id: post.id },
-  delete: true,
-});
-```
-
-### Resetting Action State
-
-When you are using `useActionState`, the result of the action is cached until the component using the action is unmounted. When a mutation fails with an error, you might want to clear the error state without invoking the action again. fate Actions take a `'reset'` token to reset the action state:
-
-```tsx
-const [result, like] = useActionState(fate.actions.post.like, null);
-
-useEffect(() => {
-  if (result?.error) {
-    // Reset the action state after 3 seconds.
-    const timeout = setTimeout(
-      () => startTransition(() => like('reset')),
-      3000,
-    );
-    return () => clearTimeout(timeout);
-  }
-}, [like, result]);
-```
-
-## Acknowledgements
-
-- [Relay](https://relay.dev/) & [GraphQL](https://graphql.org/) for inspiration
-- [Rick Hanlon](https://x.com/rickyfm) for guidance on Async React
-
 ## Is this serious software?
 
-**fate** is an ambitious React data library that tries to blend Relay-style ideas with tRPC, held together by equal parts vision and vibes. It aims to fix problems you definitely wouldn't have if you enjoy writing the same fetch logic in three different places with imperative loading state and error handling. fate promises predictable data flow, minimal APIs, and “no magic,” though you may occasionally suspect otherwise.
+**_fate_** is an ambitious React data library that tries to blend Relay-style ideas with tRPC, held together by equal parts vision and vibes. It aims to fix problems you definitely wouldn't have if you enjoy writing the same fetch logic in three different places with imperative loading state and error handling. fate promises predictable data flow, minimal APIs, and “no magic,” though you may occasionally suspect otherwise.
 
-80% of the code was written by Codex – four versions per task, carefully curated by a human. The remaining 20% was written by [@cpojer](https://x.com/cnakazawa). You get to decide which parts are the good ones. The README was 100% written by a human. _Maybe._
+80% of the code was written by Codex – four versions per task, carefully curated by a human. The remaining 20% was written by [@cnakazawa](https://x.com/cnakazawa). You get to decide which parts are the good ones. The README was 100% written by a human. _Maybe._
 
-**fate** is almost certainly worse than actual sync engines, but it will eventually be better than existing React data-fetching libraries. Use it if you have a high tolerance for pain and want to help shape the future of data fetching in React.
+**_fate_** is almost certainly worse than actual sync engines, but it will eventually be better than existing React data-fetching libraries. Use it if you have a high tolerance for pain and want to help shape the future of data fetching in React.
 
 ### Is fate better than Relay?
 
@@ -949,3 +959,8 @@ We welcome contributions and ideas to improve fate. Here are some features we ar
 - Support for live views and real-time updates via `useLiveView` and SSE.
 - Implement garbage collection for the cache.
 - Add persistent storage for offline support.
+
+## Acknowledgements
+
+- [Relay](https://relay.dev/), [Isograph](https://isograph.dev/) & [GraphQL](https://graphql.org/) for inspiration
+- [Rick Hanlon](https://x.com/rickyfm) for guidance on Async React

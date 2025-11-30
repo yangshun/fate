@@ -1,11 +1,15 @@
 .eslintcache
 .pnpm-debug.log
+.vitepress/cache
 **/node_modules/
 /node_modules/
 coverage/
 dist/
+docs/api
 example/client/dist/
 example/server/src/prisma/prisma-client/
 packages/**/lib/
+packages/**/LICENSE
+packages/**/README.md
 tsconfig.tsbuildinfo
 vite.config.ts.timestamp-*
