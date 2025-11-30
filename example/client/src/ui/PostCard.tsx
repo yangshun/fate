@@ -72,7 +72,7 @@ const CommentInput = ({
 
     const result = await fate.mutations.comment.add({
       input: { content, postId: post.id },
-      optimisticUpdate: {
+      optimistic: {
         author: user
           ? {
               id: user.id,
@@ -156,7 +156,7 @@ export function PostCard({ detail, post: postRef }: { detail?: boolean; post: Vi
     async (options?: { error?: 'boundary' | 'callSite'; slow?: boolean }) => {
       likeAction({
         input: { id: post.id, ...options },
-        optimisticUpdate: { likes: post.likes + 1 },
+        optimistic: { likes: post.likes + 1 },
         view: PostView,
       });
     },
@@ -166,7 +166,7 @@ export function PostCard({ detail, post: postRef }: { detail?: boolean; post: Vi
   const handleUnlike = useCallback(async () => {
     unlikeAction({
       input: { id: post.id },
-      optimisticUpdate: {
+      optimistic: {
         likes: Math.max(post.likes - 1, 0),
       },
       view: PostView,
@@ -249,7 +249,7 @@ export function PostCard({ detail, post: postRef }: { detail?: boolean; post: Vi
                   onClick={() =>
                     fate.mutations.post.like({
                       input: { id: post.id },
-                      optimisticUpdate: { likes: post.likes + 1 },
+                      optimistic: { likes: post.likes + 1 },
                       view: PostView,
                     })
                   }

@@ -471,7 +471,7 @@ test(`'readView' resolves fields only if the ref contains the expected views`, (
   expect(resultC.content).toBe('Apple Banana');
 });
 
-test(`'deleteRecord' removes an entity and cleans references`, () => {
+test(`'delete' removes an entity and cleans references`, () => {
   const client = createClient({
     transport: {
       async fetchById() {
@@ -643,7 +643,7 @@ test(`delete mutations can select a view and update related entities`, async () 
   );
 
   await client.mutations.deleteComment({
-    deleteRecord: true,
+    delete: true,
     input: { id: 'comment-1' },
     view: view<Comment>()({
       id: true,
@@ -793,7 +793,7 @@ test('mutations apply optimistic updates before resolving', async () => {
 
   const promise = client.mutations.updateUser({
     input: { id: 'user-1', name: 'Server' },
-    optimisticUpdate: { name: 'Optimistic' },
+    optimistic: { name: 'Optimistic' },
     view: UserView,
   });
 
@@ -869,7 +869,7 @@ test('optimistic updates stack when mutations resolve out of order', async () =>
 
   const likePromise = client.mutations.like({
     input: { id: 'post-1' },
-    optimisticUpdate: { likes: serverLikes + 1 },
+    optimistic: { likes: serverLikes + 1 },
     view: PostView,
   });
 
@@ -878,7 +878,7 @@ test('optimistic updates stack when mutations resolve out of order', async () =>
   const current = client.store.read(toEntityId('Post', 'post-1')) as Post;
   const unlikePromise = client.mutations.unlike({
     input: { id: 'post-1' },
-    optimisticUpdate: { likes: Math.max(current.likes - 1, 0) },
+    optimistic: { likes: Math.max(current.likes - 1, 0) },
     view: PostView,
   });
 
@@ -933,7 +933,7 @@ test('mutations roll back optimistic updates when requests fail', async () => {
 
   const promise = client.mutations.updateUser({
     input: { id: 'user-1', name: 'Server' },
-    optimisticUpdate: { name: 'Optimistic' },
+    optimistic: { name: 'Optimistic' },
     view: UserView,
   });
 
@@ -973,7 +973,7 @@ test(`optimistic updates without identifiers are ignored`, async () => {
 
   const { error, result } = await client.mutations.createPost({
     input: { content: 'Draft' },
-    optimisticUpdate: { content: 'Draft' },
+    optimistic: { content: 'Draft' },
   });
 
   expect(result).toEqual({ content: 'Published', id: 'post-1' });
@@ -1051,7 +1051,7 @@ test('optimistic records are replaced once the mutation resolves', async () => {
 
   const promise = client.mutations.addComment({
     input: { content: 'Optimistic', postId: 'post-1' },
-    optimisticUpdate: {
+    optimistic: {
       content: 'Optimistic',
       id: optimisticId,
       post: { id: 'post-1' },
@@ -1114,7 +1114,7 @@ test('does not fetch missing fields for optimistic records', async () => {
   const optimisticId = 'optimistic:comment';
   const mutationPromise = client.mutations.addComment({
     input: { content: 'Optimistic', postId: 'post-1' },
-    optimisticUpdate: {
+    optimistic: {
       author: { __typename: 'User', id: 'optimistic:user-1' },
       content: 'Optimistic',
       id: optimisticId,
@@ -1502,7 +1502,7 @@ test(`'request' refetches cached data when using 'store-and-network' mode`, asyn
         type: 'Post',
       },
     },
-    { mode: 'cache-or-network' },
+    { mode: 'cache-first' },
   );
 
   expect(fetchById).toHaveBeenCalledTimes(0);
@@ -1515,7 +1515,7 @@ test(`'request' refetches cached data when using 'store-and-network' mode`, asyn
         type: 'Post',
       },
     },
-    { mode: 'cache-and-network' },
+    { mode: 'stale-while-revalidate' },
   );
 
   expect(fetchById).toHaveBeenCalledTimes(1);
@@ -1546,7 +1546,7 @@ test(`'request' only fetches once when cache is missing for 'store-and-network'`
         type: 'Post',
       },
     },
-    { mode: 'cache-and-network' },
+    { mode: 'stale-while-revalidate' },
   );
 
   expect(fetchById).toHaveBeenCalledTimes(1);

@@ -44,9 +44,9 @@ import { getViewNames, getViewPayloads } from './view.ts';
  */
 export type RequestMode =
   /** (default) Use cached data if present, otherwise fetch. */
-  | 'cache-or-network'
+  | 'cache-first'
   /** Show cached data immediately and refresh in the background. */
-  | 'cache-and-network'
+  | 'stale-while-revalidate'
   /** Always fetch from the network and ignore cached entries. */
   | 'network-only';
 
@@ -815,7 +815,7 @@ export class FateClient<
   }
 
   request<R extends Request>(request: R, options?: RequestOptions): Promise<RequestResult<R>> {
-    const mode = options?.mode ?? 'cache-or-network';
+    const mode = options?.mode ?? 'cache-first';
     const requestKey = getRequestCacheKey(request);
     const existingRequest = this.requests.get(requestKey)?.get(mode);
     if (existingRequest) {
@@ -824,10 +824,10 @@ export class FateClient<
 
     let promise: Promise<RequestResult<R>>;
     switch (mode) {
-      case 'cache-and-network':
+      case 'stale-while-revalidate':
         promise = this.handleStoreAndNetworkRequest(request);
         break;
-      case 'cache-or-network':
+      case 'cache-first':
       case 'network-only':
       default:
         promise = this.executeRequest(

@@ -49,7 +49,7 @@ const UserNameForm = ({ user }: { user: SessionUser }) => {
       setError(null);
       await fate.mutations.user.update({
         input: { name: newName },
-        optimisticUpdate: {
+        optimistic: {
           id,
           username: newName,
         },

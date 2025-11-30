@@ -46,9 +46,9 @@ export default function CommentCard({
           className="opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
           onClick={async () => {
             await fate.mutations.comment.delete({
-              deleteRecord: true,
+              delete: true,
               input: { id: comment.id },
-              optimisticUpdate: {
+              optimistic: {
                 post: { commentCount: post.commentCount - 1, id: post.id },
               },
               view: view<Comment>()({

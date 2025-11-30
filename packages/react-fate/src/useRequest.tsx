@@ -15,10 +15,10 @@ export function useRequest<R extends Request>(
 ): RequestResult<R> {
   const client = useFateClient();
   const promise = client.request(request, options);
-  const mode = options?.mode ?? 'cache-or-network';
+  const mode = options?.mode ?? 'cache-first';
 
   useEffect(() => {
-    if (mode === 'network-only' || mode === 'cache-and-network') {
+    if (mode === 'network-only' || mode === 'stale-while-revalidate') {
       return () => {
         client.releaseRequest(request, mode);
       };

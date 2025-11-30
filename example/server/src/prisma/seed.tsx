@@ -169,7 +169,7 @@ const posts = [
     authorEmail: 'mateo@nakazawa.dev',
     category: 'API Surface',
     content:
-      'Notes from wiring useRequest into the dashboard where React use() consumes the promise from client.request. I call out how the cache-or-network mode pairs with releaseRequest to avoid leaking subscriptions during navigation.',
+      'Notes from wiring useRequest into the dashboard where React use() consumes the promise from client.request. I call out how the cache-first mode pairs with releaseRequest to avoid leaking subscriptions during navigation.',
     likes: 39,
     tags: ['suspense', 'normalized-cache'],
     title: 'Suspense-first request API in practice',

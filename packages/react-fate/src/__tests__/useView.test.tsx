@@ -289,7 +289,7 @@ test('re-renders when a mutation updates the record', async () => {
   await act(async () => {
     pendingMutation = client.mutations.updatePost({
       input: { content: 'Published', id: 'post-1' },
-      optimisticUpdate: {
+      optimistic: {
         author: {
           __typename: 'User',
           id: 'user-1',
@@ -403,7 +403,7 @@ test('optimistic updates compose when mutations resolve out of order', async () 
     triggerLike = () => {
       likePromise = client.mutations.like({
         input: { id: post.id },
-        optimisticUpdate: { likes: post.likes + 1 },
+        optimistic: { likes: post.likes + 1 },
         view: PostView,
       });
     };
@@ -412,7 +412,7 @@ test('optimistic updates compose when mutations resolve out of order', async () 
     triggerUnlike = () => {
       unlikePromise = client.mutations.unlike({
         input: { id: post.id },
-        optimisticUpdate: { likes: Math.max(post.likes - 1, 0) },
+        optimistic: { likes: Math.max(post.likes - 1, 0) },
         view: PostView,
       });
     };
@@ -552,7 +552,7 @@ test('rolls back optimistic updates when a mutation fails', async () => {
   await act(async () => {
     pendingMutation = client.mutations.updatePost({
       input: { content: 'Published', id: 'post-1' },
-      optimisticUpdate: {
+      optimistic: {
         author: {
           __typename: 'User',
           id: 'user-1',

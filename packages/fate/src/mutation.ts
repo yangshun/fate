@@ -41,11 +41,11 @@ export type MutationOptions<Identifier extends MutationIdentifier<any, any, any>
   /** Optional arguments to pass to the mutation resolver. */
   args?: Record<string, unknown>;
   /** If true, deletes the record with the ID specified in the input. */
-  deleteRecord?: boolean;
+  delete?: boolean;
   /** Input data for the mutation. */
   input: Omit<MutationInput<Identifier>, 'select'>;
   /** Optional optimistic update to apply immediately. */
-  optimisticUpdate?: OptimisticUpdate<MutationResult<Identifier>>;
+  optimistic?: OptimisticUpdate<MutationResult<Identifier>>;
   /** Optional view specifying which fields to select from the server. */
   view?: View<MutationEntity<Identifier>, Selection<MutationEntity<Identifier>>>;
 };
@@ -123,13 +123,13 @@ export function wrapMutation<
 >(client: FateClient<M>, identifier: I): MutationFunction<I> {
   const config = client.getTypeConfig(identifier.entity);
 
-  return async ({ args, deleteRecord, input, optimisticUpdate, view }: MutationOptions<I>) => {
+  return async ({ args, delete: deleteRecord, input, optimistic, view }: MutationOptions<I>) => {
     const id = maybeGetId(config.getId, input);
     const plan = view ? getSelectionPlan(view, null) : undefined;
     const viewSelection = plan?.paths;
 
-    const optimisticRecord: AnyRecord | undefined = optimisticUpdate
-      ? ((id != null ? { id, ...optimisticUpdate } : optimisticUpdate) as AnyRecord)
+    const optimisticRecord: AnyRecord | undefined = optimistic
+      ? ((id != null ? { id, ...optimistic } : optimistic) as AnyRecord)
       : undefined;
     const optimisticRecordId =
       optimisticRecord !== undefined ? maybeGetId(config.getId, optimisticRecord) : null;
