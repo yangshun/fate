@@ -111,3 +111,59 @@ test('derives pagination from provided args', () => {
     },
   });
 });
+
+test('paginates forward starting after the provided cursor', () => {
+  const result = arrayToConnection(
+    [
+      { id: 'comment-1' },
+      { id: 'comment-2' },
+      { id: 'comment-3' },
+      { id: 'comment-4' },
+      { id: 'comment-5' },
+    ],
+    {
+      args: { after: 'comment-2', first: 2 },
+    },
+  );
+
+  expect(result).toEqual({
+    items: [
+      { cursor: 'comment-3', node: { id: 'comment-3' } },
+      { cursor: 'comment-4', node: { id: 'comment-4' } },
+    ],
+    pagination: {
+      hasNext: true,
+      hasPrevious: true,
+      nextCursor: 'comment-4',
+      previousCursor: 'comment-3',
+    },
+  });
+});
+
+test('paginates backward stopping before the provided cursor', () => {
+  const result = arrayToConnection(
+    [
+      { id: 'comment-1' },
+      { id: 'comment-2' },
+      { id: 'comment-3' },
+      { id: 'comment-4' },
+      { id: 'comment-5' },
+    ],
+    {
+      args: { before: 'comment-4', last: 2 },
+    },
+  );
+
+  expect(result).toEqual({
+    items: [
+      { cursor: 'comment-2', node: { id: 'comment-2' } },
+      { cursor: 'comment-3', node: { id: 'comment-3' } },
+    ],
+    pagination: {
+      hasNext: true,
+      hasPrevious: true,
+      nextCursor: 'comment-3',
+      previousCursor: 'comment-2',
+    },
+  });
+});

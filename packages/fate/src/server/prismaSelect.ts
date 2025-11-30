@@ -1,12 +1,20 @@
 const toPrismaArgs = (args: Record<string, unknown>): Record<string, unknown> => {
   const prismaArgs: Record<string, unknown> = {};
 
+  const isBackward = args.before !== undefined || typeof args.last === 'number';
+
   if (typeof args.first === 'number') {
     prismaArgs.take = args.first + 1;
   }
 
-  if (args.after !== undefined) {
-    prismaArgs.cursor = { id: args.after };
+  if (typeof args.last === 'number') {
+    prismaArgs.take = -(args.last + 1);
+  }
+
+  const cursor = isBackward ? args.before : args.after;
+
+  if (cursor !== undefined) {
+    prismaArgs.cursor = { id: cursor };
     prismaArgs.skip = 1;
   }
 

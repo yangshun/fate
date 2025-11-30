@@ -146,25 +146,34 @@ export function arrayToConnection<TNode extends { id: string | number }>(
   const isBackward = paginationArgs.before !== undefined || paginationArgs.last !== undefined;
   const cursor = isBackward ? paginationArgs.before : paginationArgs.after;
   const pageSize = paginationArgs.first ?? paginationArgs.last ?? nodes.length;
-  const hasMore = nodes.length > pageSize;
-  const limitedNodes = isBackward
-    ? nodes.slice(Math.max(0, nodes.length - pageSize))
-    : nodes.slice(0, pageSize);
-  const items = limitedNodes.map((node) => ({
-    cursor: getCursor(node),
-    node,
-  }));
+  const cursorIndex =
+    cursor === undefined ? -1 : nodes.findIndex((node) => getCursor(node) === cursor);
+
+  const selectedNodes =
+    cursorIndex < 0
+      ? nodes
+      : isBackward
+        ? nodes.slice(0, cursorIndex)
+        : nodes.slice(cursorIndex + 1);
+  const hasNext = selectedNodes.length > pageSize;
+  const hasPrevious = nodes.length > selectedNodes.length;
+
+  const items = (
+    isBackward
+      ? selectedNodes.slice(Math.max(0, selectedNodes.length - pageSize))
+      : selectedNodes.slice(0, pageSize)
+  ).map((node) => ({ cursor: getCursor(node), node }));
   const firstItem = items[0];
   const lastItem = items.at(-1);
 
   return {
     items,
     pagination: {
-      hasNext: isBackward ? Boolean(cursor) : hasMore,
-      hasPrevious: isBackward ? hasMore : Boolean(cursor),
+      hasNext: isBackward ? hasPrevious : hasNext,
+      hasPrevious: isBackward ? hasNext : hasPrevious,
       nextCursor: lastItem?.cursor,
       previousCursor:
-        (isBackward ? hasMore : Boolean(cursor)) && firstItem ? firstItem.cursor : undefined,
+        (isBackward ? hasNext : hasPrevious) && firstItem ? firstItem.cursor : undefined,
     },
   };
 }

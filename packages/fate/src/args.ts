@@ -190,14 +190,7 @@ export const getArgsAtPath = (
   return isRecord(current) ? (current as AnyRecord) : undefined;
 };
 
-export const applyArgsPayloadToPlan = (
-  plan: SelectionPlan,
-  payload: ResolvedArgsPayload | undefined,
-) => {
-  if (!payload) {
-    return;
-  }
-
+export const applyArgsPayloadToPlan = (plan: SelectionPlan, payload: ResolvedArgsPayload) => {
   for (const [path, entry] of plan.args.entries()) {
     const actual = path === '' ? payload : getArgsAtPath(payload, path);
     if (!actual) {
@@ -210,17 +203,9 @@ export const applyArgsPayloadToPlan = (
 };
 
 export const scopeArgsPayload = (
-  args: ResolvedArgsPayload | undefined,
-  scope?: string | null,
+  args: ResolvedArgsPayload,
+  scope: string,
 ): ResolvedArgsPayload | undefined => {
-  if (!scope) {
-    return hasEntries(args) ? args : undefined;
-  }
-
-  if (!hasEntries(args)) {
-    return undefined;
-  }
-
   const segments = scope.split('.');
   const result: AnyRecord = {};
   let current = result;

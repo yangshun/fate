@@ -186,6 +186,6 @@ test('list fields are wrapped into connections recursively using scoped args', a
 
   const repliesConnection = commentsConnection?.items[0]?.node?.replies;
   expect(repliesConnection?.items).toHaveLength(1);
-  expect(repliesConnection?.items[0]?.node?.author?.name).toBe('Bea');
-  expect(repliesConnection?.pagination?.hasPrevious).toBe(true);
+  expect(repliesConnection?.items[0]?.node?.author?.name).toBe('Ada');
+  expect(repliesConnection?.pagination?.hasPrevious).toBe(false);
 });

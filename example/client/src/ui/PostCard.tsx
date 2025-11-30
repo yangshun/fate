@@ -147,7 +147,7 @@ export function PostCard({ detail, post: postRef }: { detail?: boolean; post: Vi
 
   useEffect(() => {
     if (likeResult?.error) {
-      const timeout = setTimeout(() => likeAction('reset'), 3000);
+      const timeout = setTimeout(() => startTransition(() => likeAction('reset')), 3000);
       return () => clearTimeout(timeout);
     }
   }, [likeAction, likeResult]);

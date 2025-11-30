@@ -167,7 +167,159 @@ test('loads additional items when loadNext is invoked', async () => {
     'Post',
     ['post-1'],
     new Set(['comments.content', 'comments.id']),
-    { comments: { after: 'cursor-1', first: 1, id: 'post-1' } },
+    expect.objectContaining({ comments: expect.objectContaining({ after: 'cursor-1', first: 1 }) }),
+  );
+
+  expect(loadNextRef).toBeNull();
+  expect(renders.at(-1)).toEqual(['comment-1', 'comment-2']);
+});
+
+test('loadNext forwards the limit when the initial request used last/before', async () => {
+  const fetchById = vi.fn().mockResolvedValue([
+    {
+      __typename: 'Post',
+      comments: {
+        items: [
+          {
+            cursor: 'cursor-2',
+            node: {
+              __typename: 'Comment',
+              content: 'Banana',
+              id: 'comment-2',
+            },
+          },
+        ],
+        pagination: {
+          hasNext: false,
+          hasPrevious: true,
+          previousCursor: 'cursor-1',
+        },
+      },
+      id: 'post-1',
+    },
+  ]);
+
+  const client = createClient({
+    transport: {
+      fetchById,
+    },
+    types: [{ fields: { comments: { listOf: 'Comment' } }, type: 'Post' }, { type: 'Comment' }],
+  });
+
+  const CommentView = view<Comment>()({
+    content: true,
+    id: true,
+  });
+
+  const CommentConnectionView = {
+    args: { last: 1 },
+    items: {
+      cursor: true,
+      node: CommentView,
+    },
+    pagination: {
+      hasNext: true,
+      hasPrevious: true,
+      nextCursor: true,
+      previousCursor: true,
+    },
+  } as const;
+
+  const PostView = view<Post>()({
+    comments: CommentConnectionView,
+    id: true,
+  });
+
+  const plan = getSelectionPlan(PostView, null);
+
+  client.write(
+    'Comment',
+    {
+      __typename: 'Comment',
+      content: 'Apple',
+      id: 'comment-1',
+    },
+    new Set(['__typename', 'content', 'id']),
+  );
+
+  client.write(
+    'Post',
+    {
+      __typename: 'Post',
+      comments: {
+        items: [
+          {
+            cursor: 'cursor-1',
+            node: {
+              __typename: 'Comment',
+              content: 'Apple',
+              id: 'comment-1',
+            },
+          },
+        ],
+        pagination: {
+          hasNext: true,
+          hasPrevious: false,
+          nextCursor: 'cursor-1',
+        },
+      },
+      id: 'post-1',
+    },
+    plan.paths,
+    undefined,
+    plan,
+  );
+
+  const postRef = client.ref<Post>('Post', 'post-1', PostView);
+
+  const renders: Array<Array<string | null>> = [];
+  let loadNextRef: (() => Promise<void>) | null = null;
+
+  const Component = () => {
+    const post = useView(PostView, postRef);
+    const [comments, loadNext] = useListView(CommentConnectionView, post.comments);
+    renders.push(comments.map(({ node }) => (node?.id ? String(node.id) : null)));
+
+    useEffect(() => {
+      loadNextRef = loadNext;
+    }, [loadNext]);
+
+    return (
+      <button
+        onClick={async () => {
+          await loadNext?.();
+        }}
+      >
+        load
+      </button>
+    );
+  };
+
+  const container = document.createElement('div');
+  const root = createRoot(container);
+
+  await act(async () => {
+    root.render(
+      <FateClient client={client}>
+        <Suspense fallback={null}>
+          <Component />
+        </Suspense>
+      </FateClient>,
+    );
+  });
+
+  expect(container.textContent).toBe('load');
+  expect(renders.at(-1)).toEqual(['comment-1']);
+
+  await act(async () => {
+    await loadNextRef?.();
+  });
+
+  expect(fetchById).toHaveBeenCalledWith(
+    'Post',
+    ['post-1'],
+    new Set(['comments.content', 'comments.id']),
+    expect.objectContaining({ comments: expect.objectContaining({ after: 'cursor-1', first: 1 }) }),
   );
 
   expect(loadNextRef).toBeNull();

@@ -28,3 +28,19 @@ test('prismaSelect maps cursor args to Prisma pagination options', () => {
     id: true,
   });
 });
+
+test('prismaSelect maps backward pagination args to Prisma options', () => {
+  const select = prismaSelect(['comments.id'], {
+    comments: { before: 'cursor-2', last: 2 },
+  });
+
+  expect(select).toEqual({
+    comments: {
+      cursor: { id: 'cursor-2' },
+      select: { id: true },
+      skip: 1,
+      take: -3,
+    },
+    id: true,
+  });
+});

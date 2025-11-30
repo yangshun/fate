@@ -75,16 +75,6 @@ export const getSelectionPlan = <T extends Entity, S extends Selection<T>, V ext
           }
           continue;
         }
-
-        if (key === 'node' && isRecord(value)) {
-          walk(value, path);
-          continue;
-        }
-      }
-
-      if (key === 'node' && isRecord(value)) {
-        walk(value, path);
-        continue;
       }
 
       if (valueType === 'boolean') {

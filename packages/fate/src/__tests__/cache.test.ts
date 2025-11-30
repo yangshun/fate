@@ -67,3 +67,54 @@ test('evicts dependents and the dependency when invalidating an entity', () => {
   expect(cache.get(dependencyId, dependencyView, dependencyRef)).toBeNull();
   expect(cache.get(dependentId, dependentView, dependentRef)).toBeNull();
 });
+
+test('recursively invalidates transitive dependency chains', () => {
+  const cache = new ViewDataCache();
+  const rootId: EntityId = 'root';
+  const middleId: EntityId = 'middle';
+  const leafId: EntityId = 'leaf';
+
+  const rootView = createView();
+  const rootRef = createViewRef('Root', 'root-ref');
+  const rootSnapshot: ViewSnapshot<any, any> = {
+    coverage: [[rootId, new Set()]],
+    data: { [ViewsTag]: new Set() },
+  };
+  const rootThenable = createThenable(rootSnapshot);
+
+  const middleView = createView();
+  const middleRef = createViewRef('Middle', 'middle-ref');
+  const middleSnapshot: ViewSnapshot<any, any> = {
+    coverage: [
+      [middleId, new Set()],
+      [rootId, new Set()],
+    ],
+    data: { [ViewsTag]: new Set() },
+  };
+  const middleThenable = createThenable(middleSnapshot);
+
+  const leafView = createView();
+  const leafRef = createViewRef('Leaf', 'leaf-ref');
+  const leafSnapshot: ViewSnapshot<any, any> = {
+    coverage: [
+      [leafId, new Set()],
+      [middleId, new Set()],
+    ],
+    data: { [ViewsTag]: new Set() },
+  };
+  const leafThenable = createThenable(leafSnapshot);
+
+  cache.set(rootId, rootView, rootRef, rootThenable, new Set());
+  cache.set(middleId, middleView, middleRef, middleThenable, new Set<EntityId>([rootId]));
+  cache.set(leafId, leafView, leafRef, leafThenable, new Set<EntityId>([middleId]));
+
+  expect(cache.get(rootId, rootView, rootRef)).toBe(rootThenable);
+  expect(cache.get(middleId, middleView, middleRef)).toBe(middleThenable);
+  expect(cache.get(leafId, leafView, leafRef)).toBe(leafThenable);
+
+  cache.invalidate(rootId);
+
+  expect(cache.get(rootId, rootView, rootRef)).toBeNull();
+  expect(cache.get(middleId, middleView, middleRef)).toBeNull();
+  expect(cache.get(leafId, leafView, leafRef)).toBeNull();
+});

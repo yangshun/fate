@@ -61,15 +61,13 @@ export function useView<V extends View<any, any>>(
       };
 
       const updateSubscriptions = () => {
-        if (!snapshotRef.current) {
-          return;
-        }
+        if (snapshotRef.current) {
+          for (const [entityId, paths] of snapshotRef.current.coverage) {
+            subscribe(entityId, paths);
+          }
 
-        for (const [entityId, paths] of snapshotRef.current.coverage) {
-          subscribe(entityId, paths);
+          cleanup(new Set(snapshotRef.current.coverage.map(([id]) => id)));
         }
-
-        cleanup(new Set(snapshotRef.current.coverage.map(([id]) => id)));
       };
 
       updateSubscriptions();

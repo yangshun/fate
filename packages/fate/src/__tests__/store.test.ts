@@ -102,3 +102,27 @@ test('only notifies subscribers with intersecting selections', () => {
   expect(titleSubscriber).toHaveBeenCalledTimes(1);
   expect(catchAllSubscriber).toHaveBeenCalledTimes(2);
 });
+
+test('updates coverage when merging identical values', () => {
+  const store = new Store();
+  const entityId = 'Post:1';
+
+  store.merge(
+    entityId,
+    {
+      __typename: 'Post',
+      id: 'post-1',
+      subtitle: 'Sub',
+      title: 'Title',
+    },
+    new Set(['__typename', 'id', 'title']),
+  );
+
+  expect(store.missingForSelection(entityId, new Set(['title', 'subtitle']))).toEqual(
+    new Set(['subtitle']),
+  );
+
+  store.merge(entityId, { subtitle: 'Sub' }, new Set(['subtitle']));
+
+  expect(store.missingForSelection(entityId, new Set(['title', 'subtitle']))).toEqual(new Set());
+});

@@ -72,6 +72,14 @@ export class Store {
     const previous = this.records.get(id);
     const changedPaths = new Set<string>();
 
+    let mask = this.coverage.get(id);
+    if (!mask) {
+      mask = emptyMask();
+      this.coverage.set(id, mask);
+    }
+
+    union(mask, fromPaths(paths));
+
     if (previous) {
       let hasChanges = false;
       for (const [key, value] of Object.entries(partial)) {
@@ -90,13 +98,6 @@ export class Store {
       this.records.set(id, { ...partial });
     }
 
-    let mask = this.coverage.get(id);
-    if (!mask) {
-      mask = emptyMask();
-      this.coverage.set(id, mask);
-    }
-
-    union(mask, fromPaths(paths));
     return changedPaths;
   }
 

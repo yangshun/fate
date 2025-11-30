@@ -731,7 +731,9 @@ export class FateClient<
 
     const { argsPayload, plan } = this.resolveListSelection(view, requestArgs);
     const nodeSelection = plan.paths;
-    const scopedArgsPayload = scopeArgsPayload(argsPayload, connection.field);
+    const scopedArgsPayload = argsPayload
+      ? scopeArgsPayload(argsPayload, connection.field)
+      : undefined;
 
     const parentSelection = new Set<string>();
     for (const path of nodeSelection) {
@@ -1042,7 +1044,9 @@ export class FateClient<
   private resolveListSelection(view: View<any, any>, args: AnyRecord | undefined) {
     const plan = getSelectionPlan(view, null);
     const argsPayload = combineArgsPayload(args, resolvedArgsFromPlan(plan));
-    applyArgsPayloadToPlan(plan, argsPayload);
+    if (argsPayload) {
+      applyArgsPayloadToPlan(plan, argsPayload);
+    }
     return { argsPayload, plan };
   }
 

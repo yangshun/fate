@@ -882,7 +882,10 @@ const [likeResult, likeAction] = useActionState(fate.actions.post.like, null);
 useEffect(() => {
   if (likeResult?.error) {
     // Reset the action state after 3 seconds.
-    const timeout = setTimeout(() => likeAction('reset'), 3000);
+    const timeout = setTimeout(
+      () => startTransition(() => likeAction('reset')),
+      3000,
+    );
     return () => clearTimeout(timeout);
   }
 }, [likeAction, likeResult]);

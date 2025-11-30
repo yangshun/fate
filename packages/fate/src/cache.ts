@@ -66,10 +66,20 @@ export default class ViewDataCache {
   }
 
   invalidate(entityId: EntityId) {
+    this.invalidateDependents(entityId, new Set());
+  }
+
+  private invalidateDependents(entityId: EntityId, visited: Set<EntityId>) {
+    if (visited.has(entityId)) {
+      return;
+    }
+
+    visited.add(entityId);
+
     const dependents = this.dependencyIndex.get(entityId);
     if (dependents) {
       for (const dependent of dependents) {
-        this.delete(dependent);
+        this.invalidateDependents(dependent, visited);
       }
     }
 

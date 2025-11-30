@@ -84,13 +84,16 @@ export function useListView<
     }
 
     return async () => {
-      const { before, last, ...values } = metadata.args || {};
+      const { before, first, last, ...values } = metadata.args || {};
+      const nextPageSize = first ?? last;
+
       await client.loadConnection(
         nodeView,
         metadata,
         {
           ...values,
           after: nextCursor,
+          ...(nextPageSize !== undefined ? { first: nextPageSize } : null),
         },
         {
           direction: 'forward',
