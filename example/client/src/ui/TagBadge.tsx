@@ -1,5 +1,5 @@
-import { useView, view, ViewRef } from 'react-fate';
 import { Tag } from '@nkzw/fate-server/src/trpc/router.ts';
+import { useView, view, ViewRef } from 'react-fate';
 import { Badge } from './Badge.tsx';
 
 export const TagView = view<Tag>()({

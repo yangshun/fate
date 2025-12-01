@@ -1,7 +1,7 @@
+import Stack, { VStack } from '@nkzw/stack';
 import { ExternalLinkIcon } from 'lucide-react';
 import { FormEvent, useState } from 'react';
 import { Navigate } from 'react-router';
-import Stack, { VStack } from '@nkzw/stack';
 import { Button } from '../ui/Button.tsx';
 import Card from '../ui/Card.tsx';
 import H2 from '../ui/H2.tsx';

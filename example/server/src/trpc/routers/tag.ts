@@ -1,5 +1,5 @@
-import { z } from 'zod';
 import { connectionArgs, createResolver } from '@nkzw/fate/server';
+import { z } from 'zod';
 import type { TagFindManyArgs } from '../../prisma/prisma-client/models.ts';
 import { procedure, router } from '../init.ts';
 import { tagDataView } from '../views.ts';

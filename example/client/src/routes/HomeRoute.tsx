@@ -1,6 +1,6 @@
+import Stack, { VStack } from '@nkzw/stack';
 import { ConnectionRef, useListView, useRequest, ViewRef } from 'react-fate';
 import { Link } from 'react-router';
-import Stack, { VStack } from '@nkzw/stack';
 import { Button } from '../ui/Button.tsx';
 import Card from '../ui/Card.tsx';
 import CategoryCard, { CategoryView } from '../ui/CategoryCard.tsx';

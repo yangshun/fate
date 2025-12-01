@@ -11,3 +11,6 @@ onlyBuiltDependencies:
   - msgpackr-extract
   - prisma
   - unrs-resolver
+
+overrides:
+  vite: ^8.0.0-beta.0

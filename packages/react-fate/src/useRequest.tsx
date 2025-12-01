@@ -1,5 +1,5 @@
-import { use, useDeferredValue, useEffect } from 'react';
 import { RequestResult, type Request, type RequestOptions } from '@nkzw/fate';
+import { use, useDeferredValue, useEffect } from 'react';
 import { useFateClient } from './context.tsx';
 
 /**

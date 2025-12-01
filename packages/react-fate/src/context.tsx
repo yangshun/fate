@@ -1,5 +1,5 @@
-import { createContext, ReactNode, use } from 'react';
 import type { FateClient as FateClientT } from '@nkzw/fate';
+import { createContext, ReactNode, use } from 'react';
 
 const FateContext = createContext<FateClientT | null>(null);
 

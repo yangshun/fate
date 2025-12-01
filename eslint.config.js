@@ -1,6 +1,6 @@
-import workspaces from 'eslint-plugin-workspaces';
 import nkzw from '@nkzw/eslint-config';
 import findWorkspaces from '@nkzw/find-workspaces';
+import workspaces from 'eslint-plugin-workspaces';
 
 export default [
   ...nkzw,

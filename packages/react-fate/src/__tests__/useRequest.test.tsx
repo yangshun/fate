@@ -2,10 +2,10 @@
  * @vitest-environment happy-dom
  */
 
+import { createClient, view } from '@nkzw/fate';
 import { act, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
 import { expect, test, vi } from 'vitest';
-import { createClient, view } from '@nkzw/fate';
 import { FateClient } from '../context.tsx';
 import { useView } from '../index.tsx';
 import { useRequest } from '../useRequest.tsx';

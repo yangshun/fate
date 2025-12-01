@@ -1,5 +1,5 @@
-import { useCallback, useDeferredValue, useMemo, useSyncExternalStore } from 'react';
 import { ConnectionMetadata, ConnectionTag, isViewTag, Pagination, type View } from '@nkzw/fate';
+import { useCallback, useDeferredValue, useMemo, useSyncExternalStore } from 'react';
 import { useFateClient } from './context.tsx';
 
 type ConnectionItems<C> = C extends { items?: ReadonlyArray<infer Item> }
