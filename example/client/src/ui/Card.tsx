@@ -9,16 +9,21 @@ export default function Card({
   className?: string;
 }) {
   return (
-    <VStack
+    <div
       className={cx(
-        'rounded-lg border border-gray-200 shadow-sm dark:border-neutral-800',
+        'relative overflow-hidden squircle border border-gray-200/70 bg-white/85 shadow-[0_16px_70px_-32px_rgba(15,23,42,0.45)] dark:border-neutral-800 dark:bg-neutral-900/80 transition duration-200 ease-out hover:shadow-[0_24px_80px_-38px_rgba(15,23,42,0.55)]',
         className,
       )}
-      gap={16}
-      padding
-      verticalPadding={12}
     >
-      {children}
-    </VStack>
+      <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-blue-500/10 via-transparent to-indigo-500/15 transition duration-200 opacity-30" />
+      <VStack
+        className="relative z-10 flex w-full h-full"
+        gap={16}
+        horizontalPadding={20}
+        verticalPadding={16}
+      >
+        {children}
+      </VStack>
+    </div>
   );
 }

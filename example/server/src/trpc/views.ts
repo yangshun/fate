@@ -5,8 +5,6 @@ import type {
   Event as PrismaEvent,
   EventAttendee as PrismaEventAttendee,
   Post as PrismaPost,
-  Project as PrismaProject,
-  ProjectUpdate as PrismaProjectUpdate,
   Tag as PrismaTag,
   User as PrismaUser,
 } from '../prisma/prisma-client/client.ts';
@@ -27,15 +25,6 @@ export type PostItem = PrismaPost & {
 export type CategoryItem = PrismaCategory & {
   _count?: { posts: number };
   posts?: Array<PostItem>;
-};
-
-type ProjectUpdateItem = PrismaProjectUpdate & {
-  author?: PrismaUser | null;
-};
-
-export type ProjectItem = PrismaProject & {
-  owner?: PrismaUser | null;
-  updates?: Array<ProjectUpdateItem>;
 };
 
 type EventAttendeeItem = PrismaEventAttendee & {
@@ -111,29 +100,6 @@ export const categoryDataView = dataView<CategoryItem>('Category')({
   posts: list(postDataView),
 });
 
-export const projectUpdateDataView = dataView<ProjectUpdateItem>('ProjectUpdate')({
-  author: userDataView,
-  confidence: true,
-  content: true,
-  createdAt: true,
-  id: true,
-  mood: true,
-});
-
-export const projectDataView = dataView<ProjectItem>('Project')({
-  focusAreas: true,
-  id: true,
-  metrics: true,
-  name: true,
-  owner: userDataView,
-  progress: true,
-  startDate: true,
-  status: true,
-  summary: true,
-  targetDate: true,
-  updates: list(projectUpdateDataView),
-});
-
 export const eventAttendeeDataView = dataView<EventAttendeeItem>('EventAttendee')({
   id: true,
   notes: true,
@@ -163,7 +129,6 @@ export const eventDataView = dataView<EventItem>('Event')({
   livestreamUrl: true,
   location: true,
   name: true,
-  resources: true,
   startAt: true,
   topics: true,
   type: true,
@@ -177,10 +142,6 @@ export type Comment = Omit<DataViewResult<typeof commentDataView>, 'author'> & {
   __typename: 'Comment';
   author: User;
   post: Post;
-};
-export type ProjectUpdate = Omit<DataViewResult<typeof projectUpdateDataView>, 'author'> & {
-  __typename: 'ProjectUpdate';
-  author: User;
 };
 export type EventAttendee = Omit<DataViewResult<typeof eventAttendeeDataView>, 'user'> & {
   __typename: 'EventAttendee';
@@ -200,11 +161,6 @@ export type Category = Omit<DataViewResult<typeof categoryDataView>, 'posts'> & 
   __typename: 'Category';
   posts: Array<Post>;
 };
-export type Project = Omit<DataViewResult<typeof projectDataView>, 'owner' | 'updates'> & {
-  __typename: 'Project';
-  owner: User;
-  updates: Array<ProjectUpdate>;
-};
 export type Event = Omit<DataViewResult<typeof eventDataView>, 'attendees' | 'host'> & {
   __typename: 'Event';
   attendees: Array<EventAttendee>;
@@ -216,5 +172,4 @@ export const Lists = {
   commentSearch: { procedure: 'search', view: commentDataView },
   events: eventDataView,
   posts: postDataView,
-  projects: projectDataView,
 };

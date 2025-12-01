@@ -6,6 +6,7 @@ import { Badge } from '../ui/Badge.tsx';
 import Card from '../ui/Card.tsx';
 import TagBadge, { TagView } from '../ui/TagBadge.tsx';
 import { UserView } from '../ui/UserCard.tsx';
+import H3 from './H3.tsx';
 
 const CategoryPostView = view<Post>()({
   author: UserView,
@@ -28,13 +29,13 @@ const CategoryPost = ({ post: postRef }: { post: ViewRef<'Post'> }) => {
     <VStack gap key={post.id}>
       <Stack alignCenter between gap={12}>
         <Link to={`/post/${post.id}`}>
-          <span className="font-medium text-blue-500 underline hover:no-underline">
+          <span className="font-medium text-blue-600 dark:text-blue-200 no-underline hover:underline">
             {post.title}
           </span>
         </Link>
         <span className="text-muted-foreground text-xs">{post.likes} likes</span>
       </Stack>
-      <Stack alignCenter gap={8} wrap>
+      <Stack alignCenter gap wrap>
         <span className="text-muted-foreground text-xs">
           {author?.name ? `by ${author.name}` : 'By an anonymous collaborator'}
         </span>
@@ -77,9 +78,7 @@ export default function CategoryCard({ category: categoryRef }: { category: View
         <Stack alignCenter between gap={12}>
           <div>
             <Link to={`/category/${category.id}`}>
-              <h4 className="text-lg font-semibold text-blue-500 hover:underline">
-                {category.name}
-              </h4>
+              <H3>{category.name}</H3>
             </Link>
             <p className="text-muted-foreground text-sm">{category.description}</p>
           </div>

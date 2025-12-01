@@ -29,7 +29,6 @@ export const EventView = view<Event>()({
   livestreamUrl: true,
   location: true,
   name: true,
-  resources: true,
   startAt: true,
   topics: true,
   type: true,
@@ -40,7 +39,7 @@ const EventAttendeeChip = ({ attendee: attendeeRef }: { attendee: ViewRef<'Event
   const user = useView(UserView, attendee.user);
 
   return (
-    <Badge key={attendee.id} variant="outline">
+    <Badge className="text-nowrap" key={attendee.id} variant="outline">
       {user?.name ?? 'Guest'} · {formatLabel(attendee.status)}
     </Badge>
   );
@@ -69,41 +68,43 @@ export default function EventCard({ event: eventRef }: { event: ViewRef<'Event'>
             <h4 className="text-foreground text-base font-semibold">{event.name}</h4>
             <p className="text-muted-foreground text-sm">{event.description}</p>
           </div>
-          <Badge variant="secondary">{formatLabel(event.type)}</Badge>
+          <Badge className="text-nowrap" variant="secondary">
+            {formatLabel(event.type)}
+          </Badge>
         </Stack>
-        <Stack alignCenter gap={8}>
+        <Stack alignCenter gap>
           <CalendarDays className="text-muted-foreground" size={14} />
           <span className="text-foreground/80 text-sm">
             {formatDateTime(event.startAt)} → {formatDateTime(event.endAt)}
           </span>
         </Stack>
-        <Stack alignCenter gap={8}>
+        <Stack alignCenter gap>
           <MapPin className="text-muted-foreground" size={14} />
           <span className="text-foreground/80 text-sm">{event.location}</span>
         </Stack>
-        <Stack alignCenter gap={8}>
+        <Stack alignCenter gap>
           <Users className="text-muted-foreground" size={14} />
           <span className="text-foreground/80 text-sm">
             {event.attendingCount ?? attendees.length} attending · capacity {event.capacity}
           </span>
         </Stack>
-        <Stack alignCenter gap={8}>
+        <Stack alignCenter gap>
           <ArrowUpRight className="text-muted-foreground" size={14} />
           <span className="text-foreground/80 text-sm">Hosted by {host?.name ?? 'Unknown'}</span>
         </Stack>
         {topics.length ? (
           <Stack gap wrap>
             {topics.map((topic) => (
-              <Badge key={topic} variant="outline">
+              <Badge className="text-nowrap" key={topic} variant="outline">
                 {topic}
               </Badge>
             ))}
           </Stack>
         ) : null}
         {attendees.length ? (
-          <VStack gap={8}>
+          <VStack gap>
             <span className="text-muted-foreground text-xs">Community RSVPs</span>
-            <Stack gap={8} wrap>
+            <Stack gap wrap>
               {attendees.slice(0, 4).map(({ node }) => (
                 <EventAttendeeChip attendee={node} key={node.id} />
               ))}

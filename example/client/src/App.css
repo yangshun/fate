@@ -7,14 +7,8 @@
 @tailwind utilities;
 
 body {
-  font-family:
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    'Open Sans',
-    'Helvetica Neue',
-    sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    'Open Sans', 'Helvetica Neue', sans-serif;
 }
 
 code {
@@ -108,4 +102,13 @@ code {
   body {
     @apply bg-background text-foreground;
   }
+}
+
+textarea {
+  resize: none;
+}
+
+.squircle {
+  border-radius: 32px;
+  corner-shape: squircle;
 }

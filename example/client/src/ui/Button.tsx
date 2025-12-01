@@ -4,7 +4,7 @@ import { Slot } from '@radix-ui/react-slot';
 import cx from '../lib/cx.tsx';
 
 const buttonVariants = cva(
-  'inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
+  'inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap squircle text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
   {
     defaultVariants: {
       size: 'default',
@@ -12,10 +12,10 @@ const buttonVariants = cva(
     },
     variants: {
       size: {
-        default: 'h-10 px-4 py-2',
+        default: 'h-10 px-3 py-2 active:pt-[11px] active:pb-[9px]',
         icon: 'h-10 w-10',
-        lg: 'h-11 rounded-lg px-8',
-        sm: 'h-9 rounded-lg px-3',
+        lg: 'h-11 squircle px-6 active:pt-[11px] active:pb-[9px]',
+        sm: 'h-9 squircle px-2 active:pt-[11px] active:pb-[9px]',
       },
       variant: {
         default: 'bg-primary text-primary-foreground hover:bg-primary/90',

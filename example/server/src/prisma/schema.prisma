@@ -29,8 +29,6 @@ model User {
   sessions        Session[]
   posts           Post[]
   comments        Comment[]
-  ownedProjects   Project[]       @relation("ProjectOwner")
-  projectUpdates  ProjectUpdate[]
   hostedEvents    Event[]         @relation("EventHost")
   eventAttendance EventAttendee[]
   updatedAt       DateTime
@@ -121,44 +119,6 @@ model Tag {
   posts       Post[]   @relation("PostTags")
 }
 
-enum ProjectStatus {
-  PLANNING
-  IN_PROGRESS
-  ON_HOLD
-  COMPLETED
-}
-
-model Project {
-  id         String          @id @default(uuid(7))
-  name       String
-  summary    String
-  status     ProjectStatus   @default(PLANNING)
-  ownerId    String
-  owner      User            @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  startDate  DateTime
-  targetDate DateTime?
-  progress   Int             @default(0)
-  focusAreas String[]        @default([])
-  metrics    Json?
-  updates    ProjectUpdate[]
-  createdAt  DateTime        @default(now())
-  updatedAt  DateTime        @updatedAt
-
-  @@index([ownerId(sort: Asc)])
-}
-
-model ProjectUpdate {
-  id         String   @id @default(uuid(7))
-  projectId  String
-  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  authorId   String
-  author     User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  content    String
-  mood       String?
-  confidence Int?
-  createdAt  DateTime @default(now())
-}
-
 enum RSVPStatus {
   INVITED
   GOING
@@ -187,7 +147,6 @@ model Event {
   capacity      Int
   topics        String[]        @default([])
   livestreamUrl String?
-  resources     Json?
   attendees     EventAttendee[]
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt

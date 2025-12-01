@@ -21,7 +21,9 @@ import { Button } from '../ui/Button.tsx';
 import Card from '../ui/Card.tsx';
 import TagBadge, { TagView } from '../ui/TagBadge.tsx';
 import AuthClient from '../user/AuthClient.tsx';
+import { Badge } from './Badge.tsx';
 import CommentCard, { CommentView } from './CommentCard.tsx';
+import H3 from './H3.tsx';
 import { UserView } from './UserCard.tsx';
 
 const CategorySummaryView = view<Category>()({
@@ -106,13 +108,10 @@ const CommentInput = ({
 
   return (
     <VStack action={handleAddComment} as="form" gap>
-      <label className="text-foreground text-sm font-medium" htmlFor={`comment-${post.id}`}>
-        Add a comment
-      </label>
+      <span className="text-foreground text-sm font-medium">Add a comment</span>
       <textarea
-        className="bg-background text-foreground min-h-20 w-full rounded-md border border-gray-200 p-3 text-sm placeholder-gray-500 transition outline-none focus:border-gray-500 focus:ring-2 focus:ring-gray-200 disabled:opacity-50 dark:border-neutral-800 dark:focus:border-gray-400 dark:focus:ring-gray-900"
+        className="border-gray-200/80 bg-gray-100/50 text-foreground min-h-20 w-full squircle border p-3 text-sm placeholder-gray-500 transition outline-none focus:border-gray-500 focus:ring-2 focus:ring-gray-200 disabled:opacity-50 dark:border-neutral-800 dark:focus:border-gray-400 dark:focus:ring-gray-900"
         disabled={addCommentIsPending}
-        id={`comment-${post.id}`}
         onChange={(event) => setCommentText(event.target.value)}
         onKeyDown={maybeSubmitComment}
         placeholder={user?.name ? `Share your thoughts, ${user.name}!` : 'Share your thoughts...'}
@@ -176,17 +175,17 @@ export function PostCard({ detail, post: postRef }: { detail?: boolean; post: Vi
   return (
     <Card>
       <VStack gap={16}>
-        <Stack alignStart between gap={12}>
-          <div>
+        <Stack alignStart between gap={16} wrap>
+          <VStack gap>
             <Link to={`/post/${post.id}`}>
-              <h3 className="text-lg font-semibold text-blue-500 hover:underline">{post.title}</h3>
+              <H3>{post.title}</H3>
             </Link>
-            <Stack alignCenter gap={8} wrap>
+            <Stack alignCenter gap wrap>
               {category ? (
                 <Link to={`/category/${category.id}`}>
-                  <span className="text-sm text-blue-500 underline hover:no-underline">
+                  <Badge className="bg-blue-50 text-blue-600 transition hover:bg-blue-100 dark:bg-blue-950/50 dark:text-blue-200 dark:hover:bg-blue-900/60">
                     {category.name}
-                  </span>
+                  </Badge>
                 </Link>
               ) : null}
               {tags.length ? (
@@ -197,83 +196,86 @@ export function PostCard({ detail, post: postRef }: { detail?: boolean; post: Vi
                 </Stack>
               ) : null}
             </Stack>
-            <p className="text-muted-foreground text-sm">
-              by {author?.name ?? 'Unknown author'} · {post.commentCount}{' '}
-              {post.commentCount === 1 ? 'comment' : 'comments'}
-            </p>
-          </div>
-          <Stack alignCenter end gap wrap>
-            <div className="rounded-lg bg-gray-100 px-3 py-1 text-sm font-medium text-gray-900 dark:bg-gray-950 dark:text-gray-200">
-              {post.likes} {post.likes === 1 ? 'like' : 'likes'}
-            </div>
-            <Stack alignCenter end gap wrap>
-              <Button action={handleLike} disabled={likeIsPending} size="sm" variant="outline">
-                Like
-              </Button>
-              {detail && (
-                <Button
-                  action={() => handleLike({ slow: true })}
-                  disabled={likeIsPending}
-                  size="sm"
-                  variant="outline"
-                >
-                  Like (Slow)
-                </Button>
-              )}
-              {detail && (
-                <Button
-                  action={() => handleLike({ error: 'callSite' })}
-                  className={cx(
-                    'w-34 transition-colors duration-150',
-                    likeResult?.error ? 'border-red-500 text-red-500 hover:text-red-500' : '',
-                  )}
-                  disabled={likeIsPending}
-                  size="sm"
-                  variant="outline"
-                >
-                  {likeResult?.error ? 'Oops, try again!' : `Like (Error)`}
-                </Button>
-              )}
-              {detail && (
-                <Button
-                  action={() => handleLike({ error: 'boundary' })}
-                  disabled={likeIsPending}
-                  size="sm"
-                  variant="outline"
-                >
-                  Like (Major Error)
-                </Button>
-              )}
-              {detail && (
-                <Button
-                  onClick={() =>
-                    fate.mutations.post.like({
-                      input: { id: post.id },
-                      optimistic: { likes: post.likes + 1 },
-                      view: PostView,
-                    })
-                  }
-                  size="sm"
-                  variant="outline"
-                >
-                  Like (Many)
-                </Button>
-              )}
+          </VStack>
+          <Stack alignCenter gap={12} wrap>
+            <Stack
+              alignCenter
+              className="squircle bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-800 dark:bg-neutral-800 dark:text-white"
+              gap
+            >
+              <span>👍</span>
+              <span>
+                {post.likes} {post.likes === 1 ? 'like' : 'likes'}
+              </span>
+            </Stack>
+            <Button action={handleLike} disabled={likeIsPending} size="sm" variant="outline">
+              Like
+            </Button>
+            {detail && (
               <Button
-                action={handleUnlike}
-                disabled={unlikeIsPending || post.likes === 0}
+                action={() => handleLike({ slow: true })}
+                disabled={likeIsPending}
                 size="sm"
                 variant="outline"
               >
-                Unlike
+                Like (Slow)
               </Button>
-            </Stack>
+            )}
+            {detail && (
+              <Button
+                action={() => handleLike({ error: 'callSite' })}
+                className={cx(
+                  'w-32 transition-colors duration-150',
+                  likeResult?.error ? 'border-red-500 text-red-500 hover:text-red-500' : '',
+                )}
+                disabled={likeIsPending}
+                size="sm"
+                variant="outline"
+              >
+                {likeResult?.error ? 'Oops, try again!' : `Like (Error)`}
+              </Button>
+            )}
+            {detail && (
+              <Button
+                action={() => handleLike({ error: 'boundary' })}
+                disabled={likeIsPending}
+                size="sm"
+                variant="outline"
+              >
+                Like (Major Error)
+              </Button>
+            )}
+            {detail && (
+              <Button
+                onClick={() =>
+                  fate.mutations.post.like({
+                    input: { id: post.id },
+                    optimistic: { likes: post.likes + 1 },
+                    view: PostView,
+                  })
+                }
+                size="sm"
+                variant="outline"
+              >
+                Like (Many)
+              </Button>
+            )}
+            <Button
+              action={handleUnlike}
+              disabled={unlikeIsPending || post.likes === 0}
+              size="sm"
+              variant="outline"
+            >
+              Unlike
+            </Button>
           </Stack>
         </Stack>
-
-        <p className="text-foreground/90 text-sm leading-relaxed">{post.content}</p>
+        <p className="text-foreground/90 text-sm leading-relaxed lg:text-base">{post.content}</p>
+        <p className="text-muted-foreground text-sm">- {author?.name ?? 'Unknown author'}</p>
         <VStack gap={16}>
-          <h4 className="text-foreground text-base font-semibold">Comments</h4>
+          <h4 className="text-foreground text-base font-semibold">
+            {post.commentCount} {post.commentCount === 1 ? 'Comment' : 'Comments'}
+          </h4>
           {comments.length > 0 ? (
             <VStack gap={12}>
               {comments.map(({ node }) => (

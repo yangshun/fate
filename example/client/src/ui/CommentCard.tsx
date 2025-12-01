@@ -35,7 +35,7 @@ export default function CommentCard({
 
   return (
     <div
-      className="group rounded-md border border-gray-200/80 bg-gray-50/70 p-3 text-sm dark:border-neutral-800 dark:bg-neutral-900/40"
+      className="group squircle border border-gray-200/80 bg-gray-100/50 p-3 text-sm dark:border-neutral-800 dark:bg-neutral-900/40"
       key={comment.id}
     >
       <Stack between gap={16}>

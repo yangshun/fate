@@ -6,8 +6,8 @@ import Stack, { VStack } from '@nkzw/stack';
 import { fate } from '../lib/fate.tsx';
 import { Button } from '../ui/Button.tsx';
 import Card from '../ui/Card.tsx';
-import H3 from '../ui/H3.tsx';
 import AuthClient from '../user/AuthClient.tsx';
+import H2 from './H2.tsx';
 import Input from './Input.tsx';
 
 export type SessionUser = {
@@ -72,13 +72,15 @@ const UserNameForm = ({ user }: { user: SessionUser }) => {
 
   return (
     <div>
-      <form action={submitAction} className="flex items-center gap-2">
+      <VStack action={submitAction} as="form" gap={12}>
+        <h3 className="font-semibold">Update Name</h3>
         <label className="sr-only" htmlFor="header-username">
           Username
         </label>
         <Input
           aria-describedby={error ? 'header-username-error' : undefined}
           aria-invalid={error ? 'true' : undefined}
+          className="w-48"
           disabled={isPending}
           id="header-username"
           name="name"
@@ -87,10 +89,12 @@ const UserNameForm = ({ user }: { user: SessionUser }) => {
           title={error ?? undefined}
           value={name}
         />
-        <Button disabled={isSaveDisabled} size="sm" type="submit" variant="secondary">
-          Save
-        </Button>
-      </form>
+        <div>
+          <Button disabled={isSaveDisabled} size="sm" type="submit" variant="secondary">
+            Save
+          </Button>
+        </div>
+      </VStack>
       {error ? <span id="header-username-error">{error}</span> : null}
     </div>
   );
@@ -99,14 +103,14 @@ const UserNameForm = ({ user }: { user: SessionUser }) => {
 export default function UserCard({ user }: { user: SessionUser | null }) {
   return user ? (
     <Card>
-      <VStack gap={4}>
-        <H3>Your account</H3>
-        <Stack alignCenter between gap={16}>
-          <p className="text-muted-foreground text-sm">
-            Welcome back{user.name ? `, ${user.name}` : ''}.
-          </p>
-          <UserNameForm user={user} />
-        </Stack>
+      <VStack between className="h-full" gap={16}>
+        <VStack gap={16}>
+          <H2>Your account</H2>
+          <Stack alignCenter between gap={16}>
+            <p className="text-muted-foreground text-sm">Signed in as {user.name}.</p>
+          </Stack>
+        </VStack>
+        <UserNameForm user={user} />
       </VStack>
     </Card>
   ) : null;

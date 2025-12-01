@@ -112,7 +112,7 @@ export type Pagination = {
 export type ConnectionRef<TName extends string> = Readonly<{
   items: ReadonlyArray<{
     cursor?: string;
-    node: ViewRef<TName> | null;
+    node: ViewRef<TName>;
   }>;
   pagination?: Pagination;
 }>;
@@ -323,7 +323,7 @@ type ListResult<Item extends AnyRequestItem> = Item extends AnyNodeItem
       ? Readonly<{
           items: ReadonlyArray<{
             cursor?: string | undefined;
-            node: ViewRef<ConnectionNodeType<Item['root']>> | null;
+            node: ViewRef<ConnectionNodeType<Item['root']>>;
           }>;
           pagination?: Pagination;
         }>

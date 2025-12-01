@@ -11,94 +11,70 @@ const users = new Set([
     },
     email: 'christoph@nakazawa.dev',
     name: 'Christoph',
-    password: 'launch-day-password',
+    password: 'password-christoph',
     role: 'admin',
   },
   {
     data: {
-      username: 'maya-lopez',
+      username: 'maxima',
     },
-    email: 'maya@nakazawa.dev',
-    name: 'Maya Lopez',
-    password: 'password-maya',
+    email: 'maxima@nakazawa.dev',
+    name: 'Maxima',
+    password: 'password-maxima',
   },
   {
     data: {
-      username: 'sam-hanlon',
+      username: 'sam',
     },
     email: 'sam@nakazawa.dev',
-    name: 'Sam Hanlon',
+    name: 'Sam',
     password: 'password-sam',
   },
   {
     data: {
-      username: 'mateo-silva',
+      username: 'Valentin',
     },
-    email: 'mateo@nakazawa.dev',
-    name: 'Mateo Silva',
-    password: 'password-mateo',
+    email: 'valentin@nakazawa.dev',
+    name: 'Valentin',
+    password: 'password-valentin',
   },
   {
     data: {
-      username: 'max-parker',
+      username: 'blaine',
     },
-    email: 'max@nakazawa.dev',
-    name: 'Max Parker',
-    password: 'password-max',
+    email: 'blaine@nakazawa.dev',
+    name: 'Blaine',
+    password: 'password-blaine',
   },
   {
     data: {
-      username: 'riku-yamamoto',
+      username: 'yuki',
     },
-    email: 'riku@nakazawa.dev',
-    name: 'Riku Yamamoto',
-    password: 'password-riku',
+    email: 'yuki@nakazawa.dev',
+    name: 'Yuki',
+    password: 'password-yuki',
   },
   {
     data: {
-      username: 'amina-farah',
+      username: 'arvid',
     },
-    email: 'amina@nakazawa.dev',
-    name: 'Amina Farah',
-    password: 'password-amina',
+    email: 'arvid@nakazawa.dev',
+    name: 'Arvid',
+    password: 'password-arvid',
   },
   {
     data: {
-      username: 'jonas-becker',
+      username: 'bazoo',
     },
-    email: 'jonas@nakazawa.dev',
-    name: 'Jonas Becker',
-    password: 'password-jonas',
-  },
-  {
-    data: {
-      username: 'evelyn-chen',
-    },
-    email: 'evelyn@nakazawa.dev',
-    name: 'Evelyn Chen',
-    password: 'password-evelyn',
-  },
-  {
-    data: {
-      username: 'diego-morales',
-    },
-    email: 'diego@nakazawa.dev',
-    name: 'Diego Morales',
-    password: 'password-diego',
-  },
-  {
-    data: {
-      username: 'harriet-osei',
-    },
-    email: 'harriet@nakazawa.dev',
-    name: 'Harriet Osei',
-    password: 'password-harriet',
+    email: 'bazoo@nakazawa.dev',
+    name: 'Bazoo',
+    password: 'password-bazoo',
   },
 ] as const);
 
 const categories = [
   {
-    description: 'Day-to-day notes from shipping Fate across web and server.',
+    description: 'Day-to-day notes from shipping fate across web and server.',
     name: 'Build Diaries',
   },
   {
@@ -110,7 +86,7 @@ const categories = [
     name: 'API Surface',
   },
   {
-    description: 'Stories and feedback from early design partners running Fate in anger.',
+    description: 'Stories and feedback from early design partners running fate in anger.',
     name: 'Community Dispatches',
   },
 ] as const;
@@ -121,7 +97,7 @@ const tags = [
     name: 'normalized-cache',
   },
   {
-    description: 'Tips for composing Fate views and request plans.',
+    description: 'Tips for composing fate views and request plans.',
     name: 'view-dsl',
   },
   {
@@ -141,7 +117,7 @@ const tags = [
     name: 'codegen',
   },
   {
-    description: 'Dispatches from design partners integrating Fate.',
+    description: 'Dispatches from design partners integrating fate.',
     name: 'community',
   },
 ] as const;
@@ -151,7 +127,7 @@ const posts = [
     authorEmail: 'christoph@nakazawa.dev',
     category: 'Cache Mechanics',
     content:
-      'A deep dive into how store.merge unions coverage masks from mask.ts and why diffPaths is the backbone of cache miss detection. I included the before/after of removeReferencesTo cleaning list entries when a comment is deleted.',
+      'A deep dive into how store.merge unions coverage masks from mask.ts and why diffPaths is the backbone of cache miss detection. The article walks through before/after snapshots of removeReferencesTo cleaning list entries when a comment disappears, then shows how strict selection isolates rerenders to the exact fields a view asked for. It finishes with a sanity checklist teams can run before rolling a release to ensure list pruning and cache evictions stay predictable.',
     likes: 52,
     tags: ['normalized-cache', 'suspense'],
     title: 'Tracing normalized cache merges',
@@ -160,88 +136,88 @@ const posts = [
     authorEmail: 'sam@nakazawa.dev',
     category: 'Build Diaries',
     content:
-      'Documenting how view() in view.ts stamps ViewTag properties onto objects so getSelectionPlan can hoist nested comment selections. The post shows the request payload that createTRPCTransport sees after composing a thread view.',
+      'Documenting how view() in view.ts stamps ViewTag properties onto objects so getSelectionPlan can hoist nested comment selections. The post shows the request payload that createTRPCTransport sees after composing a thread view and maps each fragment back to the co-located component that requested it. A section on developer ergonomics highlights how the DSL keeps views portable across screens without sacrificing type safety.',
     likes: 35,
     tags: ['view-dsl', 'codegen'],
     title: 'View DSL for nested comment threads',
   },
   {
-    authorEmail: 'mateo@nakazawa.dev',
+    authorEmail: 'maxima@nakazawa.dev',
     category: 'API Surface',
     content:
-      'Notes from wiring useRequest into the dashboard where React use() consumes the promise from client.request. I call out how the cache-first mode pairs with releaseRequest to avoid leaking subscriptions during navigation.',
+      'Notes from wiring useRequest into the dashboard where React use() consumes the promise from client.request. The write-up calls out how cache-first mode pairs with releaseRequest to avoid leaking subscriptions during navigation and how Suspense boundaries keep loading states honest. A sidebar outlines guardrails for sharing a single request across composed views without introducing waterfall fetches.',
     likes: 39,
     tags: ['suspense', 'normalized-cache'],
     title: 'Suspense-first request API in practice',
   },
   {
-    authorEmail: 'max@nakazawa.dev',
+    authorEmail: 'arvid@nakazawa.dev',
     category: 'Build Diaries',
     content:
-      'A field report on wrapMutation capturing snapshots before optimistic updates and using collectImplicitSelectedPaths so the cache knows which fields to roll back. Includes the edge case where deleteRecord queues removeReferencesTo for list pruning.',
+      'A field report on wrapMutation capturing snapshots before optimistic updates and using collectImplicitSelectedPaths so the cache knows which fields to roll back. It includes the edge case where deleteRecord queues removeReferencesTo for list pruning, with screenshots of the diff when an optimistic id is swapped. The closing section summarizes when to fall back to pessimistic updates for long-running mutations.',
     likes: 34,
     tags: ['optimistic', 'normalized-cache'],
     title: 'Optimistic mutations without flinching',
   },
   {
-    authorEmail: 'riku@nakazawa.dev',
+    authorEmail: 'maxima@nakazawa.dev',
     category: 'API Surface',
     content:
-      'We tried preloading getSelectionPlan results inside the RSC boundary so server components can fill the ViewDataCache before the client renders. The write-up covers how args hashing is preserved when the TRPC transport replays the plan.',
+      'We tried preloading getSelectionPlan results inside the RSC boundary so server components can fill the ViewDataCache before the client renders. The write-up covers how args hashing is preserved when the TRPC transport replays the plan and why strict selection keeps server-rendered data from overfetching. There is also a quick primer on pairing this approach with Async React features like Suspense and error boundaries for a smooth RSC handoff.',
     likes: 27,
     tags: ['suspense', 'view-dsl'],
     title: 'Server preloading experiments',
   },
   {
-    authorEmail: 'amina@nakazawa.dev',
+    authorEmail: 'bazoo@nakazawa.dev',
     category: 'Community Dispatches',
     content:
-      'Highlights from our office hours with teams leaving query-key land. We demoed how getListKey hashes owner ids and args, plus how invalidateList subscriptions keep React views in sync without manual key math.',
+      'Highlights from our office hours with teams leaving query-key land. We demoed how getListKey hashes owner ids and args, plus how invalidateList subscriptions keep React views in sync without manual key math. Feedback centered on how the normalized cache pairs with optimistic updates to avoid brittle client logic, and we closed with a set of migration tips for folks coming from elsewhere.',
     likes: 44,
     tags: ['community', 'normalized-cache'],
-    title: 'Community Q&A: migrating from TanStack Query',
+    title: 'Community Q&A: migrating from other query libraries',
   },
   {
-    authorEmail: 'jonas@nakazawa.dev',
+    authorEmail: 'blaine@nakazawa.dev',
     category: 'Cache Mechanics',
     content:
-      'Sketching the connection helper we are prototyping atop Store.setList. It leans on the pagination field stored next to cursors so the UI can keep showing skeletons while fetchList resolves.',
+      'Sketching the connection helper we are prototyping atop Store.setList. It leans on the pagination field stored next to cursors so the UI can keep showing skeletons while fetchList resolves. The piece explains how connection-style lists keep data normalized and predictable and includes a plan for surfacing the helpers in the request planner without overfetching.',
     likes: 23,
     tags: ['pagination', 'view-dsl'],
     title: 'Pagination helper sketch',
   },
   {
-    authorEmail: 'evelyn@nakazawa.dev',
+    authorEmail: 'arvid@nakazawa.dev',
     category: 'Build Diaries',
     content:
-      'Celebrating the first end-to-end run of the codegen pipeline that emits ViewTag constants and route plans. Also sharing how we annotate mutation definitions with MutationKind so the generated client infers optimistic selections.',
+      'Celebrating the first end-to-end run of the codegen pipeline that emits ViewTag constants and route plans. Also sharing how we annotate mutation definitions with MutationKind so the generated client infers optimistic selections, which keeps optimistic updates type-safe. A short retrospective covers the ergonomics of co-locating fragments with components without introducing DSL friction.',
     likes: 29,
     tags: ['codegen', 'optimistic'],
     title: 'Codegen milestones for launch',
   },
   {
-    authorEmail: 'maya@nakazawa.dev',
+    authorEmail: 'yuki@nakazawa.dev',
     category: 'Community Dispatches',
     content:
-      'A short checklist we send to new teams trying Fate for the first time. It links to the example View objects in example/client/app/_components and the TRPC transport mapping in server/src/trpc/router.ts.',
+      'A short checklist we send to new teams trying fate for the first time. It links to the example view objects in example/client/app/_components and the TRPC transport mapping in server/src/trpc/router.ts. The checklist covers view composition, normalized cache expectations, and Async React usage so onboarding teams can translate the docs into action items without getting lost.',
     likes: 36,
     tags: ['community', 'view-dsl'],
     title: 'Design partner onboarding checklist',
   },
   {
-    authorEmail: 'diego@nakazawa.dev',
+    authorEmail: 'valentin@nakazawa.dev',
     category: 'API Surface',
     content:
-      'How we instrumented the TRPC transport to bubble typed errors from getHTTPStatusCodeFromError while keeping Suspense boundaries happy. Includes notes on keeping mutate resolvers aligned with the list fetchers.',
+      'How we instrumented the TRPC transport to bubble typed errors from getHTTPStatusCodeFromError while keeping Suspense boundaries happy. Includes notes on keeping mutate resolvers aligned with list fetchers and how that plays with cache-first reading. The post ends with a breakdown of how the transport slots into the request lifecycle so errors surface predictably without leaking implementation details.',
     likes: 24,
     tags: ['suspense', 'codegen'],
     title: 'Transport adapters and fallbacks',
   },
   {
-    authorEmail: 'harriet@nakazawa.dev',
+    authorEmail: 'bazoo@nakazawa.dev',
     category: 'Community Dispatches',
     content:
-      'Summarizing the dashboards we rely on during launch events and how optimistic mutations feed those counters. Closing with a template showing how to listen to Store.subscribeList to keep the charts fresh.',
+      'Summarizing the dashboards we rely on during launch events and how optimistic mutations feed those counters. It closes with a template showing how to listen to Store.subscribeList to keep the charts fresh, plus a checklist for layering Suspense and ErrorBoundary components so metrics pages stay resilient. The post highlights the normalized cache wins we lean on when traffic spikes.',
     likes: 21,
     tags: ['community', 'optimistic'],
     title: 'Event telemetry for live launches',
@@ -249,162 +225,39 @@ const posts = [
 ] as const;
 
 const comments = [
-  'The coverage mask walkthrough finally showed why diffPaths never lies',
-  'Please share the removeReferencesTo log output you used in the demo',
-  'Loving the example of getSelectionPlan hoisting nested comment fields',
-  'The optimistic rollback notes saved our build when deleteRecord fired',
-  'Appreciate the server preload checklist for ViewDataCache hydration',
-  'Our team related to the getListKey migration from query keys',
-  'Cursor math section was exactly what I needed to wire pagination state',
-  'Thanks for outlining how MutationKind shows up in the generated client',
-  'Excited to try the onboarding checklist with the example/client views',
-  'Transport error handling notes answered a long standing question',
-  'Telemetry template using subscribeList will ship in our control room',
-  'Coverage snapshots sound battle tested now that mask.union is in play',
-  'The generated request artifacts screenshot was clutch for debugging',
-  'Suspense batching notes pair nicely with useDeferredValue in useRequest',
-  'Rollback edge cases were wild to read, especially the optimistic id swap',
-  'Streaming preload experiment is on my TODO after seeing the args hashing',
-  'Love seeing community quotes in the recap of invalidateList behavior',
-  'Connection helper sketch reminded me of Relay days but with getListKey',
-  'Cannot wait for pagination helpers to land on top of Store.setList',
-  'Generated types for mutations look sharp with optimistic selections',
-  'Sharing this checklist with our design partners this week',
-  'TRPC transport error mapping is a gem',
-  'Telemetry dashboards screenshot gave me ideas for list subscriptions',
-  'DiffPaths deep dive deserves its own talk',
-  'Hoisted views reducing chatter is huge for the planner',
-  'Optimistic cues lining up with suspense is elegant',
-  'Pagination temp ids strategy makes sense after seeing collectImplicitSelectedPaths',
-  'Appreciate the candid note about roadmap gaps',
-  'Will your codegen emit zod validators next?',
-  'Preloading experiments inspire confidence for SSR',
+  'The coverage mask walkthrough finally showed why diffPaths never lies, and the screenshots of the merge output matched what we see in our own cache traces.',
+  'Please share the removeReferencesTo log output you used in the demo—seeing the before-and-after list cleanup would help my team tune our pruning rules.',
+  'Loving the example of getSelectionPlan hoisting nested comment fields; it mirrors how our threads roll into a single request.',
+  'The optimistic rollback notes saved our build when deleteRecord fired, especially the bit about collecting implicit selected paths before restoring state.',
+  'Appreciate the server preload checklist for ViewDataCache hydration and how it pairs with Suspense-friendly error boundaries.',
+  'Our team related to the getListKey migration from query keys and finally understood why normalized lists simplify invalidations.',
+  'Cursor math section was exactly what I needed to wire pagination state, and the connection helper teaser has me excited for release.',
+  'Thanks for outlining how MutationKind shows up in the generated client; it clarified how optimistic updates stay type-safe.',
+  'Excited to try the onboarding checklist with the example/client views and compare it against our current view definitions.',
+  'Transport error handling notes answered a long standing question about keeping Suspense boundaries happy while surfacing typed errors.',
+  'Telemetry template using subscribeList will ship in our control room so we can watch cache updates flow through live dashboards.',
+  'Coverage snapshots sound battle tested now that mask.union is in play, and the deep dive reassured our reviewers.',
+  'The generated request artifacts screenshot was clutch for debugging; mapping it to the co-located fragments made the planner easier to trust.',
+  'Suspense batching notes pair nicely with useDeferredValue in useRequest, giving us smoother transitions when requests fan out.',
+  'Rollback edge cases were wild to read, especially the optimistic id swap example that still kept list subscribers accurate.',
+  'Streaming preload experiment is on my TODO after seeing the args hashing; that section read like a mini lab notebook.',
+  'Love seeing community quotes in the recap of invalidateList behavior and how it keeps cache consistency intact during launch days.',
+  'Connection helper sketch reminded me of Relay days but with getListKey, which feels cleaner than juggling query keys.',
+  'Cannot wait for pagination helpers to land on top of Store.setList; the placeholders in the post already look production-ready.',
+  'Generated types for mutations look sharp with optimistic selections, and the ergonomics seem aligned with the minimal API promise.',
+  'Sharing this checklist with our design partners this week to help them map the concepts into their own React trees.',
+  'TRPC transport error mapping is a gem and finally makes the end-to-end story from request to error boundary feel predictable.',
+  'Telemetry dashboards screenshot gave me ideas for list subscriptions and how to layer Suspense fallback states over the charts.',
+  'DiffPaths deep dive deserves its own talk; the cache math parallels what our auditors call out about strict selection.',
+  'Hoisted views reducing chatter is huge for the planner, and the examples helped us justify investing in view composition.',
+  'Optimistic cues lining up with suspense is elegant, especially when paired with the releaseRequest notes in the API section.',
+  'Pagination temp ids strategy makes sense after seeing collectImplicitSelectedPaths; it should keep our cursors tidy during optimistic flows.',
+  'Appreciate the candid note about roadmap gaps and how you plan to harden pagination and cache introspection tools.',
+  'Will your codegen emit zod validators next? The minimal API angle would pair nicely with runtime safety.',
+  'Preloading experiments inspire confidence for SSR and make me want to try the server-side view composition story.',
 ] as const;
 
 console.log(styleText('bold', '› Seeding database...'));
-
-const projects = [
-  {
-    focusAreas: ['Suspense hygiene', 'Server streaming', 'DX testing'],
-    metrics: {
-      hydrationPassRate: 0.94,
-      syntheticRequestsPerMinute: 420,
-    },
-    name: 'Suspense hydration harness',
-    ownerEmail: 'christoph@nakazawa.dev',
-    progress: 68,
-    startDate: new Date('2024-02-19T00:00:00.000Z'),
-    status: 'IN_PROGRESS',
-    summary:
-      'Test rig for verifying request preloads and throw-based suspense boundaries before shipping new views.',
-    targetDate: new Date('2024-10-15T00:00:00.000Z'),
-    updates: [
-      {
-        authorEmail: 'christoph@nakazawa.dev',
-        confidence: 4,
-        content:
-          'Extended the harness to simulate streaming partial payloads and caught a regression in store.merge coverage.',
-        mood: 'Confident',
-      },
-      {
-        authorEmail: 'mateo@nakazawa.dev',
-        confidence: 3,
-        content:
-          'Hooked the harness into the React 19 canary build and confirmed the new scheduler still flushes our batched requests.',
-        mood: 'Curious',
-      },
-    ],
-  },
-  {
-    focusAreas: ['Type safety', 'Cache introspection', 'Tooling'],
-    metrics: {
-      generatedArtifacts: 18,
-      maskDiffBugs: 1,
-    },
-    name: 'Normalized cache validator',
-    ownerEmail: 'sam@nakazawa.dev',
-    progress: 54,
-    startDate: new Date('2024-03-11T00:00:00.000Z'),
-    status: 'IN_PROGRESS',
-    summary: 'CLI to audit coverage masks, diffPaths output, and list snapshots across releases.',
-    targetDate: new Date('2024-09-06T00:00:00.000Z'),
-    updates: [
-      {
-        authorEmail: 'sam@nakazawa.dev',
-        confidence: 4,
-        content:
-          'Prototype reads store.snapshots and highlights missing fields before runtime fetches fire.',
-        mood: 'Energized',
-      },
-      {
-        authorEmail: 'jonas@nakazawa.dev',
-        confidence: 3,
-        content: 'Working on pagination fixtures so the validator understands cursor mutations.',
-        mood: 'Heads-down',
-      },
-    ],
-  },
-  {
-    focusAreas: ['Community onboarding', 'Documentation', 'Instrumentation'],
-    metrics: {
-      averageNps: 4.8,
-      partnersActive: 12,
-    },
-    name: 'Community adoption pilot',
-    ownerEmail: 'amina@nakazawa.dev',
-    progress: 73,
-    startDate: new Date('2024-01-29T00:00:00.000Z'),
-    status: 'IN_PROGRESS',
-    summary:
-      'Support program guiding design partners through view DSL adoption and telemetry setup.',
-    targetDate: new Date('2024-07-26T00:00:00.000Z'),
-    updates: [
-      {
-        authorEmail: 'amina@nakazawa.dev',
-        confidence: 5,
-        content: 'Hosted the first migration clinic and documented common TanStack Query exits.',
-        mood: 'Upbeat',
-      },
-      {
-        authorEmail: 'maya@nakazawa.dev',
-        confidence: 4,
-        content: 'Published the onboarding checklist plus the new metrics dashboard template.',
-        mood: 'Proud',
-      },
-    ],
-  },
-  {
-    focusAreas: ['Mutation flows', 'Error recovery', 'Action queues'],
-    metrics: {
-      queueLatencyMs: 38,
-      rollbackBugsOpen: 2,
-    },
-    name: 'Optimistic mutation queue',
-    ownerEmail: 'max@nakazawa.dev',
-    progress: 46,
-    startDate: new Date('2024-04-08T00:00:00.000Z'),
-    status: 'IN_PROGRESS',
-    summary:
-      'Queue manager exploring incremental rollbacks versus last-wins semantics for Actions.',
-    targetDate: new Date('2024-11-01T00:00:00.000Z'),
-    updates: [
-      {
-        authorEmail: 'max@nakazawa.dev',
-        confidence: 2,
-        content:
-          'Spiked an approach storing snapshots per mutation to compare last-wins and incremental merges.',
-        mood: 'Investigating',
-      },
-      {
-        authorEmail: 'christoph@nakazawa.dev',
-        confidence: 3,
-        content:
-          'Reviewing queue instrumentation results to ensure store.removeReferencesTo stays deterministic.',
-        mood: 'Focused',
-      },
-    ],
-  },
-] as const;
 
 const events = [
   {
@@ -412,7 +265,7 @@ const events = [
       {
         notes: "Wants to demo their team's Suspense debugging checklist.",
         status: 'GOING',
-        userEmail: 'maya@nakazawa.dev',
+        userEmail: 'maxima@nakazawa.dev',
       },
       {
         notes: 'Collecting feedback on coverage tooling.',
@@ -422,17 +275,14 @@ const events = [
     ],
     capacity: 400,
     description:
-      'Launch day AMA with Christoph walking through request planner internals and normalized cache strategies.',
+      'Launch day AMA with Christoph walking through request planner internals, normalized cache strategies, and how optimistic updates behave under load.',
     endAt: new Date('2024-07-25T18:30:00.000Z'),
     hostEmail: 'christoph@nakazawa.dev',
-    livestreamUrl: 'https://fate.nakazawa.dev/launch-ama',
+    livestreamUrl: 'https://fate.technology/',
     location: 'Discord Stage',
-    name: 'Fate launch AMA',
-    resources: {
-      outline: 'https://fate.nakazawa.dev/assets/launch-ama-outline.pdf',
-    },
+    name: 'fate launch AMA',
     startAt: new Date('2024-07-25T17:30:00.000Z'),
-    topics: ['Launch', 'Roadmap', 'Community'],
+    topics: ['Launch', 'Roadmap', 'Optimistic updates'],
     type: 'AMA',
   },
   {
@@ -440,26 +290,22 @@ const events = [
       {
         notes: 'Sharing pagination prototypes with the group.',
         status: 'GOING',
-        userEmail: 'jonas@nakazawa.dev',
+        userEmail: 'blaine@nakazawa.dev',
       },
       {
         notes: 'Interested in Suspense hydration metrics.',
         status: 'INTERESTED',
-        userEmail: 'evelyn@nakazawa.dev',
+        userEmail: 'yuki@nakazawa.dev',
       },
     ],
     capacity: 150,
     description:
-      'Hands-on workshop building view() fragments, pagination helpers, and optimistic flows in a demo app.',
+      'Hands-on workshop building view() fragments, pagination helpers, and optimistic flows in a demo app with guided coding time.',
     endAt: new Date('2024-08-09T20:00:00.000Z'),
     hostEmail: 'sam@nakazawa.dev',
-    livestreamUrl: 'https://fate.nakazawa.dev/view-dsl-workshop',
+    livestreamUrl: 'https://fate.technology',
     location: 'Hybrid — Brooklyn studio & Zoom',
     name: 'View DSL workshop',
-    resources: {
-      checklist: 'https://fate.nakazawa.dev/assets/view-dsl-checklist.md',
-      repo: 'https://github.com/nkzw/fate-workshop',
-    },
     startAt: new Date('2024-08-09T16:00:00.000Z'),
     topics: ['Views', 'Pagination', 'Codegen'],
     type: 'WORKSHOP',
@@ -469,47 +315,34 @@ const events = [
       {
         notes: 'Moderating the data panel for partners.',
         status: 'GOING',
-        userEmail: 'amina@nakazawa.dev',
+        userEmail: 'sam@nakazawa.dev',
       },
       {
         notes: 'Collecting telemetry requirements from adopters.',
         status: 'GOING',
-        userEmail: 'harriet@nakazawa.dev',
+        userEmail: 'valentin@nakazawa.dev',
       },
       {
         notes: 'Curious about transport fallbacks for edge environments.',
         status: 'INTERESTED',
-        userEmail: 'diego@nakazawa.dev',
+        userEmail: 'bazoo@nakazawa.dev',
       },
     ],
     capacity: 250,
     description:
-      'Monthly community call covering migration stories, telemetry dashboards, and transport hardening tips.',
+      'Monthly community call covering migration stories, telemetry dashboards, transport hardening tips, and live Q&A on cache hygiene.',
     endAt: new Date('2024-09-04T18:30:00.000Z'),
-    hostEmail: 'harriet@nakazawa.dev',
-    livestreamUrl: 'https://fate.nakazawa.dev/community-call',
+    hostEmail: 'yuki@nakazawa.dev',
+    livestreamUrl: 'https://fate.technology',
     location: 'Virtual — Gather.town',
     name: 'Community adoption call',
-    resources: {
-      notes: 'https://fate.nakazawa.dev/assets/community-call-notes',
-    },
     startAt: new Date('2024-09-04T17:30:00.000Z'),
-    topics: ['Community', 'Telemetry', 'Transport'],
+    topics: ['Community', 'Telemetry', 'Transport', 'Cache hygiene'],
     type: 'COMMUNITY_CALL',
   },
 ] as const;
 
 try {
-  console.log(styleText('bold', `Resetting example content`));
-  await prisma.eventAttendee.deleteMany();
-  await prisma.event.deleteMany();
-  await prisma.projectUpdate.deleteMany();
-  await prisma.project.deleteMany();
-  await prisma.comment.deleteMany();
-  await prisma.post.deleteMany();
-  await prisma.category.deleteMany();
-  await prisma.tag.deleteMany();
-
   console.log(styleText('bold', `Creating users`));
 
   for (const data of users) {
@@ -584,7 +417,7 @@ try {
     await prisma.comment.create({
       data: {
         authorId: author?.id,
-        content: `#${index + 1} ${comment}.`,
+        content: comment,
         postId: post.id,
       },
     });
@@ -596,64 +429,6 @@ try {
     styleText(
       ['green', 'bold'],
       `✓ Created ${createdPosts.length} posts and ${comments.length} comments.`,
-    ),
-  );
-
-  console.log(styleText('bold', `Creating projects and updates`));
-
-  const createdProjects = await Promise.all(
-    projects.map((project) => {
-      const owner = usersByEmail.get(project.ownerEmail);
-
-      if (!owner) {
-        throw new Error(`Missing seeded user for ${project.ownerEmail}.`);
-      }
-
-      const updates = project.updates
-        .map((update) => {
-          const author = usersByEmail.get(update.authorEmail);
-
-          if (!author) {
-            throw new Error(`Missing seeded user for ${update.authorEmail}.`);
-          }
-
-          return {
-            authorId: author.id,
-            confidence: update.confidence,
-            content: update.content,
-            mood: update.mood,
-          };
-        })
-        .filter(Boolean);
-
-      return prisma.project.create({
-        data: {
-          focusAreas: [...project.focusAreas],
-          metrics: project.metrics,
-          name: project.name,
-          ownerId: owner.id,
-          progress: project.progress,
-          startDate: project.startDate,
-          status: project.status,
-          summary: project.summary,
-          targetDate: project.targetDate,
-          updates: updates.length
-            ? {
-                create: updates,
-              }
-            : undefined,
-        },
-      });
-    }),
-  );
-
-  console.log(
-    styleText(
-      ['green', 'bold'],
-      `✓ Created ${createdProjects.length} projects with ${projects.reduce(
-        (total, project) => total + project.updates.length,
-        0,
-      )} updates.`,
     ),
   );
 
@@ -697,7 +472,6 @@ try {
           livestreamUrl: event.livestreamUrl,
           location: event.location,
           name: event.name,
-          resources: event.resources,
           startAt: event.startAt,
           topics: [...event.topics],
           type: event.type,

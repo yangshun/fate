@@ -42,23 +42,15 @@ export function useListView<
       : null;
 
   const subscribe = useCallback(
-    (onStoreChange: () => void) => {
-      if (!metadata) {
-        return () => {};
-      }
-
-      return client.store.subscribeList(metadata.key, onStoreChange);
-    },
+    (onStoreChange: () => void) =>
+      metadata ? client.store.subscribeList(metadata.key, onStoreChange) : () => {},
     [client, metadata],
   );
 
-  const getSnapshot = useCallback(() => {
-    if (!metadata) {
-      return undefined;
-    }
-
-    return client.store.getListState(metadata.key);
-  }, [client, metadata]);
+  const getSnapshot = useCallback(
+    () => (metadata ? client.store.getListState(metadata.key) : undefined),
+    [client, metadata],
+  );
 
   const listState = useDeferredValue(useSyncExternalStore(subscribe, getSnapshot, getSnapshot));
   const pagination = listState?.pagination ?? connection?.pagination;

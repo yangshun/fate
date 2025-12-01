@@ -1,12 +1,18 @@
+import { VStack } from '@nkzw/stack';
+
 export default function Error({ error }: { error: Error }) {
   return (
-    <div>
+    <VStack gap={12}>
       <h3 className="text-xl font-semibold text-red-700">Error</h3>
-      <code>{error.stack || `Fate Error: ${error.message}`}</code>
-
-      <a className="block cursor-pointer underline" onClick={() => window.location.reload()}>
-        Try again
-      </a>
-    </div>
+      <code>{error.stack || `fate Error: ${error.message}`}</code>
+      <div>
+        <a
+          className="cursor-pointer underline decoration-gray-300 hover:no-underline"
+          onClick={() => window.location.reload()}
+        >
+          Try again
+        </a>
+      </div>
+    </VStack>
   );
 }

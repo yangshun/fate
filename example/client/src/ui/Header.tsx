@@ -11,11 +11,11 @@ export default function Header() {
   const { data: session, isPending } = AuthClient.useSession();
 
   return (
-    <header className="bg-background/95 supports-backdrop-filter:bg-background/60 sticky top-0 z-50 border-b backdrop-blur">
+    <header className="sticky top-0 z-50 border-b border-white/60 backdrop-blur bg-white/60 dark:border-neutral-800 dark:bg-neutral-950/70">
       <Stack
         alignCenter
         between
-        className="max-w-8xl relative container mx-auto h-11 px-8"
+        className="max-w-8xl relative container mx-auto h-16 px-6 lg:px-8"
         gap={16}
       >
         <Link
@@ -24,8 +24,8 @@ export default function Header() {
           }
           to="/"
         >
-          <Stack alignCenter>
-            <div className="relative">
+          <Stack alignCenter gap={12}>
+            <div className="relative flex h-10 w-10 items-center justify-center squircle bg-linear-to-br from-gray-100 to-gray-200 text-white shadow-lg shadow-gray-500/20 hover:scale-110 active:scale-90 transition duration-250">
               {pathname === '/' ? (
                 <svg
                   className="h-6 w-6 text-gray-500"
@@ -44,12 +44,17 @@ export default function Header() {
                 <ChevronLeft className="h-6 w-6 text-gray-500" />
               )}
             </div>
-            <span className="bg-linear-to-r from-gray-500 to-gray-900 bg-clip-text text-2xl text-transparent dark:to-gray-200">
-              <span className="italic">fate</span> demo
-            </span>
+            <div className="transition-opacity duration-250 opacity-100 hover:opacity-70">
+              <span className="bg-linear-to-r from-gray-500 to-gray-900 bg-clip-text text-xl font-semibold text-transparent dark:from-gray-200 dark:to-white">
+                <span className="italic">fate</span>
+              </span>
+              <p className="text-muted-foreground text-xs hidden sm:block">
+                A modern data client for React.
+              </p>
+            </div>
           </Stack>
         </Link>
-        <Stack alignCenter gap>
+        <Stack alignCenter>
           <Button asChild size="sm" variant="ghost">
             <Link to="/search">
               <Search className="h-4 w-4" />
@@ -59,13 +64,16 @@ export default function Header() {
           {session ? (
             <>
               <Button asChild size="sm" variant="ghost">
-                <a
-                  className="flex items-center hover:text-gray-600"
+                <Stack
+                  alignCenter
+                  as="a"
+                  className="text-sm font-medium text-gray-700 transition hover:text-gray-900 dark:text-gray-200 dark:hover:text-white"
+                  gap={4}
                   onClick={() => AuthClient.signOut()}
                 >
                   <LogOut className="h-4 w-4" />
                   <span className="hidden sm:inline">Logout</span>
-                </a>
+                </Stack>
               </Button>
             </>
           ) : !isPending ? (

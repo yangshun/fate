@@ -18,7 +18,7 @@ _Note: **fate** is currently in alpha and not production ready. If something doe
 
 In fate, each component declares the data it needs using views. Views are composed upward through the component tree until they reach a root, where the actual request is made. fate fetches all required data in a single request. React Suspense manages loading states, and any data-fetching errors naturally bubble up to React error boundaries. This eliminates the need for imperative loading logic or manual error handling.
 
-Traditionally, React apps are built with components and hooks. Fate introduces a third primitive: views – a declarative way for components to express their data requirements. An app built with fate looks more like this:
+Traditionally, React apps are built with components and hooks. fate introduces a third primitive: views – a declarative way for components to express their data requirements. An app built with fate looks more like this:
 
 <p align="center">
   <picture class="fate-tree">
