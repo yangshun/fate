@@ -242,7 +242,7 @@ export function PostCard({ detail, post: postRef }: { detail?: boolean; post: Vi
                 size="sm"
                 variant="outline"
               >
-                Like (Major Error)
+                Like (Network Error)
               </Button>
             )}
             {detail && (

@@ -1575,7 +1575,7 @@ export class FateClient<
   }
 
   private pendingKey(entityId: string, missingFields: Set<string>) {
-    return `${this.pendingPrefix(entityId)}${[...missingFields].sort().join(',')}`;
+    return `${this.pendingPrefix(entityId)}${[...missingFields].sort().join('|')}`;
   }
 }
 

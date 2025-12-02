@@ -1,4 +1,4 @@
-import { expect, expectTypeOf, test } from 'vitest';
+import { expect, expectTypeOf, test, vi } from 'vitest';
 import { getViewTag, SelectionOf, type View, type ViewData, type ViewRef } from '../types.ts';
 import { view } from '../view.ts';
 
@@ -22,7 +22,7 @@ test('defines View types with the narrowed selection', () => {
     title: true,
   });
 
-  expectTypeOf(PostView[getViewTag(0)]?.select.content).toEqualTypeOf<true>();
+  expectTypeOf(PostView[getViewTag('0')]?.select.content).toEqualTypeOf<true>();
 
   // @ts-expect-error likes was not selected in the view.
   expect(PostView.select?.likes).toBeUndefined();
@@ -170,4 +170,86 @@ test('rejects selecting fields not defined on the entity', () => {
     color: true,
     id: true,
   });
+});
+
+test('preserves view ids across module reloads in development', async () => {
+  const originalDev = process.env.DEV;
+
+  type Article = {
+    __typename: 'Article';
+    id: string;
+    title: string;
+  };
+
+  const loadViewTags = async () => {
+    const { getViewNames, view } = await import('../view.ts');
+
+    const ArticleIdView = view<Article>()({
+      id: true,
+    });
+
+    const ArticleTitleView = view<Article>()({
+      id: true,
+      title: true,
+    });
+
+    return [ArticleIdView, ArticleTitleView].flatMap((articleView) => [
+      ...getViewNames(articleView),
+    ]);
+  };
+
+  try {
+    process.env.DEV = '1';
+
+    vi.resetModules();
+    const viewTags = await loadViewTags();
+
+    vi.resetModules();
+    expect(viewTags).toEqual(await loadViewTags());
+  } finally {
+    process.env.DEV = originalDev;
+  }
+});
+
+test('uses a different view id system in development and production', async () => {
+  const originalDev = process.env.DEV;
+  const originalNodeEnv = process.env.NODE_ENV;
+
+  type Article = {
+    __typename: 'Article';
+    id: string;
+    title: string;
+  };
+
+  const loadViewTags = async () => {
+    const { getViewNames, view } = await import('../view.ts');
+
+    const ArticleIdView = view<Article>()({
+      id: true,
+    });
+
+    const ArticleTitleView = view<Article>()({
+      id: true,
+      title: true,
+    });
+
+    return [ArticleIdView, ArticleTitleView].flatMap((articleView) => [
+      ...getViewNames(articleView),
+    ]);
+  };
+
+  try {
+    vi.resetModules();
+    process.env.DEV = '1';
+    process.env.NODE_ENV = 'development';
+    const viewTags = await loadViewTags();
+
+    vi.resetModules();
+    process.env.DEV = '';
+    process.env.NODE_ENV = 'production';
+    expect(viewTags).not.toEqual(await loadViewTags());
+  } finally {
+    process.env.DEV = originalDev;
+    process.env.NODE_ENV = originalNodeEnv;
+  }
 });

@@ -51,6 +51,39 @@ export const getSelectionViewNames = <T extends Entity, S extends Selection<T>>(
 };
 
 let id = 0;
+const isDevelopment = import.meta?.env?.DEV || import.meta?.env?.NODE_ENV !== 'production';
+let viewModulePath: string | null = null;
+
+const getStableId = () => {
+  if (isDevelopment) {
+    try {
+      if (viewModulePath == null) {
+        viewModulePath = new URL(import.meta.url).pathname;
+      }
+
+      const stack = new Error().stack?.split('\n');
+      if (stack) {
+        for (let i = 1; i < stack.length; i++) {
+          const frame = stack[i].trim();
+          const match = frame.match(/\(?([^()]+):(\d+):(\d+)\)?$/);
+          if (!match) {
+            continue;
+          }
+
+          const [, source, line, column] = match;
+          if (!source.includes(viewModulePath)) {
+            const file = source.startsWith('at ') ? source.slice(3) : source;
+            return `${/^[A-Za-z][\d+.A-Za-z-]*:/.test(file) ? new URL(file).pathname : file}:${line}:${column}`;
+          }
+        }
+      }
+    } catch {
+      /* empty */
+    }
+  }
+
+  return String(id++);
+};
 
 type SelectionValidation<T extends Entity, S extends Selection<T>> =
   Exclude<
@@ -70,7 +103,7 @@ type SelectionValidation<T extends Entity, S extends Selection<T>> =
  * });
  */
 export function view<T extends Entity>() {
-  const viewId = id++;
+  const viewId = getStableId();
 
   return <S extends Selection<T>>(select: S & SelectionValidation<T, S>): View<T, S> => {
     const payload = Object.freeze({

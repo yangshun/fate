@@ -41,12 +41,12 @@ type __MutationResultAnchor<R> = {
 };
 
 /** Unique key that identifies a view composition entry inside a selection or reference. */
-export type ViewTag = `__fate-view__${number}`;
+export type ViewTag = `__fate-view__${string}`;
 
 const viewTag = '__fate-view__' as const;
 
 /** Generates a stable view tag for a view definition. */
-export function getViewTag(id: number): ViewTag {
+export function getViewTag(id: string): ViewTag {
   return `${viewTag}${id}`;
 }
 

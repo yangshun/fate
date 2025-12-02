@@ -20,7 +20,10 @@ type WalkContext = 'default' | 'connection';
  * flat set of field paths to read or fetch.
  */
 export type SelectionPlan = {
-  readonly args: Map<string, { hash: string; ignoreKeys?: ReadonlySet<string>; value: AnyRecord }>;
+  readonly args: Map<
+    string,
+    Readonly<{ hash: string; ignoreKeys?: ReadonlySet<string>; value: AnyRecord }>
+  >;
   readonly paths: Set<string>;
 };
 
