@@ -40,6 +40,7 @@ export default defineConfig({
       { link: '/', text: 'Home' },
       { link: '/guide/getting-started', text: 'Guide' },
       { link: '/api', text: 'API' },
+      { link: '/posts/introducing-fate', text: 'Blog' },
       {
         items: [
           {
@@ -75,6 +76,11 @@ export default defineConfig({
         text: 'Guide',
       },
       { collapsed: false, items: apiItems, text: 'API' },
+      {
+        collapsed: true,
+        items: [{ link: '/posts/introducing-fate', text: 'Introducing Fate' }],
+        text: 'Blog',
+      },
     ],
     siteTitle: false,
     socialLinks: [
