@@ -1,4 +1,4 @@
-import { dataView, DataViewResult, list, resolver } from '@nkzw/fate/server';
+import { dataView, type Entity, list, resolver } from '@nkzw/fate/server';
 import type {
   Category as PrismaCategory,
   Comment as PrismaComment,
@@ -134,38 +134,48 @@ export const eventDataView = dataView<EventItem>('Event')({
   type: true,
 });
 
-export type User = DataViewResult<typeof userDataView> & {
-  __typename: 'User';
-};
-export type Tag = DataViewResult<typeof tagDataView> & { __typename: 'Tag' };
-export type Comment = Omit<DataViewResult<typeof commentDataView>, 'author'> & {
-  __typename: 'Comment';
-  author: User;
-  post: Post;
-};
-export type EventAttendee = Omit<DataViewResult<typeof eventAttendeeDataView>, 'user'> & {
-  __typename: 'EventAttendee';
-  user: User;
-};
-export type Post = Omit<
-  DataViewResult<typeof postDataView>,
-  'author' | 'category' | 'comments' | 'tags'
-> & {
-  __typename: 'Post';
-  author: User;
-  category: Category | null;
-  comments: Array<Comment>;
-  tags: Array<Tag>;
-};
-export type Category = Omit<DataViewResult<typeof categoryDataView>, 'posts'> & {
-  __typename: 'Category';
-  posts: Array<Post>;
-};
-export type Event = Omit<DataViewResult<typeof eventDataView>, 'attendees' | 'host'> & {
-  __typename: 'Event';
-  attendees: Array<EventAttendee>;
-  host: User;
-};
+export type User = Entity<typeof userDataView, 'User'>;
+export type Tag = Entity<typeof tagDataView, 'Tag'>;
+export type Comment = Entity<
+  typeof commentDataView,
+  'Comment',
+  {
+    author: User;
+    post: Post;
+  }
+>;
+export type EventAttendee = Entity<
+  typeof eventAttendeeDataView,
+  'EventAttendee',
+  {
+    user: User;
+  }
+>;
+export type Post = Entity<
+  typeof postDataView,
+  'Post',
+  {
+    author: User;
+    category: Category | null;
+    comments: Array<Comment>;
+    tags: Array<Tag>;
+  }
+>;
+export type Category = Entity<
+  typeof categoryDataView,
+  'Category',
+  {
+    posts: Array<Post>;
+  }
+>;
+export type Event = Entity<
+  typeof eventDataView,
+  'Event',
+  {
+    attendees: Array<EventAttendee>;
+    host: User;
+  }
+>;
 
 export const Lists = {
   categories: categoryDataView,

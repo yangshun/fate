@@ -4,7 +4,7 @@ import { createResolver, dataView, list, resolver } from '../dataView.ts';
 type UserItem = { id: string; name: string; password: string };
 
 test('server views filter unexposed fields from selections', async () => {
-  const view = dataView<UserItem>()({
+  const view = dataView<UserItem>('User')({
     id: true,
     name: true,
   });
@@ -34,7 +34,7 @@ type CategoryItem = {
 };
 
 test('resolvers can add prisma selections and compute values', async () => {
-  const view = dataView<CategoryItem>()({
+  const view = dataView<CategoryItem>('Category')({
     id: true,
     postCount: resolver<CategoryItem>({
       resolve: ({ item }) => item._count?.posts ?? 0,
@@ -70,7 +70,7 @@ type ParentItem = {
 };
 
 test('nested resolvers apply their selections within relations', async () => {
-  const childView = dataView<ChildItem>()({
+  const childView = dataView<ChildItem>('Child')({
     id: true,
     total: resolver<ChildItem>({
       resolve: ({ item }) => item._count?.items ?? 0,
@@ -80,7 +80,7 @@ test('nested resolvers apply their selections within relations', async () => {
     }),
   });
 
-  const parentView = dataView<ParentItem>()({
+  const parentView = dataView<ParentItem>('Parent')({
     child: childView,
     id: true,
   });
@@ -113,12 +113,12 @@ type PostItem = { id: string; secret: string; title: string };
 type CommentItem = { id: string; post?: PostItem | null };
 
 test('selecting a relation without nested paths only selects minimal fields', () => {
-  const postView = dataView<PostItem>()({
+  const postView = dataView<PostItem>('Post')({
     id: true,
     title: true,
   });
 
-  const commentView = dataView<CommentItem>()({
+  const commentView = dataView<CommentItem>('Comment')({
     id: true,
     post: postView,
   });
@@ -135,13 +135,13 @@ test('selecting a relation without nested paths only selects minimal fields', ()
 });
 
 test('relation selections without nested paths do not expose unrequested fields', async () => {
-  const postView = dataView<PostItem>()({
+  const postView = dataView<PostItem>('Post')({
     id: true,
     secret: true,
     title: true,
   });
 
-  const commentView = dataView<CommentItem>()({
+  const commentView = dataView<CommentItem>('Comment')({
     id: true,
     post: postView,
   });
@@ -168,22 +168,22 @@ type CommentWithRepliesItem = { id: string; replies?: Array<ReplyItem> };
 type PostWithDeepRelationsItem = { comments?: Array<CommentWithRepliesItem>; id: string };
 
 test('list fields are wrapped into connections recursively using scoped args', async () => {
-  const authorView = dataView<AuthorItem>()({
+  const authorView = dataView<AuthorItem>('Author')({
     id: true,
     name: true,
   });
 
-  const replyView = dataView<ReplyItem>()({
+  const replyView = dataView<ReplyItem>('Reply')({
     author: authorView,
     id: true,
   });
 
-  const commentView = dataView<CommentWithRepliesItem>()({
+  const commentView = dataView<CommentWithRepliesItem>('Comment')({
     id: true,
     replies: list(replyView),
   });
 
-  const postView = dataView<PostWithDeepRelationsItem>()({
+  const postView = dataView<PostWithDeepRelationsItem>('Post')({
     comments: list(commentView),
     id: true,
   });

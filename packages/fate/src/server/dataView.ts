@@ -70,7 +70,7 @@ export type DataViewConfig<Item extends AnyRecord, Context> = Record<
  *   title: true,
  * });
  */
-export function dataView<Item extends AnyRecord, Context = unknown>(typeName?: string) {
+export function dataView<Item extends AnyRecord, Context = unknown>(typeName: string) {
   return <Fields extends DataViewConfig<Item, Context>>(fields: Fields) => {
     return {
       [dataViewFieldsKey]: fields,
@@ -151,12 +151,18 @@ type RawDataViewResult<V extends DataView<AnyRecord, unknown>> =
       }
     : never;
 
+type DataViewResult<V extends DataView<AnyRecord, unknown>> = Serializable<RawDataViewResult<V>>;
+
+type WithTypename<T, Name extends string> = T & { __typename: Name };
+
 /**
- * Resolved and serialized shape returned from a data view.
+ * Resolved entity type from a data view for client use.
  */
-export type DataViewResult<V extends DataView<AnyRecord, unknown>> = Serializable<
-  RawDataViewResult<V>
->;
+export type Entity<
+  TView extends DataView<AnyRecord, unknown>,
+  Name extends string,
+  Replacements extends Record<string, unknown> = Record<string, never>,
+> = WithTypename<Omit<DataViewResult<TView>, keyof Replacements> & Replacements, Name>;
 
 type SelectedViewNode<Context> = {
   path: string | null;
