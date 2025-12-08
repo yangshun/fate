@@ -56,10 +56,8 @@ const generate = async () => {
   console.log(styleText('bold', `Generating fate client…\n`));
 
   const { appRouter, Lists, ...dataViews } = await import(moduleName);
-
   const { entities, types } = createSchema(Object.values(dataViews), Lists);
-
-  const routerRecord = (appRouter as any)._def?.record ?? {};
+  const routerRecord = appRouter._def?.record ?? {};
 
   const mutationEntries: Array<{
     entityType: string;
@@ -75,9 +73,7 @@ const generate = async () => {
   }> = [];
 
   for (const [router, procedures] of Object.entries(routerRecord)) {
-    const entity = (
-      entities as Record<string, { list?: string; listProcedure?: string; type: string }>
-    )[router];
+    const entity = entities[router];
     if (!entity) {
       continue;
     }

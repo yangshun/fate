@@ -19,6 +19,8 @@ type ListConfig =
       view: DataView<AnyRecord, unknown>;
     };
 
+const camelCase = (value: string) => value.charAt(0).toLowerCase() + value.slice(1);
+
 /**
  * Builds the schema object used by the CLI generator from your data views and
  * list resolver configs.
@@ -80,14 +82,14 @@ export const createSchema = (
       canonicalViews.set(typeName, view);
     }
 
-    entities[typeName.toLowerCase()] = { type: typeName };
+    entities[camelCase(typeName)] = { type: typeName };
   }
 
   for (const [name, list] of Object.entries(lists)) {
     const config = 'fields' in list ? { view: list } : list;
     const typeName = ensureType(config.view);
 
-    entities[typeName.toLowerCase()] = {
+    entities[camelCase(typeName)] = {
       list: name,
       listProcedure: config.procedure,
       type: typeName,

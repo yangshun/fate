@@ -89,3 +89,32 @@ test('allows defining custom list procedure names', () => {
     type: 'Comment',
   });
 });
+
+test('collects entites as camelCase', () => {
+  const userProfileView = dataView<User>('UserProfile')({
+    id: true,
+    name: true,
+  });
+
+  const commentView = dataView<Comment>('Comment')({
+    author: userProfileView,
+    id: true,
+  });
+
+  const { entities, types } = createSchema([commentView, userProfileView], {
+    userProfile: userProfileView,
+  });
+
+  expect(types).toEqual([
+    { type: 'UserProfile' },
+    { fields: { author: { type: 'UserProfile' } }, type: 'Comment' },
+  ]);
+
+  expect(entities).toEqual({
+    comment: { type: 'Comment' },
+    userProfile: {
+      list: 'userProfile',
+      type: 'UserProfile',
+    },
+  });
+});
