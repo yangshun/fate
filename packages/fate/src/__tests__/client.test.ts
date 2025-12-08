@@ -1073,6 +1073,139 @@ test('optimistic records are replaced once the mutation resolves', async () => {
   });
 });
 
+test('mutations insert records into root lists optimistically', async () => {
+  type Post = { __typename: 'Post'; id: string; title: string };
+
+  const mutate = vi.fn().mockResolvedValue({
+    __typename: 'Post',
+    id: 'post-2',
+    title: 'Published',
+  });
+
+  const fetchList = vi.fn().mockResolvedValue({
+    items: [{ cursor: 'cursor-1', node: { __typename: 'Post', id: 'post-1', title: 'Existing' } }],
+    pagination: { hasNext: false, hasPrevious: false },
+  });
+
+  const client = createClient({
+    mutations: { createPost: mutation<Post, { title: string }, Post>('Post') },
+    transport: {
+      async fetchById() {
+        return [];
+      },
+      fetchList,
+      mutate,
+    },
+    types: [{ fields: { title: 'scalar' }, type: 'Post' }],
+  });
+
+  const PostView = view<Post>()({ id: true, title: true });
+  const PostConnectionView = {
+    args: { first: 1 },
+    items: { cursor: true, node: PostView },
+  } as const;
+
+  await client.request({
+    posts: { args: { first: 1 }, root: PostConnectionView, type: 'Post' },
+  });
+
+  const optimisticId = 'optimistic:post-2';
+
+  const mutationPromise = client.mutations.createPost({
+    input: { title: 'Draft' },
+    optimistic: { id: optimisticId, title: 'Draft' },
+    view: PostView,
+  });
+
+  expect(client.store.getList('posts')).toEqual([
+    toEntityId('Post', 'post-1'),
+    toEntityId('Post', optimisticId),
+  ]);
+
+  await mutationPromise;
+
+  expect(client.store.getList('posts')).toEqual([
+    toEntityId('Post', 'post-1'),
+    toEntityId('Post', 'post-2'),
+  ]);
+});
+
+test('mutations can control root list insertion order', async () => {
+  type Post = { __typename: 'Post'; id: string; title: string };
+
+  const mutate = vi.fn().mockResolvedValue({
+    __typename: 'Post',
+    id: 'post-3',
+    title: 'Later',
+  });
+
+  const fetchList = vi.fn().mockResolvedValue({
+    items: [
+      { cursor: 'cursor-1', node: { __typename: 'Post', id: 'post-1', title: 'First' } },
+      { cursor: 'cursor-2', node: { __typename: 'Post', id: 'post-2', title: 'Second' } },
+    ],
+    pagination: { hasNext: false, hasPrevious: false },
+  });
+
+  const client = createClient({
+    mutations: { createPost: mutation<Post, { title: string }, Post>('Post') },
+    transport: {
+      async fetchById() {
+        return [];
+      },
+      fetchList,
+      mutate,
+    },
+    types: [{ fields: { title: 'scalar' }, type: 'Post' }],
+  });
+
+  const PostView = view<Post>()({ id: true, title: true });
+  const PostConnectionView = {
+    args: { first: 2 },
+    items: { cursor: true, node: PostView },
+  } as const;
+
+  await client.request({
+    posts: { args: { first: 2 }, root: PostConnectionView, type: 'Post' },
+  });
+
+  const { posts: listBefore } = client.getRequestResult({
+    posts: { args: { first: 2 }, root: PostConnectionView, type: 'Post' },
+  });
+
+  expect(
+    (listBefore as unknown as { items: Array<{ node: { id: string } }> }).items.map(
+      ({ node }) => node?.id,
+    ),
+  ).toEqual(['post-1', 'post-2']);
+
+  const prependPromise = client.mutations.createPost({
+    input: { title: 'Prepended' },
+    insert: 'before',
+    optimistic: { id: 'optimistic:post-3', title: 'Prepended' },
+    view: PostView,
+  });
+
+  const idsAfter = client.store.getList('posts');
+  expect(idsAfter?.[0]).toBe(toEntityId('Post', 'optimistic:post-3'));
+
+  await prependPromise;
+
+  const idsAfterResolution = client.store.getList('posts');
+  expect(idsAfterResolution?.[0]).toBe(toEntityId('Post', 'post-3'));
+
+  await client.mutations.createPost({
+    input: { title: 'Skip list' },
+    insert: 'none',
+    optimistic: { id: 'optimistic:post-4', title: 'Skip' },
+    view: PostView,
+  });
+
+  const finalIds = client.store.getList('posts');
+  expect(finalIds).toContain(toEntityId('Post', 'post-3'));
+  expect(finalIds).not.toContain(toEntityId('Post', 'optimistic:post-4'));
+});
+
 test('does not fetch missing fields for optimistic records', async () => {
   type User = { __typename: 'User'; id: string; name: string };
   type Comment = {

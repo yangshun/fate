@@ -1,10 +1,13 @@
 import Stack, { VStack } from '@nkzw/stack';
+import { CircleMinus, CirclePlus } from 'lucide-react';
+import { Activity, useState } from 'react';
 import { ConnectionRef, useListView, useRequest, ViewRef } from 'react-fate';
 import { Link } from 'react-router';
 import cx from '../lib/cx.tsx';
 import { Button } from '../ui/Button.tsx';
 import Card from '../ui/Card.tsx';
 import CategoryCard, { CategoryView } from '../ui/CategoryCard.tsx';
+import CreatePost from '../ui/CreatePost.tsx';
 import EventCard, { EventView } from '../ui/EventCard.tsx';
 import H2 from '../ui/H2.tsx';
 import { PostCard, PostView } from '../ui/PostCard.tsx';
@@ -23,12 +26,36 @@ const PostConnectionView = {
 } as const;
 
 const PostFeed = ({ posts: postsRef }: { posts: ConnectionRef<'Post'> }) => {
+  const { data: session } = AuthClient.useSession();
+  const [showPostEditor, setShowPostEditor] = useState(false);
   const [posts, loadNext] = useListView(PostConnectionView, postsRef);
 
   return posts.length ? (
     <VStack gap={16}>
-      <H2 className="pl-5">Latest posts</H2>
+      <Stack alignCenter between gap={16}>
+        <H2 className="pl-5">Latest posts</H2>
+        <div>
+          <button
+            className={cx(
+              'pr-5',
+              session?.user
+                ? 'active:translate-y-0.5 active:opacity-50'
+                : 'pointer-events-none opacity-0',
+            )}
+            onClick={() => setShowPostEditor((showPostEditor) => !showPostEditor)}
+          >
+            {showPostEditor ? (
+              <CircleMinus className="h-6 w-6" />
+            ) : (
+              <CirclePlus className="h-6 w-6" />
+            )}
+          </button>
+        </div>
+      </Stack>
       <VStack gap={32}>
+        <Activity mode={showPostEditor ? 'visible' : 'hidden'}>
+          <CreatePost />
+        </Activity>
         {posts.map(({ node }) => (
           <PostCard key={node.id} post={node} />
         ))}
@@ -68,30 +95,28 @@ const EventFeed = ({ events }: { events: Array<ViewRef<'Event'>> }) =>
     </VStack>
   ) : null;
 
-const request = {
-  categories: {
-    root: CategoryView,
-    type: 'Category',
-  },
-  events: {
-    root: EventView,
-    type: 'Event',
-  },
-  posts: {
-    root: PostConnectionView,
-    type: 'Post',
-  },
-  viewer: {
-    kind: 'query',
-    root: UserCardView,
-    type: 'User',
-  },
-} as const;
-
 export default function HomeRoute() {
   const { data: session } = AuthClient.useSession();
   const user = session?.user;
-  const { categories, events, posts, viewer } = useRequest(request);
+  const { categories, events, posts, viewer } = useRequest({
+    categories: {
+      root: CategoryView,
+      type: 'Category',
+    },
+    events: {
+      root: EventView,
+      type: 'Event',
+    },
+    posts: {
+      root: PostConnectionView,
+      type: 'Post',
+    },
+    viewer: {
+      kind: 'query',
+      root: UserCardView,
+      type: 'User',
+    },
+  } as const);
 
   return (
     <Section gap={32}>

@@ -33,6 +33,8 @@ export function mutation<T extends Entity, I, R>(
   }) as MutationDefinition<T, I, R>;
 }
 
+/** Where (or if) to insert the resulting record into relevant lists. */
+export type InsertPosition = 'after' | 'before' | 'none';
 /**
  * Options accepted by a mutation invocation, including optimistic updates and
  * optional selection for the returned payload.
@@ -44,6 +46,7 @@ export type MutationOptions<Identifier extends MutationIdentifier<any, any, any>
   delete?: boolean;
   /** Input data for the mutation. */
   input: Omit<MutationInput<Identifier>, 'select'>;
+  insert?: InsertPosition;
   /** Optional optimistic update to apply immediately. */
   optimistic?: OptimisticUpdate<MutationResult<Identifier>>;
   /** Optional view specifying which fields to select from the server. */
@@ -169,7 +172,14 @@ export function wrapMutation<
 >(client: FateClient<M>, identifier: I): MutationFunction<I> {
   const config = client.getTypeConfig(identifier.entity);
 
-  return async ({ args, delete: deleteRecord, input, optimistic, view }: MutationOptions<I>) => {
+  return async ({
+    args,
+    delete: deleteRecord,
+    input,
+    insert = 'after',
+    optimistic,
+    view,
+  }: MutationOptions<I>) => {
     const id = maybeGetId(config.getId, input);
     const plan = view ? getSelectionPlan(view, null) : undefined;
     const viewSelection = plan?.paths;
@@ -212,6 +222,9 @@ export function wrapMutation<
         optimisticSelection ?? emptySet,
         snapshots,
         plan,
+        null,
+        null,
+        insert,
       );
     }
 
@@ -251,6 +264,7 @@ export function wrapMutation<
           plan,
           null,
           pendingMask,
+          insert,
         );
 
         if (deleteRecord && id != null) {

@@ -769,6 +769,26 @@ useEffect(() => {
 }, [like, result]);
 ```
 
+### Controlling List Insertion Behavior
+
+When inserting new objects into lists, the default behavior is to append the new object to the list. You can provide an `insert` option with `before`, `after` or `none` values to customize this behavior and specify where the new object should be inserted in the list:
+
+```tsx
+addComment({
+  input: { content: 'New Comment text', postId: post.id },
+  insert: 'before', // Insert the new comment at the beginning of the list.
+});
+```
+
+Or, use the `none` option if you want to ignore inserting the new object into any lists:
+
+```tsx
+addComment({
+  input: { content: 'New Comment text', postId: post.id },
+  insert: 'none', // Do not insert the new comment into any lists.
+});
+```
+
 ## Server Integration
 
 Until now, we have focused on the client-side API of fate. You'll need a tRPC backend that follows some conventions so you can generate a typed client using fate's CLI. At the moment _fate_ is designed to work with tRPC and Prisma, but the framework is not coupled to any particular ORM or database, it's just what we are starting with.

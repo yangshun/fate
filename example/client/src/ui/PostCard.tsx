@@ -66,7 +66,7 @@ const CommentInput = ({
   const user = session?.user;
   const [commentText, setCommentText] = useState('');
 
-  const [addCommentResult, handleAddComment, addCommentIsPending] = useActionState(async () => {
+  const [result, addComment, isPending] = useActionState(async () => {
     const content = commentText.trim();
 
     if (!content) {
@@ -76,12 +76,7 @@ const CommentInput = ({
     const result = await fate.mutations.comment.add({
       input: { content, postId: post.id },
       optimistic: {
-        author: user
-          ? {
-              id: user.id,
-              name: user.name ?? 'Anonymous',
-            }
-          : null,
+        author: user ? { id: user.id, name: user.name } : null,
         content,
         id: `optimistic:${Date.now().toString(36)}`,
         post: { commentCount: post.commentCount + 1, id: post.id },
@@ -99,20 +94,20 @@ const CommentInput = ({
 
   const maybeSubmitComment = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
-      startTransition(() => handleAddComment());
+      startTransition(() => addComment());
     }
   };
 
-  const commentingIsDisabled = addCommentIsPending || commentText.trim().length === 0;
+  const commentingIsDisabled = isPending || commentText.trim().length === 0;
 
-  const anyServerError = error || addCommentResult?.error;
+  const anyServerError = error || result?.error;
 
   return (
-    <VStack action={handleAddComment} as="form" gap>
+    <VStack action={addComment} as="form" gap>
       <span className="text-sm font-medium text-foreground">Add a comment</span>
       <textarea
         className="squircle min-h-20 w-full border border-gray-200/80 bg-gray-100/50 p-3 text-sm placeholder-gray-500 transition outline-none focus:border-gray-500 focus:ring-2 focus:ring-gray-200 disabled:opacity-50 dark:border-neutral-800 dark:bg-neutral-900/40 dark:placeholder-gray-400"
-        disabled={addCommentIsPending}
+        disabled={isPending}
         onChange={(event) => setCommentText(event.target.value)}
         onKeyDown={maybeSubmitComment}
         placeholder={user?.name ? `Share your thoughts, ${user.name}!` : 'Share your thoughts...'}

@@ -8,13 +8,14 @@ import {
 import ViewDataCache from './cache.ts';
 import { cloneMask, fromPaths, isCovered, union, type FieldMask } from './mask.ts';
 import {
+  EmptyMutations,
+  FateMutations,
+  InsertPosition,
+  MutationActionsFor,
   MutationFunction,
+  MutationFunctionsFor,
   MutationOptions,
   wrapMutation,
-  FateMutations,
-  EmptyMutations,
-  MutationActionsFor,
-  MutationFunctionsFor,
 } from './mutation.ts';
 import { createNodeRef, getNodeRefId, isNodeRef } from './node-ref.ts';
 import createRef, { assignViewTag, parseEntityId, toEntityId } from './ref.ts';
@@ -193,6 +194,7 @@ export class FateClient<Mutations extends FateMutations> {
     string,
     Array<{ field: string; parentType: string; via?: string }>
   >();
+  private readonly rootLists = new Map<string, Set<string>>();
   private readonly pending = new Map<string, PromiseLike<ViewSnapshot<any, any>>>();
   private readonly optimisticMasks = new Map<number, { entityId: EntityId; mask: FieldMask }>();
   private readonly optimisticByEntity = new Map<EntityId, Set<number>>();
@@ -285,6 +287,47 @@ export class FateClient<Mutations extends FateMutations> {
     }
   }
 
+  private registerRootList(type: string, key: string) {
+    let lists = this.rootLists.get(type);
+    if (!lists) {
+      lists = new Set();
+      this.rootLists.set(type, lists);
+    }
+
+    lists.add(key);
+  }
+
+  private insertIntoRootLists(type: string, entityId: EntityId, insert: InsertPosition) {
+    if (insert === 'none') {
+      return;
+    }
+
+    const listNames = this.rootLists.get(type);
+    if (!listNames) {
+      return;
+    }
+
+    for (const key of listNames) {
+      const listState = this.store.getListState(key);
+      if (!listState || listState.ids.includes(entityId)) {
+        continue;
+      }
+
+      const ids = insert === 'before' ? [entityId, ...listState.ids] : [...listState.ids, entityId];
+      const cursors = listState.cursors
+        ? insert === 'before'
+          ? [undefined, ...listState.cursors]
+          : [...listState.cursors, undefined]
+        : listState.cursors;
+
+      this.store.setList(key, {
+        cursors,
+        ids,
+        pagination: listState.pagination,
+      });
+    }
+  }
+
   getTypeConfig(type: string): TypeConfig {
     const config = this.types.get(type);
     if (!config) {
@@ -333,8 +376,9 @@ export class FateClient<Mutations extends FateMutations> {
     plan?: SelectionPlan,
     pathPrefix: string | null = null,
     blockedMask?: FieldMask | null,
+    insert?: InsertPosition,
   ) {
-    return this.writeEntity(type, data, select, snapshots, plan, pathPrefix, blockedMask);
+    return this.writeEntity(type, data, select, snapshots, plan, pathPrefix, blockedMask, insert);
   }
 
   deleteRecord(
@@ -671,6 +715,9 @@ export class FateClient<Mutations extends FateMutations> {
           plan.paths,
           undefined,
           plan,
+          null,
+          null,
+          'after',
         );
         incomingIds.push(id);
         incomingCursors.push(entry.cursor);
@@ -693,6 +740,7 @@ export class FateClient<Mutations extends FateMutations> {
         { direction: isBackward ? 'backward' : 'forward', hasCursorArg },
       );
 
+      this.registerRootList(connection.type, connection.key);
       this.store.setList(connection.key, nextListState);
 
       return nextListState;
@@ -1072,6 +1120,7 @@ export class FateClient<Mutations extends FateMutations> {
       ids.push(id);
       cursors.push(entry.cursor);
     }
+    this.registerRootList(item.type, name);
     this.store.setList(name, {
       cursors,
       ids,
@@ -1096,6 +1145,7 @@ export class FateClient<Mutations extends FateMutations> {
     plan?: SelectionPlan,
     pathPrefix: string | null = null,
     blockedMask?: FieldMask | null,
+    insert?: InsertPosition,
   ): EntityId {
     const config = this.types.get(type);
     if (!config) {
@@ -1292,7 +1342,10 @@ export class FateClient<Mutations extends FateMutations> {
 
     this.viewDataCache.invalidate(entityId);
     this.store.merge(entityId, result, select);
-    this.linkParentLists(type, entityId, result, snapshots);
+    this.linkParentLists(type, entityId, result, snapshots, insert ?? 'after');
+    if (!pathPrefix && insert) {
+      this.insertIntoRootLists(type, entityId, insert);
+    }
     return entityId;
   }
 
@@ -1300,8 +1353,13 @@ export class FateClient<Mutations extends FateMutations> {
     type: string,
     entityId: EntityId,
     record: AnyRecord,
-    snapshots?: Map<EntityId, Snapshot>,
+    snapshots: Map<EntityId, Snapshot> | undefined,
+    insert: InsertPosition,
   ) {
+    if (insert === 'none') {
+      return;
+    }
+
     const parents = this.parentLists.get(type);
     if (!parents) {
       return;
@@ -1336,7 +1394,10 @@ export class FateClient<Mutations extends FateMutations> {
 
       this.viewDataCache.invalidate(parentId);
 
-      const nextList = [...current, createNodeRef(entityId)];
+      const nextList =
+        insert === 'before'
+          ? [createNodeRef(entityId), ...current]
+          : [...current, createNodeRef(entityId)];
 
       const ids = nextList
         .map((item) => (isNodeRef(item) ? getNodeRefId(item) : null))
@@ -1344,15 +1405,11 @@ export class FateClient<Mutations extends FateMutations> {
 
       const defaultListKey = getListKey(parentId, parent.field);
       const defaultListState = this.store.getListState(defaultListKey);
-      const nextDefaultCursors =
-        defaultListState?.cursors && ids.length > defaultListState.cursors.length
-          ? [
-              ...defaultListState.cursors,
-              ...new Array<string | undefined>(ids.length - defaultListState.cursors.length).fill(
-                undefined,
-              ),
-            ]
-          : defaultListState?.cursors;
+      const nextDefaultCursors = defaultListState?.cursors
+        ? insert === 'before'
+          ? [undefined, ...defaultListState.cursors]
+          : [...defaultListState.cursors, undefined]
+        : defaultListState?.cursors;
 
       this.store.setList(defaultListKey, {
         cursors: nextDefaultCursors,
@@ -1369,8 +1426,13 @@ export class FateClient<Mutations extends FateMutations> {
           continue;
         }
 
-        const listIds = [...listState.ids, entityId];
-        const listCursors = listState.cursors ? [...listState.cursors, undefined] : undefined;
+        const listIds =
+          insert === 'before' ? [entityId, ...listState.ids] : [...listState.ids, entityId];
+        const listCursors = listState.cursors
+          ? insert === 'before'
+            ? [undefined, ...listState.cursors]
+            : [...listState.cursors, undefined]
+          : undefined;
 
         this.store.setList(listKey, {
           cursors: listCursors,

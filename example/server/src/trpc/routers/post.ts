@@ -4,6 +4,7 @@ import { z } from 'zod';
 import type {
   PostFindManyArgs,
   PostFindUniqueArgs,
+  PostSelect,
   PostUpdateArgs,
 } from '../../prisma/prisma-client/models.ts';
 import { createConnectionProcedure } from '../connection.ts';
@@ -11,6 +12,40 @@ import { procedure, router } from '../init.ts';
 import { Post, postDataView } from '../views.ts';
 
 export const postRouter = router({
+  add: procedure
+    .input(
+      z.object({
+        args: connectionArgs,
+        content: z.string().min(1, 'Content is required'),
+        select: z.array(z.string()),
+        title: z.string().min(1, 'Title is required'),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.sessionUser) {
+        throw new TRPCError({
+          code: 'UNAUTHORIZED',
+          message: 'You must be logged in to add a comment',
+        });
+      }
+
+      const { resolve, select } = createResolver({
+        ...input,
+        ctx,
+        view: postDataView,
+      });
+
+      return (await resolve(
+        await ctx.prisma.post.create({
+          data: {
+            authorId: ctx.sessionUser.id,
+            content: input.content,
+            title: input.title,
+          },
+          select: select as PostSelect,
+        }),
+      )) as Post;
+    }),
   byId: procedure.input(byIdInput).query(async ({ ctx, input }) => {
     const { resolveMany, select } = createResolver({
       ...input,

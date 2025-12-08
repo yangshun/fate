@@ -17,6 +17,7 @@ const mutations = {
     RouterInputs['comment']['delete'],
     RouterOutputs['comment']['delete']
   >('Comment'),
+  'post.add': mutation<Post, RouterInputs['post']['add'], RouterOutputs['post']['add']>('Post'),
   'post.like': mutation<Post, RouterInputs['post']['like'], RouterOutputs['post']['like']>('Post'),
   'post.unlike': mutation<Post, RouterInputs['post']['unlike'], RouterOutputs['post']['unlike']>(
     'Post',
@@ -40,6 +41,7 @@ export const createFateClient = (options: {
   const trpcMutations = {
     'comment.add': (client: TRPCClientType) => client.comment.add.mutate,
     'comment.delete': (client: TRPCClientType) => client.comment.delete.mutate,
+    'post.add': (client: TRPCClientType) => client.post.add.mutate,
     'post.like': (client: TRPCClientType) => client.post.like.mutate,
     'post.unlike': (client: TRPCClientType) => client.post.unlike.mutate,
     'user.update': (client: TRPCClientType) => client.user.update.mutate,
