@@ -52,6 +52,6 @@ for (const file of files) {
 
 const banner = '<!-- auto-generated from docs/guide/*.md. Do not edit directly. -->\n\n';
 
-await fs.writeFile(README, banner + segments.join('\n\n'), 'utf8');
+await fs.writeFile(README, banner + segments.join('\n\n') + '\n', 'utf8');
 
 console.log(styleText('green', `  \u2713 'README.md' generated.`));

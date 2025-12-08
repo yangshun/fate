@@ -25,15 +25,16 @@ html.dark {
 code,
 pre {
   font-family: 'Fira Code', monospace;
-  font-feature-settings: 'liga' on, 'calt' on;
+  font-feature-settings:
+    'liga' on,
+    'calt' on;
 }
 
 .vp-doc a:hover {
   text-decoration: none;
 }
 
-.VPSocialLink[href="https://nakazawa.tech"] svg
-{
+.VPSocialLink[href='https://nakazawa.tech'] svg {
   transform: scale(1.3);
 }
 
