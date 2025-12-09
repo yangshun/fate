@@ -24,6 +24,8 @@ export declare const __FateSelectionBrand: unique symbol;
 export declare const __FateMutationEntityBrand: unique symbol;
 export declare const __FateMutationInputBrand: unique symbol;
 export declare const __FateMutationResultBrand: unique symbol;
+export declare const __FateRootResultBrand: unique symbol;
+export declare const __FateRootTypeBrand: unique symbol;
 
 type __ViewEntityAnchor<T extends Entity> = {
   readonly [__FateEntityBrand]?: T;
@@ -40,6 +42,8 @@ type __MutationInputAnchor<I> = {
 type __MutationResultAnchor<R> = {
   readonly [__FateMutationResultBrand]?: R;
 };
+type __RootResultAnchor<R> = { readonly [__FateRootResultBrand]?: R };
+type __RootTypeAnchor<T extends TypeName> = { readonly [__FateRootTypeBrand]?: T };
 
 /** Unique key that identifies a view composition entry inside a selection or reference. */
 export type ViewTag = `__fate-view__${string}`;
@@ -383,8 +387,28 @@ export function isQueryItem(item: AnyRequestItem): item is AnyQueryItem {
   return 'view' in item && !('id' in item) && !('ids' in item);
 }
 
+/** Brand used on root definitions to mark their identity in the d.ts output. */
+export const RootKind = '__fate__root';
+
 /** Brand used on mutation definitions to mark their identity in the d.ts output. */
 export const MutationKind = '__fate__mutation';
+
+/** Metadata describing a root query for a particular entity and result shape. */
+export type RootDefinition<Type extends TypeName, Result> = Readonly<{
+  [RootKind]: true;
+  type: Type;
+}> &
+  __RootResultAnchor<Result> &
+  __RootTypeAnchor<Type>;
+
+/** Minimal root description used for typing root maps. */
+export type FateRoots = Record<string, RootDefinition<TypeName, unknown>>;
+
+/** Extracts the entity type name from a root definition. */
+export type RootType<R> = R extends __RootTypeAnchor<infer T> ? T : never;
+
+/** Extracts the result type from a root definition. */
+export type RootResult<R> = R extends __RootResultAnchor<infer Data> ? Data : never;
 
 /** Metadata describing a mutation for a particular entity, input, and output. */
 export type MutationDefinition<T extends Entity, I, R> = Readonly<{

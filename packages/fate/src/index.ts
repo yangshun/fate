@@ -14,6 +14,7 @@ export type {
   Entity,
   EntityId,
   FateThenable,
+  FateRoots,
   ListItem,
   Mask,
   MutationDefinition,
@@ -47,4 +48,5 @@ export { createTRPCTransport } from './transport.ts';
 export { getSelectionPlan } from './selection.ts';
 export { mutation } from './mutation.ts';
 export { toEntityId } from './ref.ts';
+export { root } from './root.ts';
 export { view } from './view.ts';

@@ -70,8 +70,9 @@ const generate = async () => {
     list: string;
     procedure: string;
     router: string;
+    type: string;
   }> = [];
-  const queryEntries: Array<{ name: string; procedure: string; router: string }> = [];
+  const queryEntries: Array<{ name: string; procedure: string; router: string; type: string }> = [];
 
   const rootsByRouter = new Map<string, Array<[string, (typeof roots)[string]]>>();
   for (const entry of Object.entries(roots)) {
@@ -115,7 +116,12 @@ const generate = async () => {
         }
 
         if (procedureName === root.procedure && type === 'query') {
-          queryEntries.push({ name: queryName, procedure: root.procedure, router });
+          queryEntries.push({
+            name: queryName,
+            procedure: root.procedure,
+            router,
+            type: root.type,
+          });
         }
       }
 
@@ -129,6 +135,7 @@ const generate = async () => {
             list: listName,
             procedure: root.procedure,
             router,
+            type: root.type,
           });
         }
       }
@@ -139,6 +146,26 @@ const generate = async () => {
   byIdEntries.sort((a, b) => a.entityType.localeCompare(b.entityType));
   queryEntries.sort((a, b) => a.name.localeCompare(b.name));
   listEntries.sort((a, b) => a.list.localeCompare(b.list));
+
+  const rootEntries = [
+    ...byIdEntries.map(({ entityType, router }) => ({
+      name: router,
+      type: entityType,
+      value: `'${router}': root<RouterOutputs['${router}']['byId']>('${entityType}'),`,
+    })),
+    ...queryEntries.map(({ name, procedure, router, type }) => ({
+      name,
+      type,
+      value: `'${name}': root<RouterOutputs['${router}']['${procedure}']>('${type}'),`,
+    })),
+    ...listEntries.map(({ list, procedure, router, type }) => ({
+      name: list,
+      type,
+      value: `'${list}': root<RouterOutputs['${router}']['${procedure}']>('${type}'),`,
+    })),
+  ];
+
+  rootEntries.sort((a, b) => a.name.localeCompare(b.name));
 
   const viewTypes = Array.from([
     'AppRouter',
@@ -197,6 +224,8 @@ const generate = async () => {
   const mutationResolverBlock = indentBlock(mutationResolverLines.join('\n'), 4);
   const mutationConfigBlock = indentBlock(mutationConfigLines.join('\n'), 2);
   const byIdBlock = indentBlock(byIdLines.join('\n'), 8);
+  const rootBlockContent = rootEntries.map((entry) => entry.value).join('\n');
+  const rootsBlock = indentBlock(rootBlockContent, 2);
   const listsBlockContent = listLines.join('\n');
   const listsBlock = listLines.length
     ? `      lists: {\n${indentBlock(listsBlockContent, 8)}\n      },\n`
@@ -210,7 +239,7 @@ const generate = async () => {
 ${typeImports}
 import { createTRPCProxyClient } from '@trpc/client';
 import { inferRouterInputs, inferRouterOutputs } from '@trpc/server';
-import { createClient, createTRPCTransport, mutation } from 'react-fate';
+import { createClient, createTRPCTransport, mutation, root } from 'react-fate';
 
 type TRPCClientType = ReturnType<typeof createTRPCProxyClient<AppRouter>>;
 type RouterInputs = inferRouterInputs<AppRouter>;
@@ -220,10 +249,16 @@ const mutations = {
 ${mutationConfigBlock}
 } as const;
 
+const roots = {
+${rootsBlock}
+} as const;
+
 type GeneratedClientMutations = typeof mutations;
+type GeneratedClientRoots = typeof roots;
 
 declare module 'react-fate' {
   interface ClientMutations extends GeneratedClientMutations {}
+  interface ClientRoots extends GeneratedClientRoots {}
 }
 
 export const createFateClient = (options: {

@@ -1,6 +1,10 @@
 import { RequestResult, type Request, type RequestOptions } from '@nkzw/fate';
+import { FateRoots } from '@nkzw/fate';
 import { use, useDeferredValue, useEffect } from 'react';
 import { useFateClient } from './context.tsx';
+import { ClientRoots } from './index.tsx';
+
+type Roots = keyof ClientRoots extends never ? FateRoots : ClientRoots;
 
 /**
  * Declares the data a screen needs and kicks off fetching, suspending while the
@@ -9,7 +13,7 @@ import { useFateClient } from './context.tsx';
  * @example
  * const { posts } = useRequest({ posts: { root: PostView, type: 'Post' } as const });
  */
-export function useRequest<R extends Request>(
+export function useRequest<Roots, R extends Request>(
   request: R,
   options?: RequestOptions,
 ): RequestResult<R> {

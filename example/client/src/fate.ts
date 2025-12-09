@@ -2,7 +2,7 @@
 import type { AppRouter, Comment, Post, User } from '@nkzw/fate-server/src/trpc/router.ts';
 import { createTRPCProxyClient } from '@trpc/client';
 import { inferRouterInputs, inferRouterOutputs } from '@trpc/server';
-import { createClient, createTRPCTransport, mutation } from 'react-fate';
+import { createClient, createTRPCTransport, mutation, root } from 'react-fate';
 
 type TRPCClientType = ReturnType<typeof createTRPCProxyClient<AppRouter>>;
 type RouterInputs = inferRouterInputs<AppRouter>;
@@ -27,10 +27,24 @@ const mutations = {
   ),
 } as const;
 
+const roots = {
+  categories: root<RouterOutputs['category']['list']>('Category'),
+  category: root<RouterOutputs['category']['byId']>('Category'),
+  comment: root<RouterOutputs['comment']['byId']>('Comment'),
+  commentSearch: root<RouterOutputs['comment']['search']>('Comment'),
+  event: root<RouterOutputs['event']['byId']>('Event'),
+  events: root<RouterOutputs['event']['list']>('Event'),
+  post: root<RouterOutputs['post']['byId']>('Post'),
+  posts: root<RouterOutputs['post']['list']>('Post'),
+  viewer: root<RouterOutputs['user']['viewer']>('User'),
+} as const;
+
 type GeneratedClientMutations = typeof mutations;
+type GeneratedClientRoots = typeof roots;
 
 declare module 'react-fate' {
   interface ClientMutations extends GeneratedClientMutations {}
+  interface ClientRoots extends GeneratedClientRoots {}
 }
 
 export const createFateClient = (options: {

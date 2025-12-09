@@ -11,6 +11,7 @@ export {
   createClient,
   createTRPCTransport,
   mutation,
+  root,
   type ConnectionRef,
   type ViewRef,
   view,
@@ -23,3 +24,5 @@ export { useListView } from './useListView.tsx';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface ClientMutations {}
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface ClientRoots {}
