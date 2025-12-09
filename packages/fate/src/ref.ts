@@ -21,7 +21,7 @@ export const toEntityId = (type: TypeName, rawId: string | number): EntityId =>
  */
 export function parseEntityId(id: EntityId) {
   const idx = id.indexOf(':');
-  return idx < 0 ? { id, type: '' } : ({ id: id.slice(idx + 1), type: id.slice(0, idx) } as const);
+  return idx < 0 ? { id, type: '' } : { id: id.slice(idx + 1), type: id.slice(0, idx) };
 }
 
 /**

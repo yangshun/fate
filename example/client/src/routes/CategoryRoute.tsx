@@ -11,13 +11,7 @@ export default function CategoryRoute() {
   }
 
   const { category } = useRequest(
-    {
-      category: {
-        id,
-        type: 'Category',
-        view: CategoryView,
-      },
-    } as const,
+    { category: { id, view: CategoryView } },
     { mode: 'stale-while-revalidate' },
   );
 

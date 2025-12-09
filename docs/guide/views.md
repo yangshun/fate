@@ -57,9 +57,7 @@ import { useRequest } from 'react-fate';
 import { PostCard, PostView } from './PostCard.tsx';
 
 export function App() {
-  const { posts } = useRequest({
-    posts: { list: PostView, type: 'Post' },
-  } as const);
+  const { posts } = useRequest({ posts: { list: PostView } });
 
   return posts.map((post) => <PostCard key={post.id} post={post} />);
 }

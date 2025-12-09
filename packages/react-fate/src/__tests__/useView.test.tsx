@@ -2,7 +2,7 @@
  * @vitest-environment happy-dom
  */
 
-import { createClient, mutation, view, type Transport } from '@nkzw/fate';
+import { createClient, FateRoots, mutation, view, type Transport } from '@nkzw/fate';
 import { act, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
 import { expect, test, vi } from 'vitest';
@@ -25,6 +25,7 @@ const flushAsync = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 
 test('updates when nested entities change', () => {
   const client = createClient({
+    roots: {},
     transport: {
       async fetchById() {
         return [];
@@ -111,6 +112,7 @@ test('updates when nested entities change', () => {
 
 test('only updates components that match the selection', () => {
   const client = createClient({
+    roots: {},
     transport: {
       async fetchById() {
         return [];
@@ -210,10 +212,12 @@ test('re-renders when a mutation updates the record', async () => {
   const { promise, resolve } = Promise.withResolvers<Post>();
   const mutate: NonNullable<Transport<UpdateMutations>['mutate']> = vi.fn(() => promise);
 
-  const client = createClient({
-    mutations: {
-      updatePost: mutation<Post, UpdatePostInput, Post>('Post'),
-    },
+  const mutations = {
+    updatePost: mutation<Post, UpdatePostInput, Post>('Post'),
+  };
+  const client = createClient<[FateRoots, typeof mutations]>({
+    mutations,
+    roots: {},
     transport: {
       async fetchById() {
         return [];
@@ -332,11 +336,13 @@ test('optimistic updates compose when mutations resolve out of order', async () 
   let resolveLike: (() => void) | undefined;
   let serverLikes = 100;
 
-  const client = createClient({
-    mutations: {
-      like: mutation<PostWithLikes, UpdateLikesInput, UpdateLikesResult>('Post'),
-      unlike: mutation<PostWithLikes, UpdateLikesInput, UpdateLikesResult>('Post'),
-    },
+  const mutations = {
+    like: mutation<PostWithLikes, UpdateLikesInput, UpdateLikesResult>('Post'),
+    unlike: mutation<PostWithLikes, UpdateLikesInput, UpdateLikesResult>('Post'),
+  };
+
+  const client = createClient<[FateRoots, typeof mutations]>({
+    mutations,
     transport: {
       async fetchById() {
         return [];
@@ -473,10 +479,13 @@ test('rolls back optimistic updates when a mutation fails', async () => {
   const { promise, reject } = Promise.withResolvers<UpdatePostResult>();
   const mutate: NonNullable<Transport<FailedUpdateMutations>['mutate']> = vi.fn(() => promise);
 
-  const client = createClient({
-    mutations: {
-      updatePost: mutation<Post, UpdatePostInput, UpdatePostResult>('Post'),
-    },
+  const mutations = {
+    updatePost: mutation<Post, UpdatePostInput, UpdatePostResult>('Post'),
+  };
+
+  const client = createClient<[FateRoots, typeof mutations]>({
+    mutations,
+    roots: {},
     transport: {
       async fetchById() {
         return [];
@@ -580,6 +589,7 @@ test('rolls back optimistic updates when a mutation fails', async () => {
 
 test('throws when using a view ref that does not include the view', () => {
   const client = createClient({
+    roots: {},
     transport: {
       async fetchById() {
         return [];

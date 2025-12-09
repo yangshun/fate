@@ -124,7 +124,7 @@ export const postDataView = dataView<PostItem>('Post')({
   content: true,
   id: true,
   title: true,
-} as const;
+});
 ```
 
 ## Data View Lists
@@ -166,16 +166,16 @@ const query = 'Apple';
 
 const { posts, categories, viewer } = useRequest({
   // Explicit Root queries:
-  categories: { list: categoryView, type: 'Category' },
-  commentSearch: { args: { query }, list: commentView, type: 'Comment' },
-  events: { list: eventView, type: 'Event' },
-  posts: { list: postView, type: 'Post' },
-  viewer: { type: 'User', view: userView },
+  categories: { list: categoryView },
+  commentSearch: { args: { query }, list: commentView },
+  events: { list: eventView },
+  posts: { list: postView },
+  viewer: { view: userView },
 
   // Queries by id, if those entities have a `byId` query defined:
-  post: { id: '12', type: 'Post', view: postView },
-  comment: { ids: ['6', '7'], type: 'Comment', view: commentView },
-} as const);
+  post: { id: '12', view: postView },
+  comment: { ids: ['6', '7'], view: commentView },
+});
 ```
 
 ## Data View Resolvers

@@ -300,27 +300,23 @@ export type ViewSelection<V> = V extends {
 export type ListItem<V extends View<any, any>> = Readonly<{
   args?: Record<string, unknown>;
   list: V;
-  type: ViewEntityName<V>;
 }>;
 
 /** Definition of a root-level query request. */
 export type QueryItem<V extends View<any, any>> = Readonly<{
   args?: Record<string, unknown>;
-  type: ViewEntityName<V>;
   view: V;
 }>;
 
 /** Definition of a node request with one explicit ID for fetching data from the backend. */
 export type NodeItem<V extends View<any, any>> = Readonly<{
   id: string | number;
-  type: ViewEntityName<V>;
   view: V;
 }>;
 
 /** Definition of a node request with explicit IDs for fetching data from the backend. */
 export type NodesItem<V extends View<any, any>> = Readonly<{
   ids: ReadonlyArray<string | number>;
-  type: ViewEntityName<V>;
   view: V;
 }>;
 
@@ -349,12 +345,18 @@ type ConnectionNodeType<Root> = Root extends { items?: { node?: infer Node } }
   ? ViewEntityName<Node & View<any, any>>
   : never;
 
-type ListResult<Item extends AnyRequestItem> = Item extends AnyNodeItem
-  ? ViewRef<Item['type']>
+type ListResult<
+  Item extends AnyRequestItem,
+  Type extends TypeName,
+  Result,
+> = Item extends AnyNodeItem
+  ? ViewRef<Type>
   : Item extends AnyNodesItem
-    ? Array<ViewRef<Item['type']>>
+    ? Array<ViewRef<Type>>
     : Item extends AnyQueryItem
-      ? ViewRef<Item['type']>
+      ? Result extends null
+        ? ViewRef<Type> | null
+        : ViewRef<Type>
       : Item extends AnyListItem
         ? Item['list'] extends { items?: { node?: View<any, any> } }
           ? Readonly<{
@@ -364,14 +366,16 @@ type ListResult<Item extends AnyRequestItem> = Item extends AnyNodeItem
               }>;
               pagination?: Pagination;
             }>
-          : Array<ViewRef<Item['type']>>
+          : Array<ViewRef<Type>>
         : never;
 
 /**
  * The result of a `FateClient.request` and `useRequest` call, mapping each
  * request key to its corresponding result.
  */
-export type RequestResult<Q extends AnyRequest> = { [K in keyof Q]: ListResult<Q[K]> };
+export type RequestResult<R extends FateRoots, Q extends AnyRequest> = {
+  [K in keyof Q]: K extends keyof R ? ListResult<Q[K], RootType<R[K]>, RootResult<R[K]>> : never;
+};
 
 /** Indicates whether a request item represents an explicit node ID. */
 export function isNodeItem(item: AnyRequestItem): item is AnyNodeItem {

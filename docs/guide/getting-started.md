@@ -6,15 +6,15 @@ Get started with [a ready-made template](https://github.com/nkzw-tech/fate-templ
 
 ::: code-group
 
-```npm
+```bash [npm]
 npx giget@latest gh:nkzw-tech/fate-template
 ```
 
-```pnpm
+```bash [pnpm]
 pnpx giget@latest gh:nkzw-tech/fate-template
 ```
 
-```yarn
+```bash [yarn]
 yarn dlx giget@latest gh:nkzw-tech/fate-template
 ```
 
@@ -28,15 +28,15 @@ yarn dlx giget@latest gh:nkzw-tech/fate-template
 
 ::: code-group
 
-```npm
+```bash [npm]
 npm add react-fate
 ```
 
-```pnpm
+```bash [pnpm]
 pnpm add react-fate
 ```
 
-```yarn
+```bash [yarn]
 yarn add react-fate
 ```
 
@@ -46,15 +46,15 @@ And for your server, install the core `@nkzw/fate` package:
 
 ::: code-group
 
-```npm
+```bash [npm]
 npm add @nkzw/fate
 ```
 
-```pnpm
+```bash [pnpm]
 pnpm add @nkzw/fate
 ```
 
-```yarn
+```bash [yarn]
 yarn add @nkzw/fate
 ```
 

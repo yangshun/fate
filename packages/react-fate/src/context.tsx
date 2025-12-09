@@ -1,10 +1,11 @@
 import type { FateClient as FateClientT, FateMutations } from '@nkzw/fate';
 import { createContext, ReactNode, use } from 'react';
 import type { ClientMutations } from './index.tsx';
+import { Roots } from './useRequest.tsx';
 
 type Mutations = keyof ClientMutations extends never ? FateMutations : ClientMutations;
 
-const FateContext = createContext<FateClientT<any> | null>(null);
+const FateContext = createContext<FateClientT<Roots, any> | null>(null);
 
 /**
  * Provider component that supplies a configured `FateClient` to React hooks.
@@ -14,7 +15,7 @@ export function FateClient({
   client,
 }: {
   children: ReactNode;
-  client: FateClientT<any>;
+  client: FateClientT<any, any>;
 }) {
   return <FateContext value={client}>{children}</FateContext>;
 }
@@ -22,7 +23,7 @@ export function FateClient({
 /**
  * Returns the nearest `FateClient` from context.
  */
-export function useFateClient<M extends Mutations>(): FateClientT<M> {
+export function useFateClient<T extends [Roots, Mutations]>(): FateClientT<T[0], T[1]> {
   const context = use(FateContext);
   if (!context) {
     throw new Error(`react-fate: '<FateContext value={client}>' is missing.`);

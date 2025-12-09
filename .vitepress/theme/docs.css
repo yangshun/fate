@@ -1,17 +1,19 @@
 :root {
+  --vp-button-alt-hover-text: #111;
   --vp-c-brand-1: rgb(61, 135, 245);
   --vp-code-color: #111;
   --vp-home-hero-name-color: #c8c8c8;
   --vp-nav-bg-color: rgba(255, 255, 255, 0.6);
-  --vp-button-alt-hover-text: #111;
+  --vp-post-headline: #111;
 }
 
 html.dark {
+  --vp-button-alt-hover-text: #fff;
   --vp-c-brand-1: rgb(94 159 255);
   --vp-code-color: #c8c8c8;
   --vp-home-hero-name-color: #c8c8c8;
   --vp-nav-bg-color: rgba(24, 24, 24, 0.6);
-  --vp-button-alt-hover-text: #fff;
+  --vp-post-headline: #fff;
 }
 
 .VPNavBar {

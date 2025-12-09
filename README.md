@@ -32,14 +32,14 @@ However, GraphQL comes with its own type system and query language. If you are a
 
 Many React data frameworks lack Relay's ergonomics, especially fragment composition, co-located data requirements, predictable caching, and deep integration with modern React features. Optimistic updates usually require manually managing keys and imperative data updates, which is error-prone and tedious.
 
-fate takes the great ideas from Relay and puts them on top of tRPC. You get the best of both worlds: type safety between the client and server, and GraphQL-like ergonomics for data fetching. Using _fate_ usually looks like this:
+_fate_ takes the great ideas from Relay and puts them on top of tRPC. You get the best of both worlds: type safety between the client and server, and GraphQL-like ergonomics for data fetching. Using _fate_ usually looks like this:
 
 ```tsx
 export const PostView = view<Post>()({
+  author: UserView,
   content: true,
   id: true,
   title: true,
-  author: UserView,
 });
 
 export const PostCard = ({ post: postRef }: { post: ViewRef<'Post'> }) => {
@@ -65,15 +65,15 @@ Get started with [a ready-made template](https://github.com/nkzw-tech/fate-templ
 
 ::: code-group
 
-```npm
+```bash [npm]
 npx giget@latest gh:nkzw-tech/fate-template
 ```
 
-```pnpm
+```bash [pnpm]
 pnpx giget@latest gh:nkzw-tech/fate-template
 ```
 
-```yarn
+```bash [yarn]
 yarn dlx giget@latest gh:nkzw-tech/fate-template
 ```
 
@@ -87,15 +87,15 @@ yarn dlx giget@latest gh:nkzw-tech/fate-template
 
 ::: code-group
 
-```npm
+```bash [npm]
 npm add react-fate
 ```
 
-```pnpm
+```bash [pnpm]
 pnpm add react-fate
 ```
 
-```yarn
+```bash [yarn]
 yarn add react-fate
 ```
 
@@ -105,15 +105,15 @@ And for your server, install the core `@nkzw/fate` package:
 
 ::: code-group
 
-```npm
+```bash [npm]
 npm add @nkzw/fate
 ```
 
-```pnpm
+```bash [pnpm]
 pnpm add @nkzw/fate
 ```
 
-```yarn
+```bash [yarn]
 yarn add @nkzw/fate
 ```
 
@@ -209,9 +209,7 @@ import { useRequest } from 'react-fate';
 import { PostCard, PostView } from './PostCard.tsx';
 
 export function App() {
-  const { posts } = useRequest({
-    posts: { list: PostView, type: 'Post' },
-  } as const);
+  const { posts } = useRequest({ posts: { list: PostView } });
 
   return posts.map((post) => <PostCard key={post.id} post={post} />);
 }
@@ -442,10 +440,7 @@ import { useRequest } from 'react-fate';
 import { PostCard, PostView } from './PostCard.tsx';
 
 export function App() {
-  const { posts } = useRequest({
-    posts: { list: PostView, type: 'Post' },
-  } as const);
-
+  const { posts } = useRequest({ posts: { list: PostView } });
   return posts.map((post) => <PostCard key={post.id} post={post} />);
 }
 ```
@@ -470,7 +465,7 @@ If you want to fetch data for a single object instead of a list, you can specify
 
 ```tsx
 const { post } = useRequest({
-  post: { id: '12', type: 'Post', view: PostView } as const,
+  post: { id: '12', view: PostView },
 });
 ```
 
@@ -478,7 +473,7 @@ If you want to fetch multiple objects by their IDs, you can use the `ids` field:
 
 ```tsx
 const { posts } = useRequest({
-  posts: { ids: ['6', '7'], type: 'Post', view: PostView } as const,
+  posts: { ids: ['6', '7'], view: PostView },
 });
 ```
 
@@ -488,7 +483,7 @@ For any other queries, pass only the `type` and `view`:
 
 ```tsx
 const { viewer } = useRequest({
-  viewer: { type: 'User', view: UserView } as const,
+  viewer: { view: UserView },
 });
 ```
 
@@ -501,7 +496,6 @@ const { posts } = useRequest({
   posts: {
     args: { first: 10 },
     list: PostView,
-    type: 'Post',
   },
 });
 ```
@@ -518,7 +512,9 @@ You can pass the request mode as an option to `useRequest`:
 
 ```tsx
 const { posts } = useRequest(
-  { posts: { list: PostView, type: 'Post' } } as const,
+  {
+    posts: { list: PostView },
+  },
   {
     mode: 'stale-while-revalidate',
   },
@@ -546,7 +542,7 @@ const CommentConnectionView = {
   items: {
     node: CommentView,
   },
-} as const;
+};
 
 const PostView = view<Post>()({
   comments: CommentConnectionView,
@@ -964,7 +960,7 @@ export const postDataView = dataView<PostItem>('Post')({
   content: true,
   id: true,
   title: true,
-} as const;
+});
 ```
 
 ### Data View Lists
@@ -1006,16 +1002,16 @@ const query = 'Apple';
 
 const { posts, categories, viewer } = useRequest({
   // Explicit Root queries:
-  categories: { list: categoryView, type: 'Category' },
-  commentSearch: { args: { query }, list: commentView, type: 'Comment' },
-  events: { list: eventView, type: 'Event' },
-  posts: { list: postView, type: 'Post' },
-  viewer: { type: 'User', view: userView },
+  categories: { list: categoryView },
+  commentSearch: { args: { query }, list: commentView },
+  events: { list: eventView },
+  posts: { list: postView },
+  viewer: { view: userView },
 
   // Queries by id, if those entities have a `byId` query defined:
-  post: { id: '12', type: 'Post', view: postView },
-  comment: { ids: ['6', '7'], type: 'Comment', view: commentView },
-} as const);
+  post: { id: '12', view: postView },
+  comment: { ids: ['6', '7'], view: commentView },
+});
 ```
 
 ### Data View Resolvers
@@ -1140,14 +1136,14 @@ Probably. One day. _Maybe._
 
 ## Future
 
-**_fate_** is not complete yet. It lacks core features such as garbage collection, a compiler to extract view definitions statically and ahead of time, and there is too much backend boilerplate. The current implementation of _fate_ is not tied to tRPC or Prisma, those are just the ones we are starting with. We welcome contributions and ideas to improve fate. Here are some features we'd like to add:
+**_fate_** is not complete yet. The library lacks core features such as garbage collection, a compiler to extract view definitions statically ahead of time, and there is too much backend boilerplate. The current implementation of _fate_ is not tied to tRPC or Prisma, those are just the ones we are starting with. We welcome contributions and ideas to improve fate. Here are some features we'd like to add:
 
 - Support for Drizzle
 - Support backends other than tRPC
+- Persistent storage for offline support
+- Implement garbage collection for the cache
 - Better code generation and less type repetition
 - Support for live views and real-time updates via `useLiveView` and SSE
-- Implement garbage collection for the cache
-- Add persistent storage for offline support
 
 ## Acknowledgements
 

@@ -35,7 +35,7 @@ const CommentConnectionView = {
   items: {
     node: CommentView,
   },
-} as const;
+};
 
 export const PostView = view<Post>()({
   author: UserView,

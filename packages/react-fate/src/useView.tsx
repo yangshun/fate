@@ -18,7 +18,7 @@ type ViewEntityWithTypename<V extends View<any, any>> = ViewEntity<V> & {
 };
 
 const nullSnapshot = {
-  status: 'fulfilled' as const,
+  status: 'fulfilled',
   then<TResult1 = null, TResult2 = never>(
     onfulfilled?: ((value: null) => TResult1 | PromiseLike<TResult1>) | null,
     onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,

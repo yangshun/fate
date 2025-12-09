@@ -10,13 +10,7 @@ export default function PostRoute() {
     throw new Error('fate: Post ID is required.');
   }
 
-  const { post } = useRequest({
-    post: {
-      id,
-      type: 'Post',
-      view: PostView,
-    },
-  } as const);
+  const { post } = useRequest({ post: { id, view: PostView } });
 
   return (
     <Section>

@@ -8,7 +8,6 @@ import {
 import ViewDataCache from './cache.ts';
 import { cloneMask, fromPaths, isCovered, union, type FieldMask } from './mask.ts';
 import {
-  EmptyMutations,
   FateMutations,
   InsertPosition,
   MutationActionsFor,
@@ -49,6 +48,9 @@ import {
   type ViewData,
   type ViewRef,
   type ViewSnapshot,
+  FateRoots,
+  MutationDefinition,
+  RootDefinition,
 } from './types.ts';
 import { getViewNames, getViewPayloads } from './view.ts';
 
@@ -68,8 +70,9 @@ export type RequestMode =
  */
 export type RequestOptions = Readonly<{ mode?: RequestMode }>;
 
-type FateClientOptions<Mutations extends FateMutations = EmptyMutations> = {
+type FateClientOptions<Roots extends FateRoots, Mutations extends FateMutations> = {
   mutations?: Mutations;
+  roots: Roots;
   transport: Transport<MutationMapFromDefinitions<Mutations>>;
   types: ReadonlyArray<Omit<TypeConfig, 'getId'> & Partial<{ getId: TypeConfig['getId'] }>>;
 };
@@ -118,7 +121,7 @@ const getViewSignature = (view: View<any, any>): string => {
   return viewNames.size ? [...viewNames].sort().join(',') : '';
 };
 
-const getRequestCacheKey = (request: Request): string => {
+const getRequestCacheKey = (request: Request) => {
   const parts: Array<string> = [];
   const names = Object.keys(request).sort();
 
@@ -129,26 +132,26 @@ const getRequestCacheKey = (request: Request): string => {
     }
 
     if (isNodeItem(item)) {
-      parts.push(`node:${name}:${item.type}:${getViewSignature(item.view)}:${item.id}`);
+      parts.push(`node:${name}:${getViewSignature(item.view)}:${item.id}`);
       continue;
     }
 
     if (isNodesItem(item)) {
       parts.push(
-        `node:${name}:${item.type}:${getViewSignature(item.view)}:${item.ids.map(serializeId).join(',')}`,
+        `node:${name}:${getViewSignature(item.view)}:${item.ids.map(serializeId).join(',')}`,
       );
       continue;
     }
 
     if (isQueryItem(item)) {
       parts.push(
-        `query:${name}:${item.type}:${getViewSignature(item.view)}:${item.args ? hashArgs(item.args) : ''}`,
+        `query:${name}:${getViewSignature(item.view)}:${item.args ? hashArgs(item.args) : ''}`,
       );
       continue;
     }
 
     parts.push(
-      `list:${name}:${item.type}:${getViewSignature(item.list)}:${item.args ? hashArgs(item.args) : ''}`,
+      `list:${name}:${getViewSignature(item.list)}:${item.args ? hashArgs(item.args) : ''}`,
     );
   }
 
@@ -187,7 +190,7 @@ const groupSelectionByPrefix = (select: ReadonlySet<string>): ReadonlyMap<string
  * Core client that normalizes records, manages the view cache, and coordinates
  * data fetching.
  */
-export class FateClient<Mutations extends FateMutations> {
+export class FateClient<Roots extends FateRoots, Mutations extends FateMutations> {
   private readonly mutationMap: Record<string, MutationFunction<any>>;
   private readonly parentLists = new Map<
     string,
@@ -198,7 +201,10 @@ export class FateClient<Mutations extends FateMutations> {
   private readonly optimisticMasks = new Map<number, { entityId: EntityId; mask: FieldMask }>();
   private readonly optimisticByEntity = new Map<EntityId, Set<number>>();
   private optimisticTokenCounter = 0;
-  private readonly requests = new Map<string, Map<RequestMode, Promise<RequestResult<Request>>>>();
+  private readonly requests = new Map<
+    string,
+    Map<RequestMode, Promise<RequestResult<Roots, Request>>>
+  >();
   private readonly rootRequests = new Map<string, EntityId>();
   private readonly stalledRequests = new Set<string>();
   readonly store = new Store();
@@ -208,13 +214,15 @@ export class FateClient<Mutations extends FateMutations> {
 
   readonly actions: MutationActionsFor<Mutations>;
   readonly mutations: MutationFunctionsFor<Mutations>;
+  readonly roots: Roots;
 
-  constructor(options: FateClientOptions<Mutations>) {
-    this.transport = options.transport;
-    this.types = new Map(options.types.map((entity) => [entity.type, { getId, ...entity }]));
+  constructor(options: FateClientOptions<Roots, Mutations>) {
+    this.actions = Object.create(null) as MutationActionsFor<Mutations>;
     this.mutationMap = Object.create(null);
     this.mutations = Object.create(null) as MutationFunctionsFor<Mutations>;
-    this.actions = Object.create(null) as MutationActionsFor<Mutations>;
+    this.roots = options.roots;
+    this.transport = options.transport;
+    this.types = new Map(options.types.map((entity) => [entity.type, { getId, ...entity }]));
 
     if (options.mutations) {
       for (const [key, definition] of Object.entries(options.mutations)) {
@@ -464,7 +472,7 @@ export class FateClient<Mutations extends FateMutations> {
       const resolvedView = this.readViewSelection<T, S>(view, ref, entityId, plan);
 
       const thenable = {
-        status: 'fulfilled' as const,
+        status: 'fulfilled',
         then: <TResult1 = ViewSnapshot<T, S>, TResult2 = never>(
           onfulfilled?: (value: ViewSnapshot<T, S>) => TResult1 | PromiseLike<TResult1>,
           onrejected?: (reason: unknown) => TResult2 | PromiseLike<TResult2>,
@@ -836,15 +844,18 @@ export class FateClient<Mutations extends FateMutations> {
     return this.store.getListState(connection.key);
   }
 
-  request<R extends Request>(request: R, options?: RequestOptions): Promise<RequestResult<R>> {
+  request<R extends Request>(
+    request: R,
+    options?: RequestOptions,
+  ): Promise<RequestResult<Roots, R>> {
     const mode = options?.mode ?? 'cache-first';
     const requestKey = getRequestCacheKey(request);
     const existingRequest = this.requests.get(requestKey)?.get(mode);
     if (existingRequest) {
-      return existingRequest as Promise<RequestResult<R>>;
+      return existingRequest as Promise<RequestResult<Roots, R>>;
     }
 
-    let promise: Promise<RequestResult<R>>;
+    let promise: Promise<RequestResult<Roots, R>>;
     switch (mode) {
       case 'stale-while-revalidate':
         promise = this.handleStoreAndNetworkRequest(request);
@@ -884,7 +895,7 @@ export class FateClient<Mutations extends FateMutations> {
 
   private async handleStoreAndNetworkRequest<R extends Request>(
     request: R,
-  ): Promise<RequestResult<R>> {
+  ): Promise<RequestResult<Roots, R>> {
     const hasData = this.hasRequestData(request);
     if (!hasData) {
       await this.executeRequest(request, { fetchAll: true });
@@ -896,6 +907,14 @@ export class FateClient<Mutations extends FateMutations> {
       /* empty */
     });
     return result;
+  }
+
+  private getRootType(name: string): string {
+    const root = this.roots[name];
+    if (!root) {
+      throw new Error(`fate: Unknown root request '${name}'.`);
+    }
+    return root.type;
   }
 
   private async executeRequest(request: Request, options: { fetchAll?: boolean } = {}) {
@@ -913,6 +932,7 @@ export class FateClient<Mutations extends FateMutations> {
 
     const promises: Array<Promise<void>> = [];
     for (const [name, item] of Object.entries(request)) {
+      const type = this.getRootType(name);
       const isNode = isNodeItem(item);
       if (isNode || isNodesItem(item)) {
         const plan = getSelectionPlan(item.view, null);
@@ -922,15 +942,15 @@ export class FateClient<Mutations extends FateMutations> {
           .map(([path, entry]) => `${path}:${entry.hash}`)
           .sort()
           .join(',');
-        const groupKey = `${item.type}#${fieldsSignature}|${argsSignature}`;
+        const groupKey = `${type}#${fieldsSignature}|${argsSignature}`;
         let group = groups.get(groupKey);
         if (!group) {
-          group = { fields, ids: [], plan, type: item.type };
+          group = { fields, ids: [], plan, type };
           groups.set(groupKey, group);
         }
 
         for (const raw of isNode ? [item.id] : item.ids) {
-          const entityId = toEntityId(item.type, raw);
+          const entityId = toEntityId(type, raw);
           const missing = this.store.missingForSelection(entityId, fields);
           if (fetchAll || missing.size > 0) {
             group.ids.push(raw);
@@ -966,11 +986,12 @@ export class FateClient<Mutations extends FateMutations> {
   private hasRequestData(request: Request): boolean {
     for (const [name, item] of Object.entries(request)) {
       const isNode = isNodeItem(item);
+      const type = this.getRootType(name);
       if (isNode || isNodesItem(item)) {
         const plan = getSelectionPlan(item.view, null);
         const fields = plan.paths;
         for (const raw of isNode ? [item.id] : item.ids) {
-          const entityId = toEntityId(item.type, raw);
+          const entityId = toEntityId(type, raw);
           const missing = this.store.missingForSelection(entityId, fields);
           if (missing.size > 0) {
             return false;
@@ -998,16 +1019,17 @@ export class FateClient<Mutations extends FateMutations> {
     return true;
   }
 
-  getRequestResult<R extends Request>(request: R): RequestResult<R> {
+  getRequestResult<R extends Request>(request: R): RequestResult<Roots, R> {
     const result: AnyRecord = {};
     for (const [name, item] of Object.entries(request)) {
+      const type = this.getRootType(name);
       if (isNodeItem(item)) {
-        result[name] = this.ref(item.type, item.id, item.view);
+        result[name] = this.ref(type, item.id, item.view);
         continue;
       }
 
       if (isNodesItem(item)) {
-        result[name] = item.ids.map((id) => this.ref(item.type, id, item.view));
+        result[name] = item.ids.map((id) => this.ref(type, id, item.view));
         continue;
       }
 
@@ -1015,7 +1037,7 @@ export class FateClient<Mutations extends FateMutations> {
         const entityId = this.rootRequests.get(name);
         if (entityId) {
           const { id } = parseEntityId(entityId);
-          result[name] = createRef(item.type, id, item.view, { root: true });
+          result[name] = createRef(type, id, item.view, { root: true });
         } else {
           result[name] = null;
         }
@@ -1044,7 +1066,7 @@ export class FateClient<Mutations extends FateMutations> {
           owner: name,
           procedure: `request.${name}`,
           root: true,
-          type: item.type,
+          type,
         };
 
         Object.defineProperty(connection, ConnectionTag, {
@@ -1060,7 +1082,7 @@ export class FateClient<Mutations extends FateMutations> {
 
       result[name] = nodes;
     }
-    return result as RequestResult<R>;
+    return result as RequestResult<Roots, R>;
   }
 
   private async fetchByIdAndNormalize(
@@ -1094,7 +1116,13 @@ export class FateClient<Mutations extends FateMutations> {
       return;
     }
 
-    const entityId = this.writeEntity(item.type, record as AnyRecord, plan.paths, undefined, plan);
+    const entityId = this.writeEntity(
+      this.getRootType(name),
+      record as AnyRecord,
+      plan.paths,
+      undefined,
+      plan,
+    );
     this.rootRequests.set(name, entityId);
   }
 
@@ -1108,16 +1136,17 @@ export class FateClient<Mutations extends FateMutations> {
       );
     }
 
+    const type = this.getRootType(name);
     const { argsPayload, plan } = this.resolveSelection(item.list, item.args);
     const { items, pagination } = await this.transport.fetchList(name, plan.paths, argsPayload);
     const ids: Array<EntityId> = [];
     const cursors: Array<string | undefined> = [];
     for (const entry of items) {
-      const id = this.writeEntity(item.type, entry.node as AnyRecord, plan.paths, undefined, plan);
+      const id = this.writeEntity(type, entry.node as AnyRecord, plan.paths, undefined, plan);
       ids.push(id);
       cursors.push(entry.cursor);
     }
-    this.registerRootList(item.type, name);
+    this.registerRootList(type, name);
     this.store.setList(name, {
       cursors,
       ids,
@@ -1690,8 +1719,11 @@ export class FateClient<Mutations extends FateMutations> {
   }
 }
 
-export function createClient<Mutations extends FateMutations = EmptyMutations>(
-  options: FateClientOptions<Mutations>,
-) {
-  return new FateClient<Mutations>(options);
+export function createClient<
+  T extends [FateRoots, FateMutations] = [
+    Record<never, RootDefinition<any, any>>,
+    Record<never, MutationDefinition<any, any, any>>,
+  ],
+>(options: FateClientOptions<T[0], T[1]>) {
+  return new FateClient<T[0], T[1]>(options);
 }

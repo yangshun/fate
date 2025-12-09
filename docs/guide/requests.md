@@ -9,10 +9,7 @@ import { useRequest } from 'react-fate';
 import { PostCard, PostView } from './PostCard.tsx';
 
 export function App() {
-  const { posts } = useRequest({
-    posts: { list: PostView, type: 'Post' },
-  } as const);
-
+  const { posts } = useRequest({ posts: { list: PostView } });
   return posts.map((post) => <PostCard key={post.id} post={post} />);
 }
 ```
@@ -37,7 +34,7 @@ If you want to fetch data for a single object instead of a list, you can specify
 
 ```tsx
 const { post } = useRequest({
-  post: { id: '12', type: 'Post', view: PostView } as const,
+  post: { id: '12', view: PostView },
 });
 ```
 
@@ -45,7 +42,7 @@ If you want to fetch multiple objects by their IDs, you can use the `ids` field:
 
 ```tsx
 const { posts } = useRequest({
-  posts: { ids: ['6', '7'], type: 'Post', view: PostView } as const,
+  posts: { ids: ['6', '7'], view: PostView },
 });
 ```
 
@@ -55,7 +52,7 @@ For any other queries, pass only the `type` and `view`:
 
 ```tsx
 const { viewer } = useRequest({
-  viewer: { type: 'User', view: UserView } as const,
+  viewer: { view: UserView },
 });
 ```
 
@@ -68,7 +65,6 @@ const { posts } = useRequest({
   posts: {
     args: { first: 10 },
     list: PostView,
-    type: 'Post',
   },
 });
 ```
@@ -85,7 +81,9 @@ You can pass the request mode as an option to `useRequest`:
 
 ```tsx
 const { posts } = useRequest(
-  { posts: { list: PostView, type: 'Post' } } as const,
+  {
+    posts: { list: PostView },
+  },
   {
     mode: 'stale-while-revalidate',
   },

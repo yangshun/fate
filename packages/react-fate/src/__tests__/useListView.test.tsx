@@ -2,7 +2,7 @@
  * @vitest-environment happy-dom
  */
 
-import { createClient, getSelectionPlan, view } from '@nkzw/fate';
+import { createClient, getSelectionPlan, clientRoot, view } from '@nkzw/fate';
 import { act, Suspense, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { expect, test, vi } from 'vitest';
@@ -48,6 +48,7 @@ test('loads additional items when loadNext is invoked', async () => {
   ]);
 
   const client = createClient({
+    roots: {},
     transport: {
       fetchById,
     },
@@ -200,6 +201,7 @@ test('loadNext forwards the limit when the initial request used last/before', as
   ]);
 
   const client = createClient({
+    roots: {},
     transport: {
       fetchById,
     },
@@ -352,6 +354,7 @@ test('uses pagination from list state when not selected', async () => {
   ]);
 
   const client = createClient({
+    roots: {},
     transport: {
       fetchById,
     },
@@ -482,6 +485,9 @@ test('updates root list items after loading the next page', async () => {
     });
 
   const client = createClient({
+    roots: {
+      projects: clientRoot('Project'),
+    },
     transport: {
       async fetchById() {
         return [];
@@ -526,10 +532,10 @@ test('updates root list items after loading the next page', async () => {
   };
 
   const container = document.createElement('div');
-  const root = createRoot(container);
+  const reactRoot = createRoot(container);
 
   await act(async () => {
-    root.render(
+    reactRoot.render(
       <FateClient client={client}>
         <Suspense fallback={null}>
           <Component />
@@ -579,6 +585,7 @@ test('loads previous items when loadPrevious is invoked', async () => {
   ]);
 
   const client = createClient({
+    roots: {},
     transport: {
       fetchById,
     },

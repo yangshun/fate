@@ -10,7 +10,7 @@ import { commentDataView } from '../views.ts';
 const postSelection = {
   id: true,
   title: true,
-} as const;
+};
 
 const getCommentSelection = (select: Record<string, unknown>) => {
   return {

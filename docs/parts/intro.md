@@ -30,14 +30,14 @@ However, GraphQL comes with its own type system and query language. If you are a
 
 Many React data frameworks lack Relay's ergonomics, especially fragment composition, co-located data requirements, predictable caching, and deep integration with modern React features. Optimistic updates usually require manually managing keys and imperative data updates, which is error-prone and tedious.
 
-fate takes the great ideas from Relay and puts them on top of tRPC. You get the best of both worlds: type safety between the client and server, and GraphQL-like ergonomics for data fetching. Using _fate_ usually looks like this:
+_fate_ takes the great ideas from Relay and puts them on top of tRPC. You get the best of both worlds: type safety between the client and server, and GraphQL-like ergonomics for data fetching. Using _fate_ usually looks like this:
 
 ```tsx
 export const PostView = view<Post>()({
+  author: UserView,
   content: true,
   id: true,
   title: true,
-  author: UserView,
 });
 
 export const PostCard = ({ post: postRef }: { post: ViewRef<'Post'> }) => {

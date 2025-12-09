@@ -2,10 +2,10 @@
  * @vitest-environment happy-dom
  */
 
-import { createClient, view } from '@nkzw/fate';
+import { createClient, clientRoot, view, ViewRef } from '@nkzw/fate';
 import { act, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
-import { expect, test, vi } from 'vitest';
+import { expect, expectTypeOf, test, vi } from 'vitest';
 import { FateClient } from '../context.tsx';
 import { useView } from '../index.tsx';
 import { useRequest } from '../useRequest.tsx';
@@ -26,6 +26,9 @@ test('releases network-only requests on unmount', async () => {
   ]);
 
   const client = createClient({
+    roots: {
+      post: clientRoot('Post'),
+    },
     transport: { fetchById },
     types: [{ type: 'Post' }],
   });
@@ -34,7 +37,7 @@ test('releases network-only requests on unmount', async () => {
     id: true,
   });
 
-  const request = { post: { ids: ['post-1'], type: 'Post' as const, view: PostView } };
+  const request = { post: { ids: ['post-1'], view: PostView } };
   const releaseSpy = vi.spyOn(client, 'releaseRequest');
 
   const Component = () => {
@@ -43,10 +46,10 @@ test('releases network-only requests on unmount', async () => {
   };
 
   const container = document.createElement('div');
-  const root = createRoot(container);
+  const reactRoot = createRoot(container);
 
   await act(async () => {
-    root.render(
+    reactRoot.render(
       <FateClient client={client}>
         <Suspense fallback={null}>
           <Component />
@@ -61,7 +64,7 @@ test('releases network-only requests on unmount', async () => {
   expect(releaseSpy).not.toHaveBeenCalled();
 
   await act(async () => {
-    root.unmount();
+    reactRoot.unmount();
     await flushAsync();
   });
 
@@ -77,7 +80,13 @@ test('supports requesting a single node through `byId` calls', async () => {
     },
   ]);
 
-  const client = createClient({
+  const roots = {
+    post: clientRoot('Post'),
+  };
+  const mutations = {};
+
+  const client = createClient<[typeof roots, typeof mutations]>({
+    roots,
     transport: { fetchById },
     types: [{ type: 'Post' }],
   });
@@ -87,21 +96,21 @@ test('supports requesting a single node through `byId` calls', async () => {
     id: true,
   });
 
-  const request = { post: { id: 'post-1', type: 'Post' as const, view: PostView } };
+  const request = { post: { id: 'post-1', view: PostView } };
   const renders: Array<string> = [];
 
   const Component = () => {
-    const { post: postRef } = useRequest(request);
+    const { post: postRef } = useRequest<typeof request, typeof roots>(request);
     const post = useView(PostView, postRef);
     renders.push(post.content);
     return <span>{post.content}</span>;
   };
 
   const container = document.createElement('div');
-  const root = createRoot(container);
+  const reactRoot = createRoot(container);
 
   await act(async () => {
-    root.render(
+    reactRoot.render(
       <FateClient client={client}>
         <Suspense fallback={null}>
           <Component />
@@ -112,4 +121,33 @@ test('supports requesting a single node through `byId` calls', async () => {
 
   expect(renders).toEqual(['Apple']);
   expect(fetchById).toHaveBeenCalledTimes(1);
+});
+
+test('makes regular queries nullable or not depending on the root types', async () => {
+  type User = { __typename: 'User'; id: string; name: string };
+
+  const roots = {
+    user: clientRoot<User, 'User'>('User'),
+    viewer: clientRoot<User | null, 'User'>('User'),
+  };
+
+  const UserView = view<User>()({
+    id: true,
+    name: true,
+  });
+
+  const request = { user: { view: UserView }, viewer: { view: UserView } };
+
+  const Component = () => {
+    const { user, viewer } = useRequest<typeof request, typeof roots>({
+      user: { view: UserView },
+      viewer: { view: UserView },
+    });
+
+    expectTypeOf(user).toEqualTypeOf<ViewRef<'User'>>();
+    expectTypeOf(viewer).toEqualTypeOf<ViewRef<'User'> | null>();
+  };
+
+  // eslint-disable-next-line no-unused-expressions, @typescript-eslint/no-unused-expressions
+  Component;
 });

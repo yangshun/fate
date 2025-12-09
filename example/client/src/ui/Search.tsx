@@ -30,12 +30,8 @@ const CommentResult = ({ comment: commentRef }: { comment: ViewRef<'Comment'> })
 
 const SearchResults = ({ isStale, query }: { isStale: boolean; query: string }) => {
   const { commentSearch } = useRequest({
-    commentSearch: {
-      args: { query },
-      list: CommentSearchView,
-      type: 'Comment',
-    },
-  } as const);
+    commentSearch: { args: { query }, list: CommentSearchView },
+  });
 
   if (commentSearch.length === 0) {
     return (

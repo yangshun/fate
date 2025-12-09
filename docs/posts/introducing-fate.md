@@ -1,4 +1,4 @@
-<h1>
+<h1 style="font-weight: 500; color: var(--vp-post-headline);">
   Introducing
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="/fate-logo-dark.svg">
@@ -18,7 +18,7 @@ _December 9<sup>th</sup> 2025 by [<img src="https://gravatar.com/avatar/77a332a7
 
 </span>
 
-I'm excited to announce the initial alpha release of **_fate_**, a modern data client for React & tRPC. fate combines view composition, normalized caching, data masking, Async React features, and tRPC's type safety.
+I'm excited to announce the initial alpha release of **_fate_**, a modern data client for React & tRPC. _fate_ combines view composition, normalized caching, data masking, Async React features, and tRPC's type safety.
 
 ## A modern data client for React & tRPC
 
@@ -44,7 +44,7 @@ if (!post) return <NullState />;
 return <Post post={post} />;
 ```
 
-This boilerplate is repetitive and not great, but the real problems start when data changes. Mutations tend to have complex logic for detailed patches to cache state or for handling rollbacks. For example:
+This boilerplate is repetitive and ok, but not great. The real problems start when data changes. Mutations tend to have complex logic with detailed patches to the local cache or for handling rollbacks. For example:
 
 ```tsx
 mutate({
@@ -76,15 +76,15 @@ When your data client is an abstraction over `fetch`, keeping client state consi
   </picture>
 </p>
 
-To be clear: These libraries are great at _fetching data_. I know better patterns are available in most of these libraries, and advanced developers can avoid many of the downsides. Sync engines address these problems, but they're challenging to adopt and also come with trade-offs.
+To be clear: These libraries are _great at fetching data_. I know better patterns are available in most of these libraries, and advanced developers can avoid many of the downsides. Sync engines address these problems, but they're challenging to adopt and also come with trade-offs.
 
-Still, it's too easy to get something wrong. Codebases become brittle and hard to maintain. Looking ahead to a world where AI increasingly writes more of our code and gravitates towards simple, idiomatic APIs **_the problem is that these APIs exist at all_**.
+Still, it's too easy to get something wrong. Codebases become brittle and hard to maintain. Looking ahead to a world where AI increasingly writes more of our code and gravitates towards simple, idiomatic APIs, **_the problem is that these APIs exist at all_**.
 
 ## Building _fate_
 
-I did not want to compromise on the key insights from Relay: a normalized cache, declarative data dependencies, and view co-location. I watched [Ricky Hanlon](https://x.com/rickyfm)'s [two](https://youtu.be/zyVRg2QR6LA?t=10908)-[part](https://youtu.be/p9OcztRyDl0?t=29075) React Conf talk about Async React and got excited to start building.
+I did not want to compromise on the key insights from Relay: a normalized cache, declarative data dependencies, and view co-location. At around the same time, I watched [Ricky Hanlon](https://x.com/rickyfm)'s [two](https://youtu.be/zyVRg2QR6LA?t=10908)-[part](https://youtu.be/p9OcztRyDl0?t=29075) React Conf talk about Async React and got excited to start building.
 
-When fetch-based APIs cache data based on _requests_, people think about _when_ to fetch data, and requests happen at _every level_ of the component tree, it leads to boilerplate, complexity, and inconsistency. Instead, _fate_ caches data by _objects_, shifts thinking to _what_ data is _required_, and _composes_ data requirements up to a single request at the root.
+When fetch-based APIs cache data based on _requests_, people think about _when_ to fetch data, and requests happen at _every level_ of the component tree. This leads to boilerplate, complexity, and inconsistency. Instead, _fate_ caches data by _objects_, shifts thinking to _what_ data is _required_, and _composes_ data requirements up to a single request at the root.
 
 A typical component tree in a React application using _fate_ might look like this:
 
@@ -98,11 +98,11 @@ A typical component tree in a React application using _fate_ might look like thi
 
 ## Using _fate_
 
-_fate_'s API is minimal: It's just good-looking JavaScript that focuses on answering the question of "Can we make development easier?"
+_fate_'s API is minimal: _It's just JavaScript_, focused on answering: "Can we make development easier?"
 
 ### Views
 
-Let me show you a basic _fate_ code example that declares its data requirements as "views" co-located with their components. _fate_ requires you to explicitly "select" each field that you plan to use in your components as "views" into your data:
+Let me show you a basic _fate_ code example that declares its data requirements as a "view", co-located with a component. _fate_ requires you to explicitly "select" each field that you plan to use in your components as a "view" into your data:
 
 ```tsx
 import type { Post } from '@org/server/views.ts';
@@ -110,10 +110,10 @@ import { UserView } from './UserCard.tsx';
 import { useView, view, ViewRef } from 'react-fate';
 
 export const PostView = view<Post>()({
+  author: UserView,
   content: true,
   id: true,
   title: true,
-  author: UserView,
 });
 
 export const PostCard = ({ post: postRef }: { post: ViewRef<'Post'> }) => {
@@ -129,7 +129,9 @@ export const PostCard = ({ post: postRef }: { post: ViewRef<'Post'> }) => {
 };
 ```
 
-A `ViewRef` is a reference to a concrete object of a specific type, for example a `Post` with id `7`. It contains the unique ID of the object, the type name and some _fate_-specific metadata. fate creates and manages these references for you, and you can pass them around your components as needed to resolve them against their views.
+A `ViewRef` is a reference to a concrete object of a specific type, for example a `Post` with id `7`. It contains the unique ID of the object, the type name and some _fate_-specific metadata.
+
+_fate_ creates and manages these references for you, and you can pass them around your components as needed to resolve them against their views.
 
 ### Requests
 
@@ -140,19 +142,16 @@ import { useRequest } from 'react-fate';
 import { PostCard, PostView } from './PostCard.tsx';
 
 export function App() {
-  const { posts } = useRequest({
-    posts: { list: PostView, type: 'Post' },
-  } as const);
-
+  const { posts } = useRequest({ posts: { list: PostView } });
   return posts.map((post) => <PostCard key={post.id} post={post} />);
 }
 ```
 
 ### Actions
 
-fate does not provide hooks for mutations like traditional data fetching libraries do. Instead, all tRPC mutations are exposed as actions for use with [`useActionState`](https://react.dev/reference/react/useActionState) and React Actions. They support optimistic updates out of the box.
+_fate_ does not provide hooks for mutations like traditional data fetching libraries do. Instead, all tRPC mutations are exposed as actions for use with [`useActionState`](https://react.dev/reference/react/useActionState) and React Actions. They support optimistic updates out of the box.
 
-A `LikeButton` component using fate Actions and an async component library might look like this:
+A `LikeButton` component using _fate_ Actions and an async component library might look like this:
 
 ```tsx
 const LikeButton = ({ post }) => {
@@ -171,9 +170,11 @@ const LikeButton = ({ post }) => {
 };
 ```
 
-When this action is called, fate automatically updates all views that depend on the `likes` field of the particular `Post` object. It doesn't re-render components that didn't select that field. There's no need to manually patch or invalidate cache entries. If the action fails, _fate_ rolls back the optimistic update automatically and re-renders all affected components.
+When this action is called, _fate_ automatically updates all views that depend on the `likes` field of the particular `Post` object. It doesn't re-render components that didn't select that field. There's no need to manually patch or invalidate cache entries. If the action fails, _fate_ rolls back the optimistic update automatically and re-renders all affected components.
 
-All of the above works because _fate_ has a normalized data cache under the hood, with objects stored by their ID and type name (`__typename`, e.g. `Post` or `User`), and a [tRPC backend conforming to _fate_'s requirements](/guide/server-integration), exposing `byId` and `list` queries for each data type. You can adopt _fate_ incrementally in an existing tRPC codebase without changing your existing schema by adding these queries alongside your existing procedures.
+All of the above works because _fate_ has a normalized data cache under the hood, with objects stored by their ID and type name (`__typename`, e.g. `Post` or `User`), and a [tRPC backend conforming to _fate_'s requirements](/guide/server-integration), exposing `byId` and `list` queries for each data type.
+
+You can adopt _fate_ incrementally in an existing tRPC codebase without changing your existing schema by adding these queries alongside your existing procedures.
 
 ### Clarity
 
@@ -191,15 +192,15 @@ Get started with [a ready-made template](https://github.com/nkzw-tech/fate-templ
 
 ::: code-group
 
-```npm
+```bash [npm]
 npx giget@latest gh:nkzw-tech/fate-template
 ```
 
-```pnpm
+```bash [pnpm]
 pnpx giget@latest gh:nkzw-tech/fate-template
 ```
 
-```yarn
+```bash [yarn]
 yarn dlx giget@latest gh:nkzw-tech/fate-template
 ```
 

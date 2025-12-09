@@ -151,17 +151,17 @@ const generate = async () => {
     ...byIdEntries.map(({ entityType, router }) => ({
       name: router,
       type: entityType,
-      value: `'${router}': root<RouterOutputs['${router}']['byId']>('${entityType}'),`,
+      value: `'${router}': clientRoot<RouterOutputs['${router}']['byId'], '${entityType}'>('${entityType}'),`,
     })),
     ...queryEntries.map(({ name, procedure, router, type }) => ({
       name,
       type,
-      value: `'${name}': root<RouterOutputs['${router}']['${procedure}']>('${type}'),`,
+      value: `'${name}': clientRoot<RouterOutputs['${router}']['${procedure}'], '${type}'>('${type}'),`,
     })),
     ...listEntries.map(({ list, procedure, router, type }) => ({
       name: list,
       type,
-      value: `'${list}': root<RouterOutputs['${router}']['${procedure}']>('${type}'),`,
+      value: `'${list}': clientRoot<RouterOutputs['${router}']['${procedure}'], '${type}'>('${type}'),`,
     })),
   ];
 
@@ -239,7 +239,7 @@ const generate = async () => {
 ${typeImports}
 import { createTRPCProxyClient } from '@trpc/client';
 import { inferRouterInputs, inferRouterOutputs } from '@trpc/server';
-import { createClient, createTRPCTransport, mutation, root } from 'react-fate';
+import { clientRoot, createClient, createTRPCTransport, mutation } from 'react-fate';
 
 type TRPCClientType = ReturnType<typeof createTRPCProxyClient<AppRouter>>;
 type RouterInputs = inferRouterInputs<AppRouter>;
@@ -270,8 +270,9 @@ export const createFateClient = (options: {
 ${mutationResolverBlock}
   } as const;
 
-  return createClient({
+  return createClient<[GeneratedClientRoots, GeneratedClientMutations]>({
     mutations,
+    roots,
     transport: createTRPCTransport<AppRouter, typeof trpcMutations>({
       byId: {
 ${byIdBlock}

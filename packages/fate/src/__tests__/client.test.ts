@@ -3,12 +3,14 @@ import { createClient } from '../client.ts';
 import { mutation } from '../mutation.ts';
 import { createNodeRef, getNodeRefId, isNodeRef } from '../node-ref.ts';
 import { toEntityId } from '../ref.ts';
+import { clientRoot } from '../root.ts';
 import { getSelectionPlan } from '../selection.ts';
 import { getListKey, List } from '../store.ts';
 import {
   AnyRecord,
   ConnectionMetadata,
   ConnectionTag,
+  FateRoots,
   FateThenable,
   SelectionOf,
   Snapshot,
@@ -55,6 +57,7 @@ const createNodeRefs = (ids: Array<string>) => ids.map((id) => createNodeRef(id)
 
 test(`'readView' returns the selected fields`, () => {
   const client = createClient({
+    roots: {},
     transport: {
       async fetchById() {
         return [];
@@ -109,6 +112,7 @@ test(`'readView' returns the selected fields`, () => {
 
 test(`'readView' returns view refs when views are used`, () => {
   const client = createClient({
+    roots: {},
     transport: {
       async fetchById() {
         return [];
@@ -200,6 +204,7 @@ test(`'readView' returns null for nullable view selections`, () => {
   type PostWithCategory = { __typename: 'Post'; category: Category | null; id: string };
 
   const client = createClient({
+    roots: {},
     transport: {
       async fetchById() {
         return [];
@@ -237,6 +242,7 @@ test(`'readView' returns null for nullable view selections`, () => {
 
 test(`'readView' returns view refs for list selections`, () => {
   const client = createClient({
+    roots: {},
     transport: {
       async fetchById() {
         return [];
@@ -304,6 +310,7 @@ test(`'readView' returns view refs for list selections`, () => {
 
 test(`'readView' returns only directly selected fields when view spreads are used`, () => {
   const client = createClient({
+    roots: {},
     transport: {
       async fetchById() {
         return [];
@@ -383,6 +390,7 @@ test(`'readView' returns only directly selected fields when view spreads are use
 
 test(`'readView' resolves object references and their views`, () => {
   const client = createClient({
+    roots: {},
     transport: {
       async fetchById() {
         return [];
@@ -444,6 +452,7 @@ test(`'readView' resolves object references and their views`, () => {
 
 test(`'readView' resolves fields only if the ref contains the expected views`, () => {
   const client = createClient({
+    roots: {},
     transport: {
       async fetchById() {
         return [];
@@ -513,6 +522,7 @@ test(`'readView' resolves fields only if the ref contains the expected views`, (
 
 test(`'delete' removes an entity and cleans references`, () => {
   const client = createClient({
+    roots: {},
     transport: {
       async fetchById() {
         return [];
@@ -640,10 +650,11 @@ test(`delete mutations can select a view and update related entities`, async () 
     };
   });
 
-  const client = createClient({
-    mutations: {
-      deleteComment: mutation<Comment, { id: string }, Comment>('Comment'),
-    },
+  const mutations = {
+    deleteComment: mutation<Comment, { id: string }, Comment>('Comment'),
+  };
+  const client = createClient<[FateRoots, typeof mutations]>({
+    mutations,
     transport: {
       async fetchById() {
         return [];
@@ -698,6 +709,7 @@ test(`delete mutations can select a view and update related entities`, async () 
 
 test(`'readView' resolves nested selections without view spreads`, () => {
   const client = createClient({
+    roots: {},
     transport: {
       async fetchById() {
         return [];
@@ -760,10 +772,12 @@ test('mutations write their responses into the store', async () => {
   type UpdateUserInput = { id: string; name: string };
   type UpdateUserResult = { __typename: 'User'; id: string; name: string };
 
-  const client = createClient({
-    mutations: {
-      updateUser: mutation<User, UpdateUserInput, UpdateUserResult>('User'),
-    },
+  const mutations = {
+    updateUser: mutation<User, UpdateUserInput, UpdateUserResult>('User'),
+  };
+
+  const client = createClient<[FateRoots, typeof mutations]>({
+    mutations,
     transport: {
       async fetchById() {
         return [];
@@ -807,10 +821,12 @@ test('mutations apply optimistic updates before resolving', async () => {
 
   let resolveMutation: ((value: UpdateUserResult) => void) | undefined;
 
-  const client = createClient({
-    mutations: {
-      updateUser: mutation<User, UpdateUserInput, UpdateUserResult>('User'),
-    },
+  const mutations = {
+    updateUser: mutation<User, UpdateUserInput, UpdateUserResult>('User'),
+  };
+
+  const client = createClient<[FateRoots, typeof mutations]>({
+    mutations,
     transport: {
       async fetchById() {
         return [];
@@ -863,11 +879,13 @@ test('optimistic updates stack when mutations resolve out of order', async () =>
   let resolveLike: (() => void) | undefined;
   let serverLikes = 100;
 
-  const client = createClient({
-    mutations: {
-      like: mutation<Post, UpdateLikesInput, UpdateLikesResult>('Post'),
-      unlike: mutation<Post, UpdateLikesInput, UpdateLikesResult>('Post'),
-    },
+  const mutations = {
+    like: mutation<Post, UpdateLikesInput, UpdateLikesResult>('Post'),
+    unlike: mutation<Post, UpdateLikesInput, UpdateLikesResult>('Post'),
+  };
+
+  const client = createClient<[FateRoots, typeof mutations]>({
+    mutations,
     transport: {
       async fetchById() {
         return [];
@@ -941,10 +959,13 @@ test('mutations roll back optimistic updates when requests fail', async () => {
     throw new Error('network error');
   });
 
-  const client = createClient({
-    mutations: {
-      updateUser: mutation<User, UpdateUserInput, UpdateUserResult>('User'),
-    },
+  const mutations = {
+    updateUser: mutation<User, UpdateUserInput, UpdateUserResult>('User'),
+  };
+
+  const client = createClient<[FateRoots, typeof mutations]>({
+    mutations,
+    roots: {},
     transport: {
       async fetchById() {
         return [];
@@ -996,10 +1017,13 @@ test(`optimistic updates without identifiers are ignored`, async () => {
 
   const mutate = vi.fn().mockResolvedValue({ content: 'Published', id: 'post-1' });
 
-  const client = createClient({
-    mutations: {
-      createPost: mutation<Post, CreatePostInput, CreatePostResult>('Post'),
-    },
+  const mutations = {
+    createPost: mutation<Post, CreatePostInput, CreatePostResult>('Post'),
+  };
+
+  const client = createClient<[FateRoots, typeof mutations]>({
+    mutations,
+    roots: {},
     transport: {
       async fetchById() {
         return [];
@@ -1048,10 +1072,13 @@ test('optimistic records are replaced once the mutation resolves', async () => {
     },
   });
 
-  const client = createClient({
-    mutations: {
-      addComment: mutation<Comment, CreateCommentInput, CreateCommentResult>('Comment'),
-    },
+  const mutations = {
+    addComment: mutation<Comment, CreateCommentInput, CreateCommentResult>('Comment'),
+  };
+
+  const client = createClient<[FateRoots, typeof mutations]>({
+    mutations,
+    roots: {},
     transport: {
       async fetchById() {
         return [];
@@ -1127,8 +1154,11 @@ test('mutations insert records into root lists optimistically', async () => {
     pagination: { hasNext: false, hasPrevious: false },
   });
 
-  const client = createClient({
-    mutations: { createPost: mutation<Post, { title: string }, Post>('Post') },
+  const mutations = { createPost: mutation<Post, { title: string }, Post>('Post') };
+
+  const client = createClient<[FateRoots, typeof mutations]>({
+    mutations,
+    roots: { posts: clientRoot('Post') },
     transport: {
       async fetchById() {
         return [];
@@ -1143,10 +1173,10 @@ test('mutations insert records into root lists optimistically', async () => {
   const PostConnectionView = {
     args: { first: 1 },
     items: { cursor: true, node: PostView },
-  } as const;
+  };
 
   await client.request({
-    posts: { args: { first: 1 }, list: PostConnectionView, type: 'Post' },
+    posts: { args: { first: 1 }, list: PostConnectionView },
   });
 
   const optimisticId = 'optimistic:post-2';
@@ -1187,8 +1217,11 @@ test('mutations can control root list insertion order', async () => {
     pagination: { hasNext: false, hasPrevious: false },
   });
 
-  const client = createClient({
-    mutations: { createPost: mutation<Post, { title: string }, Post>('Post') },
+  const mutations = { createPost: mutation<Post, { title: string }, Post>('Post') };
+
+  const client = createClient<[FateRoots, typeof mutations]>({
+    mutations,
+    roots: { posts: clientRoot('Post') },
     transport: {
       async fetchById() {
         return [];
@@ -1203,14 +1236,14 @@ test('mutations can control root list insertion order', async () => {
   const PostConnectionView = {
     args: { first: 2 },
     items: { cursor: true, node: PostView },
-  } as const;
+  };
 
   await client.request({
-    posts: { args: { first: 2 }, list: PostConnectionView, type: 'Post' },
+    posts: { args: { first: 2 }, list: PostConnectionView },
   });
 
   const { posts: listBefore } = client.getRequestResult({
-    posts: { args: { first: 2 }, list: PostConnectionView, type: 'Post' },
+    posts: { args: { first: 2 }, list: PostConnectionView },
   });
 
   expect(
@@ -1266,10 +1299,12 @@ test('does not fetch missing fields for optimistic records', async () => {
       }) satisfies Comment,
   );
 
-  const client = createClient({
-    mutations: {
-      addComment: mutation<Comment, { content: string; postId: string }, Comment>('Comment'),
-    },
+  const mutations = {
+    addComment: mutation<Comment, { content: string; postId: string }, Comment>('Comment'),
+  };
+
+  const client = createClient<[FateRoots, typeof mutations]>({
+    mutations,
     transport: {
       fetchById,
       // @ts-expect-error
@@ -1309,6 +1344,7 @@ test('stops re-requesting unsatisfied selections', async () => {
   const fetchById = vi.fn(async () => []);
 
   const client = createClient({
+    roots: {},
     transport: { fetchById },
     types: [{ type: 'User' }],
   });
@@ -1346,6 +1382,7 @@ test(`'readView' fetches missing fields using the selection`, async () => {
   ]);
 
   const client = createClient({
+    roots: {},
     transport: {
       fetchById,
     },
@@ -1400,6 +1437,7 @@ test(`'request' groups ids by selection before fetching`, async () => {
   ]);
 
   const client = createClient({
+    roots: { post: clientRoot('Post') },
     transport: {
       fetchById,
     },
@@ -1417,7 +1455,6 @@ test(`'request' groups ids by selection before fetching`, async () => {
   await client.request({
     post: {
       ids: ['post-1'],
-      type: 'Post',
       view: PostView,
     },
   });
@@ -1436,6 +1473,7 @@ test(`'request' forwards nested selection args to by-id transports`, async () =>
   ]);
 
   const client = createClient({
+    roots: { post: clientRoot('Post') },
     transport: {
       fetchById,
     },
@@ -1454,7 +1492,6 @@ test(`'request' forwards nested selection args to by-id transports`, async () =>
   await client.request({
     post: {
       ids: ['post-1'],
-      type: 'Post',
       view: PostView,
     },
   });
@@ -1470,6 +1507,7 @@ test(`'request' fetches root queries via the transport`, async () => {
   const fetchQuery = vi.fn().mockResolvedValue({ __typename: 'User', id: 'user-1', name: 'Kiwi' });
 
   const client = createClient({
+    roots: { viewer: clientRoot('User') },
     transport: {
       fetchById: vi.fn(),
       fetchQuery,
@@ -1485,7 +1523,6 @@ test(`'request' fetches root queries via the transport`, async () => {
   const { viewer } = await client.request({
     viewer: {
       args: { expand: true },
-      type: 'User' as const,
       view: UserView,
     },
   });
@@ -1506,6 +1543,7 @@ test(`'request' fetches view selections via the transport`, async () => {
     .mockResolvedValue([{ __typename: 'Post', content: 'Apple Banana', id: 'post-1' }]);
 
   const client = createClient({
+    roots: { post: clientRoot('Post') },
     transport: {
       fetchById,
     },
@@ -1530,7 +1568,6 @@ test(`'request' fetches view selections via the transport`, async () => {
   await client.request({
     post: {
       ids: ['post-1'],
-      type: 'Post',
       view: PostView,
     },
   });
@@ -1551,6 +1588,7 @@ test(`'request' fetches list selections via the transport`, async () => {
   });
 
   const client = createClient({
+    roots: { comments: clientRoot('Comment') },
     transport: {
       async fetchById() {
         return [];
@@ -1569,7 +1607,6 @@ test(`'request' fetches list selections via the transport`, async () => {
     comments: {
       args: { first: 1 },
       list: CommentView,
-      type: 'Comment',
     },
   });
 
@@ -1584,6 +1621,7 @@ test(`'request' forwards nested selection args to list transports`, async () => 
   });
 
   const client = createClient({
+    roots: { posts: clientRoot('Post') },
     transport: {
       async fetchById() {
         return [];
@@ -1606,7 +1644,6 @@ test(`'request' forwards nested selection args to list transports`, async () => 
     posts: {
       args: { first: 1 },
       list: PostView,
-      type: 'Post',
     },
   });
 
@@ -1630,7 +1667,11 @@ test(`'request' returns connection metadata for root lists and paginates via 'lo
       pagination: { hasNext: false, hasPrevious: false },
     });
 
-  const client = createClient({
+  const roots = { posts: clientRoot('Post') };
+  const mutations = {};
+
+  const client = createClient<[typeof roots, typeof mutations]>({
+    roots,
     transport: {
       async fetchById() {
         return [];
@@ -1648,17 +1689,16 @@ test(`'request' returns connection metadata for root lists and paginates via 'lo
       node: PostView,
     },
     pagination: { hasNext: true, nextCursor: true },
-  } as const;
+  };
 
   const request = {
     posts: {
       args: { first: 2 },
       list: PostConnectionView,
-      type: 'Post',
     },
-  } as const;
+  };
 
-  const { posts } = await client.request(request);
+  const { posts } = await client.request<typeof request>(request);
   const metadata = (posts as AnyRecord)[ConnectionTag as any] as ConnectionMetadata | undefined;
 
   expect(fetchList).toHaveBeenCalledWith('posts', new Set(['id', 'title']), { first: 1 });
@@ -1687,6 +1727,7 @@ test(`'request' refetches cached data when using 'store-and-network' mode`, asyn
     .mockResolvedValue([{ __typename: 'Post', content: 'Banana', id: 'post-1' }]);
 
   const client = createClient({
+    roots: { post: clientRoot('Post') },
     transport: { fetchById },
     types: [{ type: 'Post' }],
   });
@@ -1703,27 +1744,12 @@ test(`'request' refetches cached data when using 'store-and-network' mode`, asyn
     new Set(['__typename', 'content', 'id']),
   );
 
-  await client.request(
-    {
-      post: {
-        ids: ['post-1'],
-        type: 'Post',
-        view: PostView,
-      },
-    },
-    { mode: 'cache-first' },
-  );
+  await client.request({ post: { ids: ['post-1'], view: PostView } }, { mode: 'cache-first' });
 
   expect(fetchById).toHaveBeenCalledTimes(0);
 
   await client.request(
-    {
-      post: {
-        ids: ['post-1'],
-        type: 'Post',
-        view: PostView,
-      },
-    },
+    { post: { ids: ['post-1'], view: PostView } },
     { mode: 'stale-while-revalidate' },
   );
 
@@ -1738,6 +1764,7 @@ test(`'request' only fetches once when cache is missing for 'store-and-network'`
     .mockResolvedValue([{ __typename: 'Post', content: 'Banana', id: 'post-1' }]);
 
   const client = createClient({
+    roots: { post: clientRoot('Post') },
     transport: { fetchById },
     types: [{ type: 'Post' }],
   });
@@ -1751,7 +1778,6 @@ test(`'request' only fetches once when cache is missing for 'store-and-network'`
     {
       post: {
         ids: ['post-1'],
-        type: 'Post',
         view: PostView,
       },
     },
@@ -1773,6 +1799,7 @@ test(`'request' waits for a network response when using 'network' mode`, async (
   );
 
   const client = createClient({
+    roots: { post: clientRoot('Post') },
     transport: { fetchById },
     types: [{ type: 'Post' }],
   });
@@ -1816,6 +1843,7 @@ test(`'request' waits for a network response when using 'network' mode`, async (
 
 test(`'readView' returns list metadata when available`, () => {
   const client = createClient({
+    roots: {},
     transport: {
       async fetchById() {
         return [];
@@ -1920,6 +1948,7 @@ test('stores connection lists using argument hashes', () => {
   };
 
   const client = createClient({
+    roots: {},
     transport: {
       async fetchById() {
         return [];
@@ -1984,6 +2013,7 @@ test(`'loadConnection' scopes args to the connection field`, async () => {
   ]);
 
   const client = createClient({
+    roots: {},
     transport: {
       fetchById,
     },
@@ -2048,10 +2078,13 @@ test(`mutation results with arrays mark nested fields as fetched`, async () => {
     id: 'post-1',
   } satisfies UpdatePostResult);
 
-  const client = createClient({
-    mutations: {
-      updatePost: mutation<Post, UpdatePostInput, UpdatePostResult>('Post'),
-    },
+  const mutations = {
+    updatePost: mutation<Post, UpdatePostInput, UpdatePostResult>('Post'),
+  };
+
+  const client = createClient<[FateRoots, typeof mutations]>({
+    mutations,
+    roots: {},
     transport: {
       async fetchById() {
         return [];
@@ -2134,10 +2167,13 @@ test(`mutation results with connections reuse view args and hydrate nodes`, asyn
     } satisfies UpdatePostResult;
   });
 
-  const client = createClient({
-    mutations: {
-      updatePost: mutation<Post, UpdatePostInput, UpdatePostResult>('Post'),
-    },
+  const mutations = {
+    updatePost: mutation<Post, UpdatePostInput, UpdatePostResult>('Post'),
+  };
+
+  const client = createClient<[FateRoots, typeof mutations]>({
+    mutations,
+    roots: {},
     transport: {
       fetchById,
       mutate: mutate as any,
@@ -2248,10 +2284,13 @@ test('mutations do not reset previously loaded connection entries', async () => 
       id: 'post-1',
     });
 
-  const client = createClient({
-    mutations: {
-      updatePost: mutation<Post, UpdatePostInput, UpdatePostResult>('Post'),
-    },
+  const mutations = {
+    updatePost: mutation<Post, UpdatePostInput, UpdatePostResult>('Post'),
+  };
+
+  const client = createClient<[FateRoots, typeof mutations]>({
+    mutations,
+    roots: {},
     transport: {
       async fetchById() {
         return [];
@@ -2327,6 +2366,7 @@ test('mutations do not reset previously loaded connection entries', async () => 
 
 test(`'write' registers list state for entity lists`, () => {
   const client = createClient({
+    roots: {},
     transport: {
       async fetchById() {
         return [];
@@ -2371,6 +2411,7 @@ test(`'write' registers list state for entity lists`, () => {
 
 test(`'linkParentLists' maintains list registrations for parent entities`, () => {
   const client = createClient({
+    roots: {},
     transport: {
       async fetchById() {
         return [];
@@ -2417,6 +2458,7 @@ test(`'linkParentLists' maintains list registrations for parent entities`, () =>
 
 test(`'linkParentLists' preserves pagination metadata across scoped lists`, () => {
   const client = createClient({
+    roots: {},
     transport: {
       async fetchById() {
         return [];
@@ -2446,7 +2488,7 @@ test(`'linkParentLists' preserves pagination metadata across scoped lists`, () =
     hasPrevious: false,
     nextCursor: 'next-cursor',
     previousCursor: 'prev-cursor',
-  } as const;
+  };
   const defaultListKey = getListKey(postId, 'comments');
   const scopedListKey = getListKey(postId, 'comments', 'filtered');
   client.store.setList(defaultListKey, {

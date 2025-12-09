@@ -2,7 +2,7 @@
 import type { AppRouter, Comment, Post, User } from '@nkzw/fate-server/src/trpc/router.ts';
 import { createTRPCProxyClient } from '@trpc/client';
 import { inferRouterInputs, inferRouterOutputs } from '@trpc/server';
-import { createClient, createTRPCTransport, mutation, root } from 'react-fate';
+import { clientRoot, createClient, createTRPCTransport, mutation } from 'react-fate';
 
 type TRPCClientType = ReturnType<typeof createTRPCProxyClient<AppRouter>>;
 type RouterInputs = inferRouterInputs<AppRouter>;
@@ -28,15 +28,15 @@ const mutations = {
 } as const;
 
 const roots = {
-  categories: root<RouterOutputs['category']['list']>('Category'),
-  category: root<RouterOutputs['category']['byId']>('Category'),
-  comment: root<RouterOutputs['comment']['byId']>('Comment'),
-  commentSearch: root<RouterOutputs['comment']['search']>('Comment'),
-  event: root<RouterOutputs['event']['byId']>('Event'),
-  events: root<RouterOutputs['event']['list']>('Event'),
-  post: root<RouterOutputs['post']['byId']>('Post'),
-  posts: root<RouterOutputs['post']['list']>('Post'),
-  viewer: root<RouterOutputs['user']['viewer']>('User'),
+  categories: clientRoot<RouterOutputs['category']['list'], 'Category'>('Category'),
+  category: clientRoot<RouterOutputs['category']['byId'], 'Category'>('Category'),
+  comment: clientRoot<RouterOutputs['comment']['byId'], 'Comment'>('Comment'),
+  commentSearch: clientRoot<RouterOutputs['comment']['search'], 'Comment'>('Comment'),
+  event: clientRoot<RouterOutputs['event']['byId'], 'Event'>('Event'),
+  events: clientRoot<RouterOutputs['event']['list'], 'Event'>('Event'),
+  post: clientRoot<RouterOutputs['post']['byId'], 'Post'>('Post'),
+  posts: clientRoot<RouterOutputs['post']['list'], 'Post'>('Post'),
+  viewer: clientRoot<RouterOutputs['user']['viewer'], 'User'>('User'),
 } as const;
 
 type GeneratedClientMutations = typeof mutations;
@@ -61,8 +61,9 @@ export const createFateClient = (options: {
     'user.update': (client: TRPCClientType) => client.user.update.mutate,
   } as const;
 
-  return createClient({
+  return createClient<[GeneratedClientRoots, GeneratedClientMutations]>({
     mutations,
+    roots,
     transport: createTRPCTransport<AppRouter, typeof trpcMutations>({
       byId: {
         Category:

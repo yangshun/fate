@@ -23,7 +23,7 @@ const PostConnectionView = {
   pagination: {
     hasNext: true,
   },
-} as const;
+};
 
 const PostFeed = ({
   posts: postsRef,
@@ -102,23 +102,11 @@ export default function HomeRoute() {
   const { data: session } = AuthClient.useSession();
   const user = session?.user;
   const { categories, events, posts, viewer } = useRequest({
-    categories: {
-      list: CategoryView,
-      type: 'Category',
-    },
-    events: {
-      list: EventView,
-      type: 'Event',
-    },
-    posts: {
-      list: PostConnectionView,
-      type: 'Post',
-    },
-    viewer: {
-      type: 'User',
-      view: UserCardView,
-    },
-  } as const);
+    categories: { list: CategoryView },
+    events: { list: EventView },
+    posts: { list: PostConnectionView },
+    viewer: { view: UserCardView },
+  });
 
   return (
     <Section gap={32}>
@@ -151,7 +139,7 @@ export default function HomeRoute() {
             )}
           </Stack>
         </Card>
-        {viewer?.id && <UserCard viewer={viewer} />}
+        {viewer && <UserCard viewer={viewer} />}
       </div>
       <div className="grid gap-8 lg:grid-cols-[1.6fr_1fr] lg:items-start">
         <PostFeed posts={posts} user={viewer} />

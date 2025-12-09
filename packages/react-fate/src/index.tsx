@@ -8,10 +8,11 @@
  */
 
 export {
+  clientRoot,
   createClient,
   createTRPCTransport,
   mutation,
-  root,
+  toEntityId,
   type ConnectionRef,
   type ViewRef,
   view,

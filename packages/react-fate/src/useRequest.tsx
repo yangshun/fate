@@ -4,19 +4,19 @@ import { use, useDeferredValue, useEffect } from 'react';
 import { useFateClient } from './context.tsx';
 import { ClientRoots } from './index.tsx';
 
-type Roots = keyof ClientRoots extends never ? FateRoots : ClientRoots;
+export type Roots = keyof ClientRoots extends never ? FateRoots : ClientRoots;
 
 /**
  * Declares the data a screen needs and kicks off fetching, suspending while the
  * request resolves.
  *
  * @example
- * const { posts } = useRequest({ posts: { root: PostView, type: 'Post' } as const });
+ * const { posts } = useRequest({ posts: { list: PostView } });
  */
-export function useRequest<Roots, R extends Request>(
+export function useRequest<R extends Request, O extends FateRoots = Roots>(
   request: R,
   options?: RequestOptions,
-): RequestResult<R> {
+): RequestResult<O, R> {
   const client = useFateClient();
   const promise = client.request(request, options);
   const mode = options?.mode ?? 'cache-first';
@@ -29,5 +29,5 @@ export function useRequest<Roots, R extends Request>(
     }
   }, [client, mode, request]);
 
-  return use(useDeferredValue(promise));
+  return use(useDeferredValue(promise)) as unknown as RequestResult<O, R>;
 }

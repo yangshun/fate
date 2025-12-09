@@ -86,8 +86,6 @@ type NestedValue<Path extends string, Value> = Path extends `${infer Head}.${inf
   ? { [K in Head]: NestedValue<Tail, Value> }
   : { [K in Path]: Value };
 
-export type EmptyMutations = Record<never, MutationDefinition<any, any, any>>;
-
 /**
  * Base type for client mutations.
  */
@@ -169,7 +167,7 @@ const emptySet: ReadonlySet<string> = new Set();
 export function wrapMutation<
   I extends MutationIdentifier<any, any, any>,
   M extends Record<string, MutationDefinition<any, any, any>>,
->(client: FateClient<M>, identifier: I): MutationFunction<I> {
+>(client: FateClient<any, M>, identifier: I): MutationFunction<I> {
   const config = client.getTypeConfig(identifier.entity);
 
   return async ({

@@ -19,7 +19,7 @@ const CommentConnectionView = {
   items: {
     node: CommentView,
   },
-} as const;
+};
 
 const PostView = view<Post>()({
   comments: CommentConnectionView,
